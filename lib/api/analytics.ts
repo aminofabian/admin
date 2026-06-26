@@ -96,6 +96,8 @@ export interface BonusAnalytics {
   average_signup_bonus: number;
   first_deposit_bonus: number;
   average_first_deposit_bonus_pct: number;
+  referral_bonus: number;
+  referred_player_bonus: number;
   transfer_bonus: number;
   average_transfer_bonus_pct: number;
   seized_or_tipped_fund: number;

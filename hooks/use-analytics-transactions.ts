@@ -88,6 +88,8 @@ function normalizeBonusAnalytics(raw: unknown): BonusAnalytics {
     average_signup_bonus: n(o.average_signup_bonus),
     first_deposit_bonus: n(o.first_deposit_bonus),
     average_first_deposit_bonus_pct: n(o.average_first_deposit_bonus_pct),
+    referral_bonus: n(o.referral_bonus),
+    referred_player_bonus: n(o.referred_player_bonus),
     transfer_bonus: n(o.transfer_bonus),
     average_transfer_bonus_pct: n(o.average_transfer_bonus_pct),
     seized_or_tipped_fund: n(o.seized_or_tipped_fund),

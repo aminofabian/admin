@@ -384,6 +384,9 @@ function useSuperAdminPlayersData({
       if (filters.email.trim()) {
         params.email = filters.email.trim();
       }
+      if (filters.referred_by.trim()) {
+        params.referred_by = filters.referred_by.trim();
+      }
 
       // Add agent (username) if provided from filter
       if (filters.agent.trim()) {
@@ -451,6 +454,7 @@ function useSuperAdminPlayersData({
     filters.username,
     filters.full_name,
     filters.email,
+    filters.referred_by,
     filters.agent,
     filters.company,
     filters.date_from,
@@ -491,6 +495,7 @@ function useSuperAdminPlayerFilters(
     username: '',
     full_name: '',
     email: '',
+    referred_by: '',
     agent: initialAgent || '',
     company: 'all',
     date_from: '',
@@ -503,6 +508,7 @@ function useSuperAdminPlayerFilters(
     username: '',
     full_name: '',
     email: '',
+    referred_by: '',
     agent: initialAgent || '',
     company: 'all',
     date_from: '',
@@ -525,6 +531,7 @@ function useSuperAdminPlayerFilters(
       username: '',
       full_name: '',
       email: '',
+      referred_by: '',
       agent: '',
       company: 'all',
       date_from: '',
@@ -541,6 +548,7 @@ function useSuperAdminPlayerFilters(
       appliedFilters.username.trim() !== '' ||
       appliedFilters.full_name.trim() !== '' ||
       appliedFilters.email.trim() !== '' ||
+      appliedFilters.referred_by.trim() !== '' ||
       appliedFilters.agent.trim() !== '' ||
       appliedFilters.company.trim() !== '' && appliedFilters.company !== 'all' ||
       appliedFilters.date_from.trim() !== '' ||
@@ -630,6 +638,7 @@ function SuperAdminPlayersFiltersWrapper({
       filters.username.trim() !== '' ||
       filters.full_name.trim() !== '' ||
       filters.email.trim() !== '' ||
+      filters.referred_by.trim() !== '' ||
       filters.agent.trim() !== '' ||
       (filters.company && filters.company !== 'all') ||
       filters.date_from.trim() !== '' ||
@@ -699,7 +708,7 @@ function SuperAdminPlayersFiltersWrapper({
               <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
               Search
             </h4>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div>
                 <label className={labelClasses}>Company</label>
                 <Select
@@ -738,6 +747,16 @@ function SuperAdminPlayersFiltersWrapper({
                   value={filters.email}
                   onChange={(e) => onFilterChange('email', e.target.value)}
                   placeholder="Filter by email"
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Referred by</label>
+                <input
+                  type="text"
+                  value={filters.referred_by}
+                  onChange={(e) => onFilterChange('referred_by', e.target.value)}
+                  placeholder="Enter referrer username..."
                   className={inputClasses}
                 />
               </div>

@@ -60,6 +60,7 @@ export interface PlayersFiltersState {
     username: string;
     full_name: string;
     email: string;
+    referred_by: string;
     agent: string;
     date_from: string;
     date_to: string;
@@ -153,7 +154,7 @@ export function PlayersFilters({
                             <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
                             Search
                         </h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <label className={labelClasses}>Username</label>
                                 <input
@@ -181,6 +182,16 @@ export function PlayersFilters({
                                     value={filters.email}
                                     onChange={(e) => onFilterChange('email', e.target.value)}
                                     placeholder="Filter by email"
+                                    className={inputClasses}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Referred by</label>
+                                <input
+                                    type="text"
+                                    value={filters.referred_by}
+                                    onChange={(e) => onFilterChange('referred_by', e.target.value)}
+                                    placeholder="Enter referrer username..."
                                     className={inputClasses}
                                 />
                             </div>
