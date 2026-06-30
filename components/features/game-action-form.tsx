@@ -15,7 +15,8 @@ import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
 import type { TransactionQueue, GameActionType } from '@/types';
 
-function isRiversweepsGame(
+/** Games that require both new_balance and new_entries when marking complete (manual recharge/redeem). */
+function requiresEntriesOnComplete(
   gameCode?: string | null,
   gameTitle?: string | null,
 ): boolean {
@@ -24,7 +25,10 @@ function isRiversweepsGame(
   return (
     code.includes('riversweeps') ||
     title.includes('riversweeps') ||
-    title.includes('river sweeps')
+    title.includes('river sweeps') ||
+    code.includes('goldendragon') ||
+    code.includes('golden_dragon') ||
+    title.includes('golden dragon')
   );
 }
 
@@ -106,9 +110,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       : null;
   }, [creditsBalances.new]);
 
-  const isRiversweeps = useMemo(() => {
+  const requiresEntries = useMemo(() => {
     if (!queue) return false;
-    return isRiversweepsGame(queue.game_code, queue.game);
+    return requiresEntriesOnComplete(queue.game_code, queue.game);
   }, [queue]);
 
   const games = useGamesStore((state) => state.games);
@@ -242,7 +246,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (queue.type === 'recharge_game' || queue.type === 'redeem_game') {
       return {
         balance: true,
-        entries: isRiversweeps,
+        entries: requiresEntries,
         password: false,
         username: false,
       };
@@ -506,7 +510,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </h4>
             <p className="text-[10px] text-muted-foreground">
               {queue.type === 'recharge_game' || queue.type === 'redeem_game' 
-                ? isRiversweeps
+                ? requiresEntries
                   ? 'Enter the new game balance and entries after manually completing the operation.'
                   : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
