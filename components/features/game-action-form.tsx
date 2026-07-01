@@ -13,7 +13,7 @@ import {
 } from '@/lib/utils/game-queue-display';
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
-import { requiresEntriesOnComplete } from '@/lib/utils/game-entries-on-complete';
+import { requiresEntriesOnCompleteFromQueue } from '@/lib/utils/game-entries-on-complete';
 import {
   sanitizeGameActionEntriesInput,
   sanitizeGameActionNumericInput,
@@ -24,12 +24,27 @@ function findQueueGame(games: Game[] | null, queue: TransactionQueue): Game | un
   const gamesList = Array.isArray(games) ? games : [];
   const code = queue.game_code?.toLowerCase().trim() ?? '';
   const title = queue.game?.toLowerCase().trim() ?? '';
+  const normalizedTitle = title.replace(/\s+/g, '');
   if (!code && !title) return undefined;
 
   return gamesList.find((g) => {
     const gCode = g.code?.toLowerCase().trim() ?? '';
     const gTitle = g.title?.toLowerCase().trim() ?? '';
-    return (code && gCode === code) || (title && gTitle === title);
+    const normalizedGameTitle = gTitle.replace(/\s+/g, '');
+
+    if (code && gCode && (gCode === code || gCode.includes(code) || code.includes(gCode))) {
+      return true;
+    }
+
+    if (
+      title &&
+      gTitle &&
+      (gTitle === title || normalizedGameTitle === normalizedTitle)
+    ) {
+      return true;
+    }
+
+    return false;
   });
 }
 
@@ -104,11 +119,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const games = useGamesStore((state) => state.games);
   const fetchGames = useGamesStore((state) => state.fetchGames);
+  const gamesLoading = useGamesStore((state) => state.isLoading);
 
   useEffect(() => {
-    if (!queue || games) return;
+    if (!queue || gamesLoading || games !== null) return;
     void fetchGames();
-  }, [queue, games, fetchGames]);
+  }, [queue, games, gamesLoading, fetchGames]);
 
   const matchedGame = useMemo(() => {
     if (!queue) return undefined;
@@ -117,30 +133,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const requiresEntries = useMemo(() => {
     if (!queue) return false;
-
-    const data =
-      queue.data && typeof queue.data === 'object' && !Array.isArray(queue.data)
-        ? queue.data
-        : null;
-
-    const dataGameCode =
-      typeof data?.game_code === 'string'
-        ? data.game_code
-        : typeof data?.gameCode === 'string'
-          ? data.gameCode
-          : null;
-    const dataGameTitle =
-      typeof data?.game_title === 'string'
-        ? data.game_title
-        : typeof data?.game === 'string'
-          ? data.game
-          : null;
-
-    return requiresEntriesOnComplete({
-      gameCode: queue.game_code || dataGameCode || matchedGame?.code,
-      gameTitle: queue.game || dataGameTitle || matchedGame?.title,
-      gameCategory: matchedGame?.game_category,
-    });
+    return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
   const isManualMode = useMemo(() => {
@@ -245,6 +238,10 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         if (entries?.trim()) {
           const sanitizedEntries = sanitizeGameActionEntriesInput(entries);
           if (sanitizedEntries) data.new_entries = sanitizedEntries;
+        }
+
+        if (requiresEntries && !data.new_entries) {
+          throw new Error('New Entries is required for this game.');
         }
       }
 

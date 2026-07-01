@@ -1,6 +1,8 @@
 import {
   normalizeGameIdentifier,
   requiresEntriesOnComplete,
+  requiresEntriesOnCompleteFromQueue,
+  collectQueueGameHintStrings,
 } from '../game-entries-on-complete';
 
 describe('normalizeGameIdentifier', () => {
@@ -8,6 +10,7 @@ describe('normalizeGameIdentifier', () => {
     expect(normalizeGameIdentifier('Golden Dragon')).toBe('goldendragon');
     expect(normalizeGameIdentifier('RIVER_SWEEP')).toBe('riversweep');
     expect(normalizeGameIdentifier('river-pay')).toBe('riverpay');
+    expect(normalizeGameIdentifier('Riversweeps')).toBe('riversweeps');
   });
 });
 
@@ -15,6 +18,7 @@ describe('requiresEntriesOnComplete', () => {
   it('matches River Sweeps title and code variants', () => {
     expect(requiresEntriesOnComplete({ gameTitle: 'River Sweeps' })).toBe(true);
     expect(requiresEntriesOnComplete({ gameTitle: 'Riversweep' })).toBe(true);
+    expect(requiresEntriesOnComplete({ gameTitle: 'Riversweeps' })).toBe(true);
     expect(requiresEntriesOnComplete({ gameCode: 'RIVERSWEEPS' })).toBe(true);
     expect(requiresEntriesOnComplete({ gameCode: 'river_pay' })).toBe(true);
   });
@@ -32,9 +36,36 @@ describe('requiresEntriesOnComplete', () => {
     expect(requiresEntriesOnComplete({ gameCode: 'RS', gameCategory: 'Riversweep' })).toBe(true);
   });
 
+  it('matches hints nested in queue data and remarks', () => {
+    expect(
+      requiresEntriesOnComplete({
+        dataStrings: collectQueueGameHintStrings({
+          integration: 'RiverPay',
+          game_code: 'RS',
+        }),
+      }),
+    ).toBe(true);
+    expect(requiresEntriesOnComplete({ remarks: 'Manual Riversweeps recharge queued' })).toBe(
+      true,
+    );
+  });
+
   it('does not match unrelated games', () => {
     expect(requiresEntriesOnComplete({ gameTitle: 'Ultra Panda' })).toBe(false);
     expect(requiresEntriesOnComplete({ gameCode: 'ULTRAPANDA' })).toBe(false);
     expect(requiresEntriesOnComplete({ gameTitle: 'Juwa' })).toBe(false);
+  });
+});
+
+describe('requiresEntriesOnCompleteFromQueue', () => {
+  it('reads requires_new_entries from queue data', () => {
+    expect(
+      requiresEntriesOnCompleteFromQueue({
+        game: '',
+        game_code: '',
+        remarks: '',
+        data: { requires_new_entries: true },
+      }),
+    ).toBe(true);
   });
 });
