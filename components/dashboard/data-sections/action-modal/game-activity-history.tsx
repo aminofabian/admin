@@ -2,21 +2,12 @@
 
 import { Drawer } from '@/components/ui';
 import { GameActionForm } from '@/components/features';
-import type { TransactionQueue, GameActionType } from '@/types';
+import type { TransactionQueue, GameActionType, GameActionRequest } from '@/types';
 
 interface ActionModalProps {
   isOpen: boolean;
   queue: TransactionQueue | null;
-  onSubmit: (data: {
-    txn_id: string | number;
-    type: GameActionType;
-    new_password?: string;
-    new_balance?: string;
-    new_entries?: string;
-    new_username?: string;
-    game_username?: string;
-    game_password?: string;
-  }) => Promise<void>;
+  onSubmit: (data: GameActionRequest) => Promise<void>;
   onClose: () => void;
 }
 
@@ -25,16 +16,7 @@ export function ActionModal({ isOpen, queue, onSubmit, onClose }: ActionModalPro
     onClose();
   };
 
-  const handleSubmit = async (data: {
-    txn_id: string | number;
-    type: GameActionType;
-    new_password?: string;
-    new_balance?: string;
-    new_entries?: string;
-    new_username?: string;
-    game_username?: string;
-    game_password?: string;
-  }) => {
+  const handleSubmit = async (data: GameActionRequest) => {
     try {
       await onSubmit(data);
       onClose();

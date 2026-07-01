@@ -18,7 +18,7 @@ import {
   sanitizeGameActionEntriesInput,
   sanitizeGameActionNumericInput,
 } from '@/lib/utils/game-action-payload';
-import type { TransactionQueue, GameActionType, Game } from '@/types';
+import type { TransactionQueue, GameActionType, GameActionRequest, Game } from '@/types';
 
 function findQueueGame(games: Game[] | null, queue: TransactionQueue): Game | undefined {
   const gamesList = Array.isArray(games) ? games : [];
@@ -42,17 +42,7 @@ const mapTypeToLabel = (type: string): string => {
 
 interface GameActionFormProps {
   queue: TransactionQueue | null;
-  onSubmit: (data: {
-    txn_id: string | number;
-    type: GameActionType;
-    new_password?: string;
-    new_balance?: string;
-    new_game_balance?: string;
-    new_entries?: string;
-    new_username?: string;
-    game_username?: string;
-    game_password?: string;
-  }) => Promise<void>;
+  onSubmit: (data: GameActionRequest) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -228,16 +218,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     setIsSubmitting(true);
     
     try {
-      const data: {
-        txn_id: string | number;
-        type: GameActionType;
-        new_password?: string;
-        new_balance?: string;
-        new_entries?: string;
-        new_username?: string;
-        game_username?: string;
-        game_password?: string;
-      } = {
+      const data: GameActionRequest = {
         txn_id: queue.id,
         type: action,
       };
