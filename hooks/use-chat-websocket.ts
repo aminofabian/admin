@@ -261,19 +261,32 @@ export function useChatWebSocket({
   const purchaseRequestRef = useRef(0);
   const historyAbortRef = useRef<AbortController | null>(null);
   const purchaseAbortRef = useRef<AbortController | null>(null);
+  const sendAbortRef = useRef<AbortController | null>(null);
   const activeConnectionKeyRef = useRef("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const chatIdRef = useRef(chatId);
+  const userIdRef = useRef(userId);
+
+  useEffect(() => {
+    chatIdRef.current = chatId;
+    userIdRef.current = userId;
+  }, [chatId, userId]);
 
   // Connection state for message sending decisions
   const connectionStateRef = useRef<
     "disconnected" | "connecting" | "connected"
   >("disconnected");
 
-  // Message queue for messages sent while connecting
-  const messageQueueRef = useRef<Array<{ text: string; timestamp: number }>>(
-    [],
-  );
+  // Message queue for messages sent while connecting (scoped per room)
+  const messageQueueRef = useRef<
+    Array<{
+      text: string;
+      timestamp: number;
+      userId: number;
+      chatId: string | null;
+    }>
+  >([]);
   const connectionWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const CONNECTION_WAIT_TIMEOUT = 3000; // Wait 3 seconds for connection before falling back
 
@@ -293,6 +306,14 @@ export function useChatWebSocket({
     historyAbortRef.current = null;
     purchaseAbortRef.current?.abort();
     purchaseAbortRef.current = null;
+    sendAbortRef.current?.abort();
+    sendAbortRef.current = new AbortController();
+
+    if (connectionWaitTimeoutRef.current) {
+      clearTimeout(connectionWaitTimeoutRef.current);
+      connectionWaitTimeoutRef.current = null;
+    }
+    messageQueueRef.current = [];
 
     setMessages([]);
     setPurchaseHistory([]);
@@ -784,7 +805,12 @@ export function useChatWebSocket({
                 sent_time: new Date().toISOString(),
               });
               if (!sent) {
-                messageQueueRef.current.push({ text, timestamp: Date.now() });
+                messageQueueRef.current.push({
+                  text,
+                  timestamp: Date.now(),
+                  userId,
+                  chatId,
+                });
               }
             });
           }
@@ -1089,16 +1115,39 @@ export function useChatWebSocket({
   const sendMessageViaRest = useCallback(
     async (text: string, retryCount = 0): Promise<boolean> => {
       const MAX_RETRIES = 2;
+      const requestChatId = chatId;
+      const requestUserId = userId;
+
+      const isStillActiveRoom = () =>
+        isMountedRef.current &&
+        chatIdRef.current === requestChatId &&
+        userIdRef.current === requestUserId;
 
       try {
         const token = storage.get(TOKEN_KEY);
         if (!token) {
           console.error("❌ No authentication token found");
-          setConnectionError("Authentication required. Please log in again.");
+          if (isStillActiveRoom()) {
+            setConnectionError("Authentication required. Please log in again.");
+          }
           return false;
         }
 
-        const safeChatroomId = resolveSafeChatroomId(chatId, userId);
+        const safeChatroomId = resolveSafeChatroomId(
+          requestChatId,
+          requestUserId,
+        );
+        const abortController = new AbortController();
+        const roomAbortSignal = sendAbortRef.current?.signal;
+        if (roomAbortSignal) {
+          if (roomAbortSignal.aborted) {
+            return false;
+          }
+          roomAbortSignal.addEventListener("abort", () =>
+            abortController.abort(),
+          );
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
           method: "POST",
           headers: {
@@ -1107,12 +1156,13 @@ export function useChatWebSocket({
           },
           body: JSON.stringify({
             sender_id: adminId,
-            receiver_id: userId,
+            receiver_id: requestUserId,
             ...(safeChatroomId ? { chatroom_id: safeChatroomId } : {}),
             message: text,
             is_player_sender: false,
             sent_time: new Date().toISOString(),
           }),
+          signal: abortController.signal,
         });
 
         if (!response.ok) {
@@ -1130,13 +1180,16 @@ export function useChatWebSocket({
             retryCount < MAX_RETRIES &&
             (response.status >= 500 || response.status === 0)
           ) {
+            if (!isStillActiveRoom()) {
+              return false;
+            }
             !IS_PROD &&
               console.log(
                 `🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`,
               );
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * (retryCount + 1)),
-            ); // Exponential backoff
+            );
             return sendMessageViaRest(text, retryCount + 1);
           }
 
@@ -1147,8 +1200,7 @@ export function useChatWebSocket({
 
         !IS_PROD && console.log("✅ Message sent successfully via REST API");
 
-        // FIX #9: Guard state updates against unmounted component
-        if (isMountedRef.current) {
+        if (isStillActiveRoom()) {
           const messageDate = new Date();
           const newMessage: ChatMessage = {
             id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -1174,9 +1226,16 @@ export function useChatWebSocket({
 
         return true;
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return false;
+        }
+
         console.error("❌ Failed to send message via REST API:", error);
 
         if (retryCount < MAX_RETRIES) {
+          if (!isStillActiveRoom()) {
+            return false;
+          }
           !IS_PROD &&
             console.log(
               `🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`,
@@ -1187,13 +1246,15 @@ export function useChatWebSocket({
           return sendMessageViaRest(text, retryCount + 1);
         }
 
-        setConnectionError(
-          "Failed to send message. Please check your connection and try again.",
-        );
+        if (isStillActiveRoom()) {
+          setConnectionError(
+            "Failed to send message. Please check your connection and try again.",
+          );
+        }
         return false;
       }
     },
-    [adminId, userId],
+    [adminId, userId, chatId],
   );
 
   const disconnect = useCallback(() => {
@@ -1208,17 +1269,24 @@ export function useChatWebSocket({
       typingTimeoutRef.current = null;
     }
 
-    // FIX #9: Only send queued messages if still mounted
+    // FIX #9: Only send queued messages if still mounted and for the current room
     if (messageQueueRef.current.length > 0 && isMountedRef.current) {
-      !IS_PROD &&
-        console.log(
-          `📤 Processing ${messageQueueRef.current.length} queued messages before disconnect...`,
-        );
-      const queuedMessages = [...messageQueueRef.current];
+      const currentUserId = userId;
+      const currentChatId = chatId;
+      const queuedMessages = messageQueueRef.current.filter(
+        (entry) =>
+          entry.userId === currentUserId && entry.chatId === currentChatId,
+      );
       messageQueueRef.current = [];
-      queuedMessages.forEach(({ text }) => {
-        void sendMessageViaRest(text);
-      });
+      if (queuedMessages.length > 0) {
+        !IS_PROD &&
+          console.log(
+            `📤 Processing ${queuedMessages.length} queued messages before disconnect...`,
+          );
+        queuedMessages.forEach(({ text }) => {
+          void sendMessageViaRest(text);
+        });
+      }
     } else {
       messageQueueRef.current = [];
     }
@@ -1234,7 +1302,7 @@ export function useChatWebSocket({
     if (isMountedRef.current) {
       setIsConnected(false);
     }
-  }, [sendMessageViaRest]);
+  }, [sendMessageViaRest, userId, chatId]);
 
   // FIX #1: Use manager for sending instead of raw WS ref
   const sendMessage = useCallback(
@@ -1261,7 +1329,12 @@ export function useChatWebSocket({
       // Case 2: Connecting — queue and wait
       if (connectionStateRef.current === "connecting") {
         !IS_PROD && console.log("⏳ WebSocket connecting, queueing message...");
-        messageQueueRef.current.push({ text, timestamp: Date.now() });
+        messageQueueRef.current.push({
+          text,
+          timestamp: Date.now(),
+          userId,
+          chatId,
+        });
 
         if (!connectionWaitTimeoutRef.current) {
           connectionWaitTimeoutRef.current = setTimeout(async () => {
@@ -1272,7 +1345,12 @@ export function useChatWebSocket({
                 console.log(
                   "⏱️ Connection timeout, sending queued messages via REST API...",
                 );
-              const queuedMessages = [...messageQueueRef.current];
+              const currentUserId = userId;
+              const currentChatId = chatId;
+              const queuedMessages = messageQueueRef.current.filter(
+                (entry) =>
+                  entry.userId === currentUserId && entry.chatId === currentChatId,
+              );
               messageQueueRef.current = [];
               for (const { text: queuedText } of queuedMessages) {
                 await sendMessageViaRest(queuedText);
@@ -1288,7 +1366,7 @@ export function useChatWebSocket({
         console.log("📤 WebSocket not available, sending via REST API...");
       void sendMessageViaRest(text);
     },
-    [adminId, sendMessageViaRest],
+    [adminId, userId, chatId, sendMessageViaRest],
   );
 
   const markAsRead = useCallback(
@@ -1391,6 +1469,8 @@ export function useChatWebSocket({
       historyAbortRef.current = null;
       purchaseAbortRef.current?.abort();
       purchaseAbortRef.current = null;
+      sendAbortRef.current?.abort();
+      sendAbortRef.current = null;
     };
   }, []);
 
@@ -1405,7 +1485,7 @@ export function useChatWebSocket({
     return () => {
       disconnect();
     };
-  }, [effectiveEnabled, userId, connect, disconnect]);
+  }, [effectiveEnabled, userId, chatId, connect, disconnect]);
 
   return {
     messages,

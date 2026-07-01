@@ -1,4 +1,5 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
+import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
 import type { ChatUser } from '@/types';
 
 /** Totals from admin chat list / online endpoints (`counts` on JSON). */
@@ -425,6 +426,7 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const ledgerRow = { ...raw, ...(player as Record<string, unknown>) };
 
   const userId = Number(chat.user_id ?? chat.player_id ?? player.id ?? 0);
+  const directoryId = pickChatroomIdFromRow(raw, userId);
   const username =
     chat.username ||
     chat.player_username ||
@@ -436,7 +438,7 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
   return {
-    id: String(chat.chat_id ?? chat.id ?? player.id ?? ''),
+    id: directoryId,
     user_id: userId,
     username,
     fullName: player.full_name || player.name || undefined,

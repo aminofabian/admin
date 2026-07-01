@@ -16,6 +16,7 @@ import {
   payloadIncludesWinningBalanceFields,
   transformChatToUser,
 } from '@/lib/chat/map-chat-api';
+import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -147,7 +148,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const debouncedChatUpdateRef = useRef(
     debounce((...args: unknown[]) => {
       const updateData = args[0] as Record<string, unknown>;
-      const chatId = String(updateData.chat_id ?? updateData.id ?? '');
+      const userId = Number(updateData.user_id ?? updateData.player_id ?? 0);
+      const chatId = pickChatroomIdFromRow(updateData, userId);
       const now = Date.now();
       const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
 
@@ -550,7 +552,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // Handle update_chat with unread_count = 0 (when messages are marked as read)
       if ((messageWrapper && messageWrapper.type === 'update_chat') || data.type === 'update_chat') {
         const updateData = messageWrapper || data;
-        const chatId = String(updateData.chat_id || updateData.id || '');
+        const userId = Number(updateData.user_id ?? updateData.player_id ?? 0);
+        const chatId = pickChatroomIdFromRow(updateData, userId);
         const unreadCount = extractUnreadCount(updateData);
 
         // If unread count is explicitly 0, update immediately (messages marked as read)
