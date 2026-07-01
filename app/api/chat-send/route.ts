@@ -32,10 +32,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    // 2. If 400, try Postman format: chatroom_id + message (backend may expect chatroom_id)
-    if (response.status === 400 && body.receiver_id != null && body.message != null) {
+    // 2. If 400, try Postman format with explicit chatroom_id (never use receiver_id as chatroom_id)
+    const chatroomId = body.chatroom_id ?? body.chatroomId;
+    if (response.status === 400 && chatroomId != null && body.message != null) {
       const postmanBody = {
-        chatroom_id: body.receiver_id,
+        chatroom_id: chatroomId,
         message: body.message,
       };
       response = await fetch(backendUrl, {

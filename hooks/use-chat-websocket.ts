@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import {
   API_BASE_URL,
   WEBSOCKET_BASE_URL,
@@ -258,6 +259,8 @@ export function useChatWebSocket({
   const listenersRef = useRef<WebSocketListeners | null>(null);
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
+  const historyAbortRef = useRef<AbortController | null>(null);
+  const purchaseAbortRef = useRef<AbortController | null>(null);
   const activeConnectionKeyRef = useRef("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -286,6 +289,11 @@ export function useChatWebSocket({
   }, [onBalanceUpdated]);
 
   useEffect(() => {
+    historyAbortRef.current?.abort();
+    historyAbortRef.current = null;
+    purchaseAbortRef.current?.abort();
+    purchaseAbortRef.current = null;
+
     setMessages([]);
     setPurchaseHistory([]);
     setIsTyping(false);
@@ -328,13 +336,18 @@ export function useChatWebSocket({
           page: String(page),
         });
 
-        if (chatId) {
-          params.append("chatroom_id", chatId);
+        const safeChatId = resolveSafeChatroomId(chatId, userId);
+        if (safeChatId) {
+          params.append("chatroom_id", safeChatId);
         }
 
         if (userId) {
           params.append("user_id", String(userId));
         }
+
+        historyAbortRef.current?.abort();
+        const abortController = new AbortController();
+        historyAbortRef.current = abortController;
 
         const response = await fetch(
           `/api/chat-messages?${params.toString()}`,
@@ -344,6 +357,7 @@ export function useChatWebSocket({
               Authorization: `Bearer ${token}`,
             },
             credentials: "include",
+            signal: abortController.signal,
           },
         );
 
@@ -399,6 +413,9 @@ export function useChatWebSocket({
 
         return payload;
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return null;
+        }
         console.error("❌ Failed to fetch message history:", error);
         return null;
       }
@@ -503,10 +520,15 @@ export function useChatWebSocket({
         return;
       }
 
-      //  Try chatId first (could be chatroom_id), fallback to userId (player_id)
+      // Prefer verified chatroom_id; fall back to user_id when missing or colliding with player id
       const params = new URLSearchParams();
-      if (chatId) params.append("chatroom_id", chatId);
+      const safeChatId = resolveSafeChatroomId(chatId, userId);
+      if (safeChatId) params.append("chatroom_id", safeChatId);
       if (userId) params.append("user_id", String(userId));
+
+      purchaseAbortRef.current?.abort();
+      const abortController = new AbortController();
+      purchaseAbortRef.current = abortController;
 
       const response = await fetch(`/api/chat-purchases?${params.toString()}`, {
         headers: {
@@ -514,6 +536,7 @@ export function useChatWebSocket({
           Authorization: `Bearer ${token}`,
         },
         credentials: "include",
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -580,9 +603,14 @@ export function useChatWebSocket({
         setPurchaseHistory(purchases.reverse()); // Reverse to show oldest first
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       console.error("❌ Failed to fetch purchase history:", error);
     } finally {
-      setIsPurchaseHistoryLoading(false);
+      if (purchaseRequestRef.current === requestId) {
+        setIsPurchaseHistoryLoading(false);
+      }
     }
   }, [chatId, userId]); // Include userId in dependency array
 
@@ -1070,6 +1098,7 @@ export function useChatWebSocket({
           return false;
         }
 
+        const safeChatroomId = resolveSafeChatroomId(chatId, userId);
         const response = await fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
           method: "POST",
           headers: {
@@ -1079,6 +1108,7 @@ export function useChatWebSocket({
           body: JSON.stringify({
             sender_id: adminId,
             receiver_id: userId,
+            ...(safeChatroomId ? { chatroom_id: safeChatroomId } : {}),
             message: text,
             is_player_sender: false,
             sent_time: new Date().toISOString(),
@@ -1357,6 +1387,10 @@ export function useChatWebSocket({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      historyAbortRef.current?.abort();
+      historyAbortRef.current = null;
+      purchaseAbortRef.current?.abort();
+      purchaseAbortRef.current = null;
     };
   }, []);
 

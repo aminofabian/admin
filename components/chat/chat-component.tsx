@@ -31,6 +31,7 @@ import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
 } from "@/lib/chat/map-chat-api";
+import { pickChatroomIdFromRow } from "@/lib/chat/safe-chatroom-id";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
 import {
   PlayerListSidebar,
@@ -559,7 +560,7 @@ export function ChatComponent() {
 
         const messageTime = new Date(msg.timestamp).getTime();
         const timeDiff = Math.abs(messageTime - lastOp.timestamp);
-        const effectiveUserId = msg.userId || selectedPlayer?.id;
+        const effectiveUserId = msg.userId ?? selectedPlayer?.user_id;
 
         if (
           effectiveUserId === lastOp.playerId &&
@@ -592,7 +593,7 @@ export function ChatComponent() {
         msg.type,
         msg.operationType,
       );
-      const effectiveUserId = msg.userId || selectedPlayer?.id;
+      const effectiveUserId = msg.userId ?? selectedPlayer?.user_id;
 
       if (isPurchaseNotification(msg)) {
         const amount = parseFloat(details.amount || "0");
@@ -616,7 +617,7 @@ export function ChatComponent() {
           let intentMsgIndex = -1;
           for (let j = processedMessages.length - 1; j >= 0; j--) {
             const prevMsg = processedMessages[j];
-            const prevEffectiveUserId = prevMsg.userId || selectedPlayer?.id;
+            const prevEffectiveUserId = prevMsg.userId ?? selectedPlayer?.user_id;
 
             if (
               prevEffectiveUserId === effectiveUserId &&
@@ -698,7 +699,7 @@ export function ChatComponent() {
       .map((m) =>
         enhancements.has(m.id) ? { ...m, ...enhancements.get(m.id) } : m,
       );
-  }, [wsMessages, selectedPlayer?.id]);
+  }, [wsMessages, selectedPlayer?.user_id]);
 
   const groupedMessages = useMemo(
     () => groupMessagesByDate(visibleMessages),
@@ -2417,9 +2418,13 @@ export function ChatComponent() {
           // Transform the player data to ChatUser format
           const player = data.player || data;
           if (player && (player.id || player.user_id)) {
+            const userId = Number(player.id || player.user_id || 0);
             const chatUser: Player = {
-              id: String(player.chatroom_id || player.id || ""),
-              user_id: Number(player.id || player.user_id || 0),
+              id: pickChatroomIdFromRow(
+                player as Record<string, unknown>,
+                userId,
+              ),
+              user_id: userId,
               username: player.username || player.full_name || "Unknown",
               fullName: player.full_name || player.name || undefined,
               email: player.email || "",
@@ -2828,7 +2833,7 @@ export function ChatComponent() {
                 const userId = Number(row.id ?? row.user_id ?? 0);
                 if (Number.isFinite(userId) && userId > 0) {
                   resolved = {
-                    id: String(row.chatroom_id ?? row.chat_id ?? row.id ?? ""),
+                    id: pickChatroomIdFromRow(row, userId),
                     user_id: userId,
                     username: String(row.username ?? row.full_name ?? "Unknown"),
                     fullName: row.full_name

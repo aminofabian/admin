@@ -486,8 +486,7 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
     row.chatroom_id ??
     row.chat_id ??
     row.chatroomId ??
-    row.id ??
-    (resolvedUserId > 0 ? resolvedUserId : '');
+    '';
 
   return {
     id: String(directoryId !== '' && directoryId !== undefined && directoryId !== null ? directoryId : ''),

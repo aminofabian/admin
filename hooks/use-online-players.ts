@@ -12,6 +12,7 @@ import {
   ledgerStringOrUndefined,
   pickWinningBalanceFromBackend,
 } from '@/lib/chat/map-chat-api';
+import { pickChatroomIdFromRow, resolveSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -52,9 +53,11 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
     const rawTimestamp = (data.last_message_timestamp || data.last_message_time) as string | undefined;
     const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
+    const playerId = Number(data.player_id || 0);
+
     return {
-      id: String(data.id || ''),
-      user_id: Number(data.player_id || 0),
+      id: resolveSafeChatroomId(data.id, playerId) ?? '',
+      user_id: playerId,
       username: String(data.player_username || data.player_full_name || 'Unknown'),
       fullName: data.player_full_name ? String(data.player_full_name) : undefined,
       email: String(data.player_email || ''),
@@ -88,9 +91,11 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
   const rawTimestamp = (data.last_message_timestamp || data.last_message_time) as string | undefined;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
+  const userId = Number(player.id || data.player_id || 0);
+
   return {
-    id: String(data.chat_id || data.chatroom_id || data.id || player.id || ''),
-    user_id: Number(player.id || data.player_id || 0),
+    id: pickChatroomIdFromRow(data as Record<string, unknown>, userId),
+    user_id: userId,
     username: String(player.username || player.full_name || 'Unknown'),
     fullName: player.full_name ? String(player.full_name) : (player.name ? String(player.name) : undefined),
     email: String(player.email || ''),

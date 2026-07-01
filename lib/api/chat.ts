@@ -25,6 +25,7 @@ function getAdminUserId(): number {
 export async function sendChatMessageToPlayer(
   receiverUserId: number,
   message: string,
+  chatroomId?: string | number | null,
 ): Promise<boolean> {
   const adminId = getAdminUserId();
   if (adminId <= 0) {
@@ -41,6 +42,9 @@ export async function sendChatMessageToPlayer(
     await apiClient.post<unknown>('api/chat-send', {
       sender_id: adminId,
       receiver_id: receiverUserId,
+      ...(chatroomId != null && String(chatroomId).trim() !== ''
+        ? { chatroom_id: chatroomId }
+        : {}),
       message,
       is_player_sender: false,
       sent_time: new Date().toISOString(),

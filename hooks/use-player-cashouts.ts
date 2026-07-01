@@ -31,33 +31,46 @@ export const usePlayerCashouts = (
 
   // Fetch initial cashouts
   useEffect(() => {
-    if (!chatroomId) {
+    if (!chatroomId && !playerUserId) {
       setCashouts([]);
       return;
     }
 
+    const abortController = new AbortController();
+    let cancelled = false;
+
     const fetchCashouts = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         console.log('🎯 usePlayerCashouts: Fetching for chatroom ID:', chatroomId);
-        const data = await playersApi.cashouts(chatroomId);
+        const data = await playersApi.cashouts(chatroomId, {
+          userId: playerUserId,
+          signal: abortController.signal,
+        });
+        if (cancelled) return;
         console.log(' usePlayerCashouts: Got cashouts:', data);
-        // Filter out completed cashouts - only show pending/processing ones
         const activeCashouts = data.filter((c) => c.status !== 'completed');
         setCashouts(activeCashouts);
       } catch (err) {
+        if (cancelled) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error('❌ Failed to fetch player cashouts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch cashouts');
         setCashouts([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    fetchCashouts();
-  }, [chatroomId]);
+    void fetchCashouts();
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
+  }, [chatroomId, playerUserId]);
 
   // Subscribe to real-time updates from processing websocket
   useEffect(() => {
