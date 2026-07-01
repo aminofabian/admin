@@ -1307,7 +1307,7 @@ export function useChatWebSocket({
   // FIX #1: Use manager for sending instead of raw WS ref
   const sendMessage = useCallback(
     (text: string) => {
-      if (!text.trim()) return;
+      if (!text.trim() || !userId) return;
 
       // Case 1: Connected — send via manager
       if (connectionStateRef.current === "connected") {
