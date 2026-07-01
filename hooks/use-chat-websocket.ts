@@ -259,6 +259,8 @@ export function useChatWebSocket({
   const listenersRef = useRef<WebSocketListeners | null>(null);
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
+  const historyAbortRef = useRef<AbortController | null>(null);
+  const purchaseAbortRef = useRef<AbortController | null>(null);
   const activeConnectionKeyRef = useRef("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -287,6 +289,11 @@ export function useChatWebSocket({
   }, [onBalanceUpdated]);
 
   useEffect(() => {
+    historyAbortRef.current?.abort();
+    historyAbortRef.current = null;
+    purchaseAbortRef.current?.abort();
+    purchaseAbortRef.current = null;
+
     setMessages([]);
     setPurchaseHistory([]);
     setIsTyping(false);
@@ -338,6 +345,10 @@ export function useChatWebSocket({
           params.append("user_id", String(userId));
         }
 
+        historyAbortRef.current?.abort();
+        const abortController = new AbortController();
+        historyAbortRef.current = abortController;
+
         const response = await fetch(
           `/api/chat-messages?${params.toString()}`,
           {
@@ -346,6 +357,7 @@ export function useChatWebSocket({
               Authorization: `Bearer ${token}`,
             },
             credentials: "include",
+            signal: abortController.signal,
           },
         );
 
@@ -401,6 +413,9 @@ export function useChatWebSocket({
 
         return payload;
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return null;
+        }
         console.error("❌ Failed to fetch message history:", error);
         return null;
       }
@@ -511,12 +526,17 @@ export function useChatWebSocket({
       if (safeChatId) params.append("chatroom_id", safeChatId);
       if (userId) params.append("user_id", String(userId));
 
+      purchaseAbortRef.current?.abort();
+      const abortController = new AbortController();
+      purchaseAbortRef.current = abortController;
+
       const response = await fetch(`/api/chat-purchases?${params.toString()}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         credentials: "include",
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -583,9 +603,14 @@ export function useChatWebSocket({
         setPurchaseHistory(purchases.reverse()); // Reverse to show oldest first
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       console.error("❌ Failed to fetch purchase history:", error);
     } finally {
-      setIsPurchaseHistoryLoading(false);
+      if (purchaseRequestRef.current === requestId) {
+        setIsPurchaseHistoryLoading(false);
+      }
     }
   }, [chatId, userId]); // Include userId in dependency array
 
@@ -1362,6 +1387,10 @@ export function useChatWebSocket({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      historyAbortRef.current?.abort();
+      historyAbortRef.current = null;
+      purchaseAbortRef.current?.abort();
+      purchaseAbortRef.current = null;
     };
   }, []);
 
