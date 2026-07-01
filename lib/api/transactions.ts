@@ -1,5 +1,9 @@
 import { apiClient } from './client';
 import { paramsWithClientTimezone } from '@/lib/utils/browser-timezone';
+import {
+  sanitizeGameActionEntriesInput,
+  sanitizeGameActionNumericInput,
+} from '@/lib/utils/game-action-payload';
 import type { 
   Transaction,
   TransactionQueue,
@@ -200,8 +204,19 @@ export const transactionsApi = {
       formData.append('new_password', data.new_password);
     }
     
-    if (data.new_balance) formData.append('new_balance', data.new_balance);
-    if (data.new_entries) formData.append('new_entries', data.new_entries);
+    if (data.new_balance) {
+      const sanitizedBalance = sanitizeGameActionNumericInput(data.new_balance);
+      if (sanitizedBalance) formData.append('new_balance', sanitizedBalance);
+    }
+
+    if (data.new_entries) {
+      const sanitizedEntries = sanitizeGameActionEntriesInput(data.new_entries);
+      if (sanitizedEntries) {
+        formData.append('new_entries', sanitizedEntries);
+        // Some backend handlers read `entries` instead of `new_entries`.
+        formData.append('entries', sanitizedEntries);
+      }
+    }
 
     // Use the Next.js API proxy route to avoid CORS issues
     // The proxy route will forward the request to the Django backend
