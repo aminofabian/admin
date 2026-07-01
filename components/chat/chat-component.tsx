@@ -31,6 +31,7 @@ import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
 } from "@/lib/chat/map-chat-api";
+import { pickChatroomIdFromRow } from "@/lib/chat/safe-chatroom-id";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
 import {
   PlayerListSidebar,
@@ -2417,9 +2418,13 @@ export function ChatComponent() {
           // Transform the player data to ChatUser format
           const player = data.player || data;
           if (player && (player.id || player.user_id)) {
+            const userId = Number(player.id || player.user_id || 0);
             const chatUser: Player = {
-              id: String(player.chatroom_id || player.id || ""),
-              user_id: Number(player.id || player.user_id || 0),
+              id: pickChatroomIdFromRow(
+                player as Record<string, unknown>,
+                userId,
+              ),
+              user_id: userId,
               username: player.username || player.full_name || "Unknown",
               fullName: player.full_name || player.name || undefined,
               email: player.email || "",
@@ -2828,7 +2833,7 @@ export function ChatComponent() {
                 const userId = Number(row.id ?? row.user_id ?? 0);
                 if (Number.isFinite(userId) && userId > 0) {
                   resolved = {
-                    id: String(row.chatroom_id ?? row.chat_id ?? row.id ?? ""),
+                    id: pickChatroomIdFromRow(row, userId),
                     user_id: userId,
                     username: String(row.username ?? row.full_name ?? "Unknown"),
                     fullName: row.full_name

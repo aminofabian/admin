@@ -12,3 +12,15 @@ export function resolveSafeChatroomId(
   if (userId != null && trimmed === String(userId)) return null;
   return trimmed;
 }
+
+/**
+ * Reads chatroom id fields from an API row without falling back to player/user id.
+ */
+export function pickChatroomIdFromRow(
+  row: Record<string, unknown>,
+  userId?: number | null,
+): string {
+  const raw = row.chatroom_id ?? row.chat_id ?? row.chatroomId ?? null;
+  if (raw === null || raw === undefined || raw === '') return '';
+  return resolveSafeChatroomId(raw, userId) ?? '';
+}
