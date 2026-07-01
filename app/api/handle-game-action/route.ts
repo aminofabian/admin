@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  appendSanitizedGameBalanceFields,
+  appendSanitizedGameEntriesFields,
+} from '@/lib/utils/game-action-payload';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
+
+function extractDjangoHtmlErrorMessage(html: string): string | null {
+  const titleMatch = html.match(/<title>\s*([\s\S]*?)\s*<\/title>/i);
+  if (titleMatch?.[1]) {
+    const title = titleMatch[1].replace(/\s+/g, ' ').trim();
+    if (title) return title;
+  }
+
+  const exceptionMatch = html.match(
+    /<pre class="exception_value">([\s\S]*?)<\/pre>/i,
+  );
+  if (exceptionMatch?.[1]) {
+    return exceptionMatch[1].replace(/\s+/g, ' ').trim();
+  }
+
+  const h1Match = html.match(/<h1>\s*([^<]+?)\s*<\/h1>/i);
+  if (h1Match?.[1]) {
+    return h1Match[1].replace(/\s+/g, ' ').trim();
+  }
+
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,9 +50,31 @@ export async function POST(request: NextRequest) {
 
     // Convert FormData to URLSearchParams for Django (like curl -d "txn_id=123&type=cancel")
     const params = new URLSearchParams();
+    const rawBalance =
+      formData.get('new_game_balance')?.toString() ??
+      formData.get('new_balance')?.toString();
+    const rawEntries =
+      formData.get('new_entries')?.toString() ?? formData.get('entries')?.toString();
+
     formData.forEach((value, key) => {
+      if (
+        key === 'new_balance' ||
+        key === 'new_game_balance' ||
+        key === 'new_entries' ||
+        key === 'entries'
+      ) {
+        return;
+      }
       params.append(key, value.toString());
     });
+
+    if (rawBalance) {
+      appendSanitizedGameBalanceFields(params, rawBalance);
+    }
+
+    if (rawEntries) {
+      appendSanitizedGameEntriesFields(params, rawEntries);
+    }
 
     console.log('📤 URL params:', params.toString());
 
@@ -53,10 +101,12 @@ export async function POST(request: NextRequest) {
       console.log('📥 Full response text:', text);
       console.log('📥 Attempted URL:', backendUrl);
       
+      const djangoMessage = extractDjangoHtmlErrorMessage(text);
+      
       return NextResponse.json(
         { 
           status: 'error', 
-          message: 'Backend returned invalid response',
+          message: djangoMessage || 'Backend returned invalid response',
           details: text.substring(0, 1000),
           attemptedUrl: backendUrl,
           backendUrl: BACKEND_URL
@@ -96,4 +146,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -14,6 +14,10 @@ import {
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
 import { requiresEntriesOnComplete } from '@/lib/utils/game-entries-on-complete';
+import {
+  sanitizeGameActionEntriesInput,
+  sanitizeGameActionNumericInput,
+} from '@/lib/utils/game-action-payload';
 import type { TransactionQueue, GameActionType, Game } from '@/types';
 
 function findQueueGame(games: Game[] | null, queue: TransactionQueue): Game | undefined {
@@ -43,6 +47,7 @@ interface GameActionFormProps {
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
+    new_game_balance?: string;
     new_entries?: string;
     new_username?: string;
     game_username?: string;
@@ -249,8 +254,17 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           if (password?.trim()) data.new_password = password.trim();
         }
         
-        if (balance?.trim()) data.new_balance = balance.trim();
-        if (entries?.trim()) data.new_entries = entries.trim();
+        if (balance?.trim()) {
+          const sanitizedBalance = sanitizeGameActionNumericInput(balance);
+          if (sanitizedBalance) {
+            data.new_balance = sanitizedBalance;
+            data.new_game_balance = sanitizedBalance;
+          }
+        }
+        if (entries?.trim()) {
+          const sanitizedEntries = sanitizeGameActionEntriesInput(entries);
+          if (sanitizedEntries) data.new_entries = sanitizedEntries;
+        }
       }
 
       await onSubmit(data);
@@ -287,8 +301,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const requiredFields = getRequiredFields();
 
   const isFormValid = () => {
-    if (requiredFields.balance && !newBalance.trim()) return false;
-    if (requiredFields.entries && !newEntries.trim()) return false;
+    if (requiredFields.balance) {
+      if (!newBalance.trim()) return false;
+      if (!sanitizeGameActionNumericInput(newBalance)) return false;
+    }
+    if (requiredFields.entries) {
+      if (!newEntries.trim()) return false;
+      if (!sanitizeGameActionEntriesInput(newEntries)) return false;
+    }
     if (requiredFields.password && !newPassword.trim()) return false;
     if (requiredFields.username && !newUsername.trim()) return false;
     return true;
