@@ -22,5 +22,7 @@ export function pickChatroomIdFromRow(
 ): string {
   const raw = row.chatroom_id ?? row.chat_id ?? row.chatroomId ?? null;
   if (raw === null || raw === undefined || raw === '') return '';
-  return resolveSafeChatroomId(raw, userId) ?? '';
+  const chatId =
+    typeof raw === 'string' || typeof raw === 'number' ? raw : String(raw);
+  return resolveSafeChatroomId(chatId, userId) ?? '';
 }

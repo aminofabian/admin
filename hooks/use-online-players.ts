@@ -7,7 +7,11 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
-import { pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
+import {
+  extractChatListServerCounts,
+  ledgerStringOrUndefined,
+  pickWinningBalanceFromBackend,
+} from '@/lib/chat/map-chat-api';
 import { pickChatroomIdFromRow, resolveSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 
 // Production mode check
