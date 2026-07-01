@@ -13,23 +13,20 @@ import {
 } from '@/lib/utils/game-queue-display';
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
-import type { TransactionQueue, GameActionType } from '@/types';
+import { requiresEntriesOnComplete } from '@/lib/utils/game-entries-on-complete';
+import type { TransactionQueue, GameActionType, Game } from '@/types';
 
-/** Games that require both new_balance and new_entries when marking complete (manual recharge/redeem). */
-function requiresEntriesOnComplete(
-  gameCode?: string | null,
-  gameTitle?: string | null,
-): boolean {
-  const code = gameCode?.toLowerCase() ?? '';
-  const title = gameTitle?.toLowerCase() ?? '';
-  return (
-    code.includes('riversweeps') ||
-    title.includes('riversweeps') ||
-    title.includes('river sweeps') ||
-    code.includes('goldendragon') ||
-    code.includes('golden_dragon') ||
-    title.includes('golden dragon')
-  );
+function findQueueGame(games: Game[] | null, queue: TransactionQueue): Game | undefined {
+  const gamesList = Array.isArray(games) ? games : [];
+  const code = queue.game_code?.toLowerCase().trim() ?? '';
+  const title = queue.game?.toLowerCase().trim() ?? '';
+  if (!code && !title) return undefined;
+
+  return gamesList.find((g) => {
+    const gCode = g.code?.toLowerCase().trim() ?? '';
+    const gTitle = g.title?.toLowerCase().trim() ?? '';
+    return (code && gCode === code) || (title && gTitle === title);
+  });
 }
 
 const mapTypeToLabel = (type: string): string => {
@@ -110,11 +107,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       : null;
   }, [creditsBalances.new]);
 
-  const requiresEntries = useMemo(() => {
-    if (!queue) return false;
-    return requiresEntriesOnComplete(queue.game_code, queue.game);
-  }, [queue]);
-
   const games = useGamesStore((state) => state.games);
   const fetchGames = useGamesStore((state) => state.fetchGames);
 
@@ -123,17 +115,48 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     void fetchGames();
   }, [queue, games, fetchGames]);
 
+  const matchedGame = useMemo(() => {
+    if (!queue) return undefined;
+    return findQueueGame(games, queue);
+  }, [queue, games]);
+
+  const requiresEntries = useMemo(() => {
+    if (!queue) return false;
+
+    const data =
+      queue.data && typeof queue.data === 'object' && !Array.isArray(queue.data)
+        ? queue.data
+        : null;
+
+    const dataGameCode =
+      typeof data?.game_code === 'string'
+        ? data.game_code
+        : typeof data?.gameCode === 'string'
+          ? data.gameCode
+          : null;
+    const dataGameTitle =
+      typeof data?.game_title === 'string'
+        ? data.game_title
+        : typeof data?.game === 'string'
+          ? data.game
+          : null;
+
+    return requiresEntriesOnComplete({
+      gameCode: queue.game_code || dataGameCode || matchedGame?.code,
+      gameTitle: queue.game || dataGameTitle || matchedGame?.title,
+      gameCategory: matchedGame?.game_category,
+    });
+  }, [queue, matchedGame]);
+
   const isManualMode = useMemo(() => {
     if (!queue) return false;
     if (isManualQueueRequest(queue.remarks)) return true;
 
     const gamesList = Array.isArray(games) ? games : games ?? [];
-    const game = gamesList.find(
-      (g) => g.code === queue.game_code || g.title === queue.game,
-    );
+    const game = matchedGame ?? findQueueGame(gamesList, queue);
 
     return isManualGameMode(game?.game_operation_mode);
-  }, [queue, games]);
+  }, [queue, games, matchedGame]);
 
   const renderRechargeRedeemBalanceBoxes = () => (
     <div className="grid grid-cols-2 gap-2">
