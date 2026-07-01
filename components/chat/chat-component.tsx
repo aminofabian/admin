@@ -559,7 +559,7 @@ export function ChatComponent() {
 
         const messageTime = new Date(msg.timestamp).getTime();
         const timeDiff = Math.abs(messageTime - lastOp.timestamp);
-        const effectiveUserId = msg.userId || selectedPlayer?.id;
+        const effectiveUserId = msg.userId ?? selectedPlayer?.user_id;
 
         if (
           effectiveUserId === lastOp.playerId &&
@@ -592,7 +592,7 @@ export function ChatComponent() {
         msg.type,
         msg.operationType,
       );
-      const effectiveUserId = msg.userId || selectedPlayer?.id;
+      const effectiveUserId = msg.userId ?? selectedPlayer?.user_id;
 
       if (isPurchaseNotification(msg)) {
         const amount = parseFloat(details.amount || "0");
@@ -616,7 +616,7 @@ export function ChatComponent() {
           let intentMsgIndex = -1;
           for (let j = processedMessages.length - 1; j >= 0; j--) {
             const prevMsg = processedMessages[j];
-            const prevEffectiveUserId = prevMsg.userId || selectedPlayer?.id;
+            const prevEffectiveUserId = prevMsg.userId ?? selectedPlayer?.user_id;
 
             if (
               prevEffectiveUserId === effectiveUserId &&
@@ -698,7 +698,7 @@ export function ChatComponent() {
       .map((m) =>
         enhancements.has(m.id) ? { ...m, ...enhancements.get(m.id) } : m,
       );
-  }, [wsMessages, selectedPlayer?.id]);
+  }, [wsMessages, selectedPlayer?.user_id]);
 
   const groupedMessages = useMemo(
     () => groupMessagesByDate(visibleMessages),

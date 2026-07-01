@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import {
   API_BASE_URL,
   WEBSOCKET_BASE_URL,
@@ -328,8 +329,9 @@ export function useChatWebSocket({
           page: String(page),
         });
 
-        if (chatId) {
-          params.append("chatroom_id", chatId);
+        const safeChatId = resolveSafeChatroomId(chatId, userId);
+        if (safeChatId) {
+          params.append("chatroom_id", safeChatId);
         }
 
         if (userId) {
@@ -503,9 +505,10 @@ export function useChatWebSocket({
         return;
       }
 
-      //  Try chatId first (could be chatroom_id), fallback to userId (player_id)
+      // Prefer verified chatroom_id; fall back to user_id when missing or colliding with player id
       const params = new URLSearchParams();
-      if (chatId) params.append("chatroom_id", chatId);
+      const safeChatId = resolveSafeChatroomId(chatId, userId);
+      if (safeChatId) params.append("chatroom_id", safeChatId);
       if (userId) params.append("user_id", String(userId));
 
       const response = await fetch(`/api/chat-purchases?${params.toString()}`, {
@@ -1070,6 +1073,7 @@ export function useChatWebSocket({
           return false;
         }
 
+        const safeChatroomId = resolveSafeChatroomId(chatId, userId);
         const response = await fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
           method: "POST",
           headers: {
@@ -1079,6 +1083,7 @@ export function useChatWebSocket({
           body: JSON.stringify({
             sender_id: adminId,
             receiver_id: userId,
+            ...(safeChatroomId ? { chatroom_id: safeChatroomId } : {}),
             message: text,
             is_player_sender: false,
             sent_time: new Date().toISOString(),

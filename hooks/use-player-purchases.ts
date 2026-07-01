@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { playersApi } from '@/lib/api/users';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import type { ChatPurchase, Transaction } from '@/types';
@@ -31,33 +31,46 @@ export const usePlayerPurchases = (
 
   // Fetch initial purchases
   useEffect(() => {
-    if (!chatroomId) {
+    if (!chatroomId && !playerUserId) {
       setPurchases([]);
       return;
     }
 
+    const abortController = new AbortController();
+    let cancelled = false;
+
     const fetchPurchases = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         console.log('🎯 usePlayerPurchases: Fetching for chatroom ID:', chatroomId);
-        const data = await playersApi.purchases(chatroomId);
+        const data = await playersApi.purchases(chatroomId, {
+          userId: playerUserId,
+          signal: abortController.signal,
+        });
+        if (cancelled) return;
         console.log(' usePlayerPurchases: Got purchases:', data);
-        // Filter out completed purchases - only show pending/processing ones
         const activePurchases = data.filter((p) => p.status !== 'completed');
         setPurchases(activePurchases);
       } catch (err) {
+        if (cancelled) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error('❌ Failed to fetch player purchases:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch purchases');
         setPurchases([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    fetchPurchases();
-  }, [chatroomId]);
+    void fetchPurchases();
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
+  }, [chatroomId, playerUserId]);
 
   // Subscribe to real-time updates from processing websocket
   useEffect(() => {

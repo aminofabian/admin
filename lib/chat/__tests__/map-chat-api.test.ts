@@ -125,6 +125,15 @@ describe('map-chat-api', () => {
       });
       expect(u.isOnline).toBe(true);
     });
+
+    it('should not use player id as chatroom id when chatroom_id is missing', () => {
+      const u = transformPlayerToUser({
+        id: 3648,
+        username: 'MattyG2108',
+      });
+      expect(u.user_id).toBe(3648);
+      expect(u.id).toBe('');
+    });
   });
 
   describe('extractChatListServerCounts', () => {

@@ -27,6 +27,31 @@ interface UserFilters {
   [key: string]: string | number | boolean | undefined;
 }
 
+interface ChatSidebarFetchOptions {
+  userId?: number;
+  signal?: AbortSignal;
+}
+
+function buildChatSidebarParams(
+  chatroomId: string | number | null,
+  options?: ChatSidebarFetchOptions,
+): Record<string, string | number> {
+  const params: Record<string, string | number> = {};
+  const trimmed = chatroomId != null ? String(chatroomId).trim() : '';
+  const userId = options?.userId;
+  const collidesWithUser = trimmed && userId != null && trimmed === String(userId);
+
+  if (trimmed && !collidesWithUser) {
+    params.chatroom_id = trimmed;
+  } else if (userId != null) {
+    params.user_id = userId;
+  } else if (trimmed) {
+    params.chatroom_id = trimmed;
+  }
+
+  return params;
+}
+
 export const managersApi = {
   list: (filters?: UserFilters) => 
     apiClient.get<PaginatedResponse<Manager>>('api/admin/managers', {
@@ -113,16 +138,36 @@ export const playersApi = {
       password: string;
     }>('api/admin/user-games', data),
 
-  purchases: (chatroomId: string | number) => {
-    return apiClient.get<{ pending_cashout: ChatPurchase[] }>('api/chat-purchases', {
-      params: { chatroom_id: chatroomId },
-    }).then(response => response.pending_cashout || []);
+  purchases: (
+    chatroomId: string | number | null,
+    options?: ChatSidebarFetchOptions,
+  ) => {
+    const params = buildChatSidebarParams(chatroomId, options);
+    if (Object.keys(params).length === 0) {
+      return Promise.resolve([] as ChatPurchase[]);
+    }
+    return apiClient
+      .get<{ purchases?: ChatPurchase[]; messages?: ChatPurchase[] }>('api/chat-purchases', {
+        params,
+        signal: options?.signal,
+      })
+      .then((response) => response.purchases ?? response.messages ?? []);
   },
 
-  cashouts: (chatroomId: string | number) => {
-    return apiClient.get<{ cashouts: ChatPurchase[] }>('api/chat-cashouts', {
-      params: { chatroom_id: chatroomId },
-    }).then(response => response.cashouts || []);
+  cashouts: (
+    chatroomId: string | number | null,
+    options?: ChatSidebarFetchOptions,
+  ) => {
+    const params = buildChatSidebarParams(chatroomId, options);
+    if (Object.keys(params).length === 0) {
+      return Promise.resolve([] as ChatPurchase[]);
+    }
+    return apiClient
+      .get<{ cashouts?: ChatPurchase[] }>('api/chat-cashouts', {
+        params,
+        signal: options?.signal,
+      })
+      .then((response) => response.cashouts ?? []);
   },
 
   gameActivities: (userId?: number) => {
