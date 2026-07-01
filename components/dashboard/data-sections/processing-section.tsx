@@ -54,6 +54,7 @@ import { transactionsApi, type TransactionActionOptions } from '@/lib/api/transa
 import { fetchPlayerPayoutContact } from '@/lib/api/payout-contact';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
+import { requiresEntriesOnCompleteFromQueue } from '@/lib/utils/game-entries-on-complete';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
@@ -1373,6 +1374,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
 
     if (!action) return;
+
+    if (
+      action === 'complete' &&
+      (queue.type === 'recharge_game' || queue.type === 'redeem_game') &&
+      requiresEntriesOnCompleteFromQueue(queue)
+    ) {
+      handleActionClick(queue);
+      return;
+    }
 
     try {
       await handleGameAction({

@@ -1,8 +1,29 @@
+import type { TransactionQueue } from '@/types';
+import type { Game } from '@/types';
+
 /**
  * Games that use balance + entries (not balance alone) when manually completing recharge/redeem.
  * Examples: River Sweeps / Riversweep, Golden Dragon.
  */
-const ENTRIES_GAME_SIGNATURES = ['riversweep', 'goldendragon', 'riverpay'] as const;
+const ENTRIES_GAME_SIGNATURES = [
+  'riversweep',
+  'riversweeps',
+  'goldendragon',
+  'riverpay',
+] as const;
+
+const QUEUE_DATA_GAME_HINT_KEYS = [
+  'game',
+  'game_title',
+  'gameTitle',
+  'game_name',
+  'gameName',
+  'game_code',
+  'gameCode',
+  'integration',
+  'platform',
+  'provider',
+] as const;
 
 export function normalizeGameIdentifier(value?: string | null): string {
   return (value ?? '').toLowerCase().replace(/[\s_\-]+/g, '');
@@ -17,15 +38,81 @@ export interface EntriesOnCompleteGameHints {
   gameCode?: string | null;
   gameTitle?: string | null;
   gameCategory?: string | null;
+  remarks?: string | null;
+  dataStrings?: Array<string | null | undefined>;
 }
 
 /**
  * Whether manual complete must collect `new_entries` in addition to `new_balance`.
  */
 export function requiresEntriesOnComplete(hints: EntriesOnCompleteGameHints): boolean {
-  return identifiersMatchEntriesGame(
-    hints.gameCode,
-    hints.gameTitle,
-    hints.gameCategory,
-  );
+  if (identifiersMatchEntriesGame(hints.gameCode, hints.gameTitle, hints.gameCategory, hints.remarks)) {
+    return true;
+  }
+
+  return identifiersMatchEntriesGame(...(hints.dataStrings ?? []));
+}
+
+function readQueueDataFlag(data: Record<string, unknown> | null | undefined): boolean {
+  if (!data) return false;
+
+  for (const key of ['requires_new_entries', 'requires_entries', 'needs_entries'] as const) {
+    const value = data[key];
+    if (value === true || value === 1 || value === '1' || value === 'true') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function collectQueueGameHintStrings(
+  data: Record<string, unknown> | null | undefined,
+): string[] {
+  if (!data) return [];
+
+  const hints: string[] = [];
+  for (const key of QUEUE_DATA_GAME_HINT_KEYS) {
+    const value = data[key];
+    if (typeof value === 'string' && value.trim()) {
+      hints.push(value.trim());
+    }
+  }
+
+  return hints;
+}
+
+export function requiresEntriesOnCompleteFromQueue(
+  queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,
+  matchedGame?: Pick<Game, 'code' | 'title' | 'game_category'>,
+): boolean {
+  const data =
+    queue.data && typeof queue.data === 'object' && !Array.isArray(queue.data)
+      ? queue.data
+      : null;
+
+  if (readQueueDataFlag(data)) {
+    return true;
+  }
+
+  const dataGameCode =
+    typeof data?.game_code === 'string'
+      ? data.game_code
+      : typeof data?.gameCode === 'string'
+        ? data.gameCode
+        : null;
+  const dataGameTitle =
+    typeof data?.game_title === 'string'
+      ? data.game_title
+      : typeof data?.game === 'string'
+        ? data.game
+        : null;
+
+  return requiresEntriesOnComplete({
+    gameCode: queue.game_code || dataGameCode || matchedGame?.code,
+    gameTitle: queue.game || dataGameTitle || matchedGame?.title,
+    gameCategory: matchedGame?.game_category,
+    remarks: queue.remarks,
+    dataStrings: collectQueueGameHintStrings(data),
+  });
 }
