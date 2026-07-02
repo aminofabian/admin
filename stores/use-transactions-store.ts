@@ -28,6 +28,14 @@ const CARD_MERGE_MAX_DEPTH = 2500;
  */
 const CARD_MERGE_MIN_DEPTH = 200;
 
+const HISTORY_TXN_TYPES = ['purchase', 'cashout'] as const;
+
+function isHistoryTxnType(
+  type: string | number | boolean | undefined,
+): type is (typeof HISTORY_TXN_TYPES)[number] {
+  return type === 'purchase' || type === 'cashout';
+}
+
 /** When a fetch runs while another is in flight, rerun once afterward with latest filters. */
 let deferTransactionsFetch = false;
 
@@ -214,6 +222,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         cleanedAdvancedFilters.type === 'cashout' ||
         cleanedAdvancedFilters.type === 'add' ||
         cleanedAdvancedFilters.type === 'deduct';
+      const hasHistoryTypeFilter = isHistoryTxnType(cleanedAdvancedFilters.type);
       
       console.log('🔍 Type filter processing:', {
         filter,
@@ -245,11 +254,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       } else if (filter === 'history') {
         // If user selected a type filter (purchase/cashout), use txn_type
         // Otherwise, use 'history' to exclude pending transactions
-        if (!hasAdvancedTypeFilter) {
+        if (!hasHistoryTypeFilter) {
           filters.type = 'history';
           delete filters.txn_type;
         } else {
-          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
+          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
           delete filters.type; // Don't use type when txn_type is set
         }
       } else if (filter === 'all') {
@@ -297,10 +306,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // So when using txn_type=cashout in history view, we need to exclude pending
       if (
         isHistoryFilter &&
-        (cleanedAdvancedFilters.type === 'purchase' ||
-          cleanedAdvancedFilters.type === 'cashout' ||
-          cleanedAdvancedFilters.type === 'add' ||
-          cleanedAdvancedFilters.type === 'deduct')
+        hasHistoryTypeFilter
       ) {
         console.log('🔍 History view with type filter - ensuring txn_type is preserved:', {
           cleanedAdvancedFiltersType: cleanedAdvancedFilters.type,
@@ -309,7 +315,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         });
         
         // CRITICAL: Ensure txn_type is set correctly (it might have been lost)
-        filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
+        filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
         delete filters.type; // Don't use type when txn_type is set
         
         // If status is pending, remove it (history shouldn't show pending)
@@ -398,23 +404,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // This is a safety check in case the txn_type got lost during processing
       if (
         isHistoryFilter &&
-        (cleanedAdvancedFilters.type === 'purchase' ||
-          cleanedAdvancedFilters.type === 'cashout' ||
-          cleanedAdvancedFilters.type === 'add' ||
-          cleanedAdvancedFilters.type === 'deduct')
+        hasHistoryTypeFilter
       ) {
         if (
           !apiFilters.txn_type ||
           (apiFilters.txn_type !== 'purchase' &&
-            apiFilters.txn_type !== 'cashout' &&
-            apiFilters.txn_type !== 'add' &&
-            apiFilters.txn_type !== 'deduct')
+            apiFilters.txn_type !== 'cashout')
         ) {
           console.warn('⚠️ txn_type filter was lost! Restoring from cleanedAdvancedFilters:', {
             originalType: cleanedAdvancedFilters.type,
             currentApiFiltersTxnType: apiFilters.txn_type,
           });
-          apiFilters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
+          apiFilters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
           delete apiFilters.type; // Ensure type is not set when txn_type is used
         }
       }
@@ -450,7 +451,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           String(cleanedAdvancedFilters.payment_method ?? ''),
         );
         const cardAllTxnTypes =
-          normalizedPaymentMethod === 'card' && !hasAdvancedTypeFilter;
+          normalizedPaymentMethod === 'card' && !hasHistoryTypeFilter;
 
         if (cardAllTxnTypes) {
           const { page: historyPage, page_size: historyPageSize, txn_type: _omitTxn, ...historyRest } =
@@ -463,7 +464,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
             CARD_MERGE_MAX_DEPTH,
           );
 
-          const txnTypes = ['purchase', 'cashout', 'add', 'deduct'] as const;
+          const txnTypes = HISTORY_TXN_TYPES;
           const partials = await Promise.all(
             txnTypes.map((txn_type) =>
               transactionsApi.listHistory({

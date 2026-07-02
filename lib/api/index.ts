@@ -12,6 +12,7 @@ export * from './analytics';
 export * from './settings';
 export * from './bonus-settings';
 export * from './affiliate-settings';
+export * from './referral-settings';
 export * from './game-settings';
 export * from './payment-methods';
 export * from './chat-links';
@@ -22,5 +23,5 @@ export * from './roulette-spin-allowances';
 export * from './roulette-player-spin-allowances';
 export * from './roulette-player-spin-balances';
 export * from './roulette-reward-configs';
-export * from './phone-verification-settings';
+export * from './verification-settings';
 

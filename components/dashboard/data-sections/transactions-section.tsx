@@ -18,8 +18,8 @@ import {
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
 import {
-  buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
-  buildProviderFilterOptionsFromPaymentMethodsRaw,
+  STATIC_PAYMENT_METHOD_FILTER_OPTIONS,
+  STATIC_PROVIDER_FILTER_OPTIONS,
   normalizePaymentMethodFilterQueryValue,
   resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
@@ -28,7 +28,7 @@ import {
   getTransactionTypeBadgeStyle,
 } from '@/lib/utils/transaction-display';
 import { useTransactionsStore } from '@/stores';
-import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
+import { agentsApi, staffsApi, managersApi } from '@/lib/api';
 import { transactionsApi } from '@/lib/api/transactions';
 import { storage } from '@/lib/utils/storage';
 import type { Agent, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
@@ -117,7 +117,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
       : txn === 'cashouts'
         ? 'cashout'
         : advanced.type ?? '';
-  if (derivedType === 'transfer') {
+  if (derivedType === 'transfer' || derivedType === 'add' || derivedType === 'deduct') {
     derivedType = '';
   }
 
@@ -184,9 +184,6 @@ export function TransactionsSection() {
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
-  const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [providerOptions, setProviderOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isOperatorLoading, setIsOperatorLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -428,49 +425,6 @@ export function TransactionsSection() {
   }, [areFiltersOpen, agentOptions.length, setAdvancedFiltersWithoutFetch]);
 
 
-  // Lazy load payment methods when filters are opened
-  useEffect(() => {
-    if (!areFiltersOpen || paymentMethodOptions.length > 0) {
-      return;
-    }
-
-    let isMounted = true;
-    let isCancelled = false;
-
-    const loadPaymentMethods = async () => {
-      if (isCancelled || !isMounted) {
-        return;
-      }
-
-      setIsPaymentMethodLoading(true);
-
-      try {
-        const response = await paymentMethodsApi.list();
-
-        if (!isMounted || isCancelled) {
-          return;
-        }
-
-        const mapped = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(response);
-        setPaymentMethodOptions(mapped);
-        setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
-      } catch (error) {
-        console.error('Failed to load payment methods for transaction filters:', error);
-      } finally {
-        if (isMounted && !isCancelled) {
-          setIsPaymentMethodLoading(false);
-        }
-      }
-    };
-
-    loadPaymentMethods();
-
-    return () => {
-      isCancelled = true;
-      isMounted = false;
-    };
-  }, [areFiltersOpen, paymentMethodOptions.length]);
-
   // Load operators on mount (always load for staff portal)
   useEffect(() => {
     if (operatorOptions.length > 0) {
@@ -697,13 +651,11 @@ export function TransactionsSection() {
       }
     }
 
-    // Transaction type filter: purchase, cashout, add, deduct (no transfer)
+    // Transaction type filter: purchase or cashout only in history
     if (
       sanitized.type &&
       sanitized.type !== 'purchase' &&
-      sanitized.type !== 'cashout' &&
-      sanitized.type !== 'add' &&
-      sanitized.type !== 'deduct'
+      sanitized.type !== 'cashout'
     ) {
       delete sanitized.type;
     }
@@ -714,9 +666,7 @@ export function TransactionsSection() {
       mainFilter: filter,
       willPreserveType:
         sanitized.type === 'purchase' ||
-        sanitized.type === 'cashout' ||
-        sanitized.type === 'add' ||
-        sanitized.type === 'deduct',
+        sanitized.type === 'cashout',
     });
 
     if (sanitized.agent && !sanitized.agent_id) {
@@ -807,10 +757,6 @@ export function TransactionsSection() {
         onPageChange={setPage}
         agentOptions={agentOptions}
         isAgentLoadingAgents={isAgentLoading}
-        paymentMethodOptions={paymentMethodOptions}
-        isPaymentMethodLoading={isPaymentMethodLoading}
-        providerOptions={providerOptions}
-        isProviderLoading={isPaymentMethodLoading}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
@@ -834,10 +780,6 @@ interface TransactionsLayoutProps {
   onPageChange: (page: number) => void;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoadingAgents: boolean;
-  paymentMethodOptions: Array<{ value: string; label: string }>;
-  isPaymentMethodLoading: boolean;
-  providerOptions: Array<{ value: string; label: string }>;
-  isProviderLoading: boolean;
   operatorOptions: Array<{ value: string; label: string }>;
   isOperatorLoading: boolean;
   isLoading: boolean;
@@ -858,10 +800,6 @@ function TransactionsLayout({
   onPageChange,
   agentOptions,
   isAgentLoadingAgents,
-  paymentMethodOptions,
-  isPaymentMethodLoading,
-  providerOptions,
-  isProviderLoading,
   operatorOptions,
   isOperatorLoading,
   isLoading,
@@ -908,10 +846,8 @@ function TransactionsLayout({
         ]}
         agentOptions={agentOptions}
         isAgentLoading={isAgentLoadingAgents}
-        paymentMethodOptions={paymentMethodOptions}
-        isPaymentMethodLoading={isPaymentMethodLoading}
-        providerOptions={providerOptions}
-        isProviderLoading={isProviderLoading}
+        paymentMethodOptions={STATIC_PAYMENT_METHOD_FILTER_OPTIONS}
+        providerOptions={STATIC_PROVIDER_FILTER_OPTIONS}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}

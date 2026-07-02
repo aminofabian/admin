@@ -45,6 +45,18 @@ const settingsCategories = [
     permissions: ['company', 'superadmin'],
   },
   {
+    id: 'referral',
+    title: 'Referral Settings',
+    description: 'Configure referral rewards, eligibility rules, and program status',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    href: '/dashboard/settings/referral',
+    permissions: ['company', 'superadmin'],
+  },
+  {
     id: 'games',
     title: 'Game Settings',
     description: 'Configure game status and dashboard URLs',
@@ -72,15 +84,15 @@ const settingsCategories = [
     permissions: ['company', 'superadmin'],
   },
   {
-    id: 'phone-verification',
-    title: 'Phone Verification',
-    description: 'Enable or disable phone OTP verification during player signup',
+    id: 'verification',
+    title: 'Verification',
+    description: 'Enable or disable phone OTP and identity verification during signup and Complete Profile',
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
       </svg>
     ),
-    href: '/dashboard/settings/phone-verification',
+    href: '/dashboard/settings/verification',
     permissions: ['company', 'superadmin'],
   },
 ];
@@ -209,6 +221,17 @@ export default function SettingsPage() {
           </div>
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Referral Settings
+            </h3>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <li>• Enable or disable the referral program</li>
+              <li>• Referrer reward percentage and cap</li>
+              <li>• Referred player bonus amount</li>
+              <li>• First deposit eligibility minimum</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               Game Settings
             </h3>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
@@ -232,9 +255,9 @@ export default function SettingsPage() {
               Phone Verification
             </h3>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <li>• Toggle phone OTP requirement for new signups</li>
+              <li>• Toggle phone OTP for new signups and Complete Profile</li>
               <li>• Disable during OTP provider outages</li>
-              <li>• Email verification remains required</li>
+              <li>• Email verification remains required for signup</li>
             </ul>
           </div>
         </div>

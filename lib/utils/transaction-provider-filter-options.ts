@@ -98,6 +98,19 @@ const PAYMENT_METHOD_CANONICAL: Array<{
   { queryValue: 'signup', label: 'Signup', matchKeys: ['signup'], alwaysVisible: true },
 ];
 
+/** Ledger / manual-adjustment providers — excluded from purchase/cashout history filters. */
+const MANUAL_TXN_PROVIDER_MATCH_KEYS = new Set([
+  'freeplay',
+  'free_play',
+  'external_deposit',
+  'external_cashout',
+  'void',
+  'signup',
+]);
+
+/** Ledger payment rails — excluded from purchase/cashout history filters. */
+const MANUAL_TXN_PAYMENT_METHOD_QUERY_VALUES = new Set(['manual', 'signup']);
+
 /**
  * Canonical provider filter rows (labels / match keys). Shown when an enabled subcategory exposes the
  * integrator (superadmin + configured) or when the row is a ledger/synthetic provider (always available).
@@ -241,6 +254,39 @@ function enabledPaymentMethodKeysFromParents(
   rollupCryptoPaymentMethodKeys(keys);
   return keys;
 }
+
+/**
+ * Static payment-method options for transaction history filters. Lists every canonical
+ * purchase/cashout rail (excluding manual ledger rails) so admins can filter old transactions
+ * after a method is disabled in settings.
+ */
+export function buildStaticPaymentMethodFilterOptions(): Array<{ value: string; label: string }> {
+  const result = PAYMENT_METHOD_CANONICAL.filter(
+    (row) => !MANUAL_TXN_PAYMENT_METHOD_QUERY_VALUES.has(normKey(row.queryValue)),
+  ).map((row) => ({
+    value: row.queryValue,
+    label: row.label,
+  }));
+  return sortFilterOptionsByLabel(result);
+}
+
+/**
+ * Static provider options for transaction history filters. Lists every canonical
+ * purchase/cashout integrator (excluding manual ledger providers) so admins can filter old
+ * transactions after a provider is disabled in settings.
+ */
+export function buildStaticProviderFilterOptions(): Array<{ value: string; label: string }> {
+  const result = PROVIDER_CANONICAL.filter(
+    (row) => !row.matchKeys.some((k) => MANUAL_TXN_PROVIDER_MATCH_KEYS.has(normKey(k))),
+  ).map((row) => ({
+    value: row.fixedFilterValue ?? row.matchKeys[0].replace(/-/g, '_'),
+    label: row.label,
+  }));
+  return sortFilterOptionsByLabel(result);
+}
+
+export const STATIC_PAYMENT_METHOD_FILTER_OPTIONS = buildStaticPaymentMethodFilterOptions();
+export const STATIC_PROVIDER_FILTER_OPTIONS = buildStaticProviderFilterOptions();
 
 /**
  * Purchase-tab parent categories (Payment Settings → Purchase), superadmin-enabled only, then
