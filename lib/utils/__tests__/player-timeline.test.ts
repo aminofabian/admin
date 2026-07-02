@@ -179,4 +179,40 @@ describe('player-timeline roulette entries', () => {
     expect(resolvePlayerTimelineAmountDisplay(item).primaryText).toBe('−1 spin');
     expect(formatPlayerTimelineDetailLabel(item)).toBe('Prize wheel');
   });
+
+  it('maps try again rewards from roulette_reward timeline rows', () => {
+    const item = mapPlayerTimelineResult({
+      id: '76',
+      type: 'reward',
+      status: 'completed',
+      amount: '0.00',
+      reason: 'roulette_try_again',
+      reason_display: 'roulette_try_again',
+      timeline_source: 'roulette_reward',
+      description: 'Roulette reward - Try Again',
+      roulette: {
+        position: 5,
+        prize: 'Try Again',
+        prize_type: 'Try Again',
+      },
+      roulette_reward: {
+        reward_type: 'try_again',
+        prize: 'Try Again',
+        prize_type: 'Try Again',
+        amount: '0.00',
+        spin: 'True',
+      },
+      created_at: '2026-06-23T23:13:56Z',
+    });
+
+    expect(item.provider).toBe('roulette');
+    expect(item.roulette_spins?.reward_type).toBe('try_again');
+    expect(item.roulette_spins?.position).toBe(5);
+    expect(formatRouletteTimelineTypeLabel(item)).toBe('Try again');
+
+    const amount = resolvePlayerTimelineAmountDisplay(item);
+    expect(amount.primaryText).toBe('Try again');
+    expect(amount.showAsCurrency).toBe(false);
+    expect(formatPlayerTimelineDetailLabel(item)).toBe('Prize wheel · Slot 5');
+  });
 });

@@ -7,8 +7,8 @@ import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, 
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
 import {
-    buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
-    buildProviderFilterOptionsFromPaymentMethodsRaw,
+    STATIC_PAYMENT_METHOD_FILTER_OPTIONS,
+    STATIC_PROVIDER_FILTER_OPTIONS,
     normalizePaymentMethodFilterQueryValue,
     resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
@@ -54,7 +54,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
             : txn === 'cashouts'
                 ? 'cashout'
                 : advanced.type ?? '';
-    if (derivedType === 'transfer') {
+    if (derivedType === 'transfer' || derivedType === 'add' || derivedType === 'deduct') {
         derivedType = '';
     }
 
@@ -102,9 +102,6 @@ export function SuperAdminHistoryTransactions() {
     const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
     const [isAgentLoading, setIsAgentLoading] = useState(false);
-    const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
-    const [providerOptions, setProviderOptions] = useState<Array<{ value: string; label: string }>>([]);
-    const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
     // Company filter state
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -304,50 +301,6 @@ export function SuperAdminHistoryTransactions() {
             isMounted = false;
         };
     }, [areFiltersOpen, agentOptions.length]);
-
-    // Lazy load payment methods when filters are opened
-    useEffect(() => {
-        if (!areFiltersOpen || paymentMethodOptions.length > 0) {
-            return;
-        }
-
-        let isMounted = true;
-        let isCancelled = false;
-
-        const loadPaymentMethods = async () => {
-            if (isCancelled || !isMounted) {
-                return;
-            }
-
-            setIsPaymentMethodLoading(true);
-
-            try {
-                const response = await paymentMethodsApi.list();
-
-                if (!isMounted || isCancelled) {
-                    return;
-                }
-
-                const mappedOptions = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(response);
-                setPaymentMethodOptions(mappedOptions);
-                setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
-            } catch (error) {
-                console.error('Failed to load payment methods for transaction filters:', error);
-            } finally {
-                if (isMounted && !isCancelled) {
-                    setIsPaymentMethodLoading(false);
-                }
-            }
-        };
-
-        loadPaymentMethods();
-
-        return () => {
-            isCancelled = true;
-            isMounted = false;
-        };
-    }, [areFiltersOpen, paymentMethodOptions.length]);
-
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
@@ -901,10 +854,8 @@ export function SuperAdminHistoryTransactions() {
                 onToggle={handleToggleFilters}
                 agentOptions={[]}
                 isAgentLoading={false}
-                paymentMethodOptions={paymentMethodOptions}
-                isPaymentMethodLoading={isPaymentMethodLoading}
-                providerOptions={providerOptions}
-                isProviderLoading={isPaymentMethodLoading}
+                paymentMethodOptions={STATIC_PAYMENT_METHOD_FILTER_OPTIONS}
+                providerOptions={STATIC_PROVIDER_FILTER_OPTIONS}
                 isLoading={isLoading}
             />
 

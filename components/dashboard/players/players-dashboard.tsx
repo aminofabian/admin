@@ -416,6 +416,9 @@ function usePlayersData({
       if (filters.email.trim()) {
         params.email = filters.email.trim();
       }
+      if (filters.referred_by.trim()) {
+        params.referred_by = filters.referred_by.trim();
+      }
 
       // Add agent (username) if provided from filter
       if (filters.agent.trim()) {
@@ -485,6 +488,7 @@ function usePlayersData({
     filters.username,
     filters.full_name,
     filters.email,
+    filters.referred_by,
     filters.agent,
     filters.date_from,
     filters.date_to,
@@ -524,6 +528,7 @@ function usePlayerFilters(
     username: '',
     full_name: '',
     email: '',
+    referred_by: '',
     agent: initialAgent || '',
     date_from: '',
     date_to: '',
@@ -535,6 +540,7 @@ function usePlayerFilters(
     username: '',
     full_name: '',
     email: '',
+    referred_by: '',
     agent: initialAgent || '',
     date_from: '',
     date_to: '',
@@ -557,6 +563,7 @@ function usePlayerFilters(
       username: '',
       full_name: '',
       email: '',
+      referred_by: '',
       agent: '',
       date_from: '',
       date_to: '',
@@ -572,6 +579,7 @@ function usePlayerFilters(
       appliedFilters.username.trim() !== '' ||
       appliedFilters.full_name.trim() !== '' ||
       appliedFilters.email.trim() !== '' ||
+      appliedFilters.referred_by.trim() !== '' ||
       appliedFilters.agent.trim() !== '' ||
       appliedFilters.date_from.trim() !== '' ||
       appliedFilters.date_to.trim() !== '' ||
@@ -920,6 +928,7 @@ function PlayersFiltersWrapper({
       filters.username.trim() !== '' ||
       filters.full_name.trim() !== '' ||
       filters.email.trim() !== '' ||
+      filters.referred_by.trim() !== '' ||
       filters.agent.trim() !== '' ||
       filters.date_from.trim() !== '' ||
       filters.date_to.trim() !== '' ||

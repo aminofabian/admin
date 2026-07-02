@@ -6,7 +6,7 @@ const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    const backendUrl = `${BACKEND_URL}/api/v1/phone-verification-settings/`;
+    const backendUrl = `${BACKEND_URL}/api/v1/verification-settings/`;
 
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -27,15 +27,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Phone-verification-settings proxy (GET) error:', error);
+    console.error('❌ Verification-settings proxy (GET) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
         message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch phone verification settings',
+          error instanceof Error ? error.message : 'Failed to fetch verification settings',
       },
       { status: 500 },
     );
@@ -46,7 +44,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const body = await request.json();
-    const backendUrl = `${BACKEND_URL}/api/v1/phone-verification-settings/`;
+    const backendUrl = `${BACKEND_URL}/api/v1/verification-settings/`;
 
     const response = await fetch(backendUrl, {
       method: 'PATCH',
@@ -68,15 +66,13 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Phone-verification-settings proxy (PATCH) error:', error);
+    console.error('❌ Verification-settings proxy (PATCH) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
         message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update phone verification settings',
+          error instanceof Error ? error.message : 'Failed to update verification settings',
       },
       { status: 500 },
     );

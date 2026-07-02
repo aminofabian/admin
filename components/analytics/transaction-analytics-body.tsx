@@ -96,8 +96,8 @@ export function TransactionAnalyticsBody({ filters, filterRangeCaption }: Transa
 
         {loadingBonus ? (
           <div className="border-t border-border/15 bg-card px-5 py-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[0, 1, 2, 3].map(i => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {[0, 1, 2, 3, 4].map(i => (
                 <div key={i} className="animate-pulse">
                   <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
                   <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
@@ -115,7 +115,7 @@ export function TransactionAnalyticsBody({ filters, filterRangeCaption }: Transa
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Bonus <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
             </p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-3">
               <div>
                 <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
                   {apiFieldLabel('purchase_bonus')}
@@ -138,6 +138,14 @@ export function TransactionAnalyticsBody({ filters, filterRangeCaption }: Transa
                 </p>
                 <p className="text-sm font-bold tabular-nums text-foreground">
                   {formatCurrency(bonusAnalytics.first_deposit_bonus)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
+                  {apiFieldLabel('referral_bonus')}
+                </p>
+                <p className="text-sm font-bold tabular-nums text-foreground">
+                  {formatCurrency(bonusAnalytics.referral_bonus)}
                 </p>
               </div>
               <div>
