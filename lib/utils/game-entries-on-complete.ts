@@ -116,3 +116,14 @@ export function requiresEntriesOnCompleteFromQueue(
     dataStrings: collectQueueGameHintStrings(data),
   });
 }
+
+/**
+ * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows.
+ * Add-user completion is username-only (no password).
+ */
+export function isSweepstakesStyleGameFromQueue(
+  queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,
+  matchedGame?: Pick<Game, 'code' | 'title' | 'game_category'>,
+): boolean {
+  return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
+}
