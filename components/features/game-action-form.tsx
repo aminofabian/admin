@@ -13,7 +13,7 @@ import {
 } from '@/lib/utils/game-queue-display';
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
-import { requiresEntriesOnCompleteFromQueue } from '@/lib/utils/game-entries-on-complete';
+import { requiresEntriesOnCompleteFromQueue, isSweepstakesStyleGameFromQueue } from '@/lib/utils/game-entries-on-complete';
 import {
   sanitizeGameActionEntriesInput,
   sanitizeGameActionNumericInput,
@@ -134,6 +134,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const requiresEntries = useMemo(() => {
     if (!queue) return false;
     return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
+  }, [queue, matchedGame]);
+
+  const isUsernameOnlyAddUser = useMemo(() => {
+    if (!queue) return false;
+    return isSweepstakesStyleGameFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
   const isManualMode = useMemo(() => {
@@ -267,7 +272,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       };
     }
     if (queue.type === 'add_user_game' || queue.type === 'create_game') {
-      return { balance: false, entries: false, password: true, username: true };
+      return {
+        balance: false,
+        entries: false,
+        password: !isUsernameOnlyAddUser,
+        username: true,
+      };
     }
     // For future types like change_password_game
     if ((queue.type as string).includes('password')) {
@@ -526,7 +536,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 : queue.type === 'redeem_game'
                 ? 'Redeem Operation - Required Field'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? 'Create Game Account - Required Fields'
+                ? isUsernameOnlyAddUser
+                  ? 'Create Game Account - Required Field'
+                  : 'Create Game Account - Required Fields'
                 : 'Complete Operation - Required Fields'}
             </h4>
             <p className="text-[10px] text-muted-foreground">
@@ -535,7 +547,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   ? 'Enter the new game balance and entries after manually completing the operation.'
                   : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? 'Enter the game username and password that were created.'
+                ? isUsernameOnlyAddUser
+                  ? 'Enter the game username that was created.'
+                  : 'Enter the game username and password that were created.'
                 : 'Enter the required information to complete this operation.'}
             </p>
           </div>

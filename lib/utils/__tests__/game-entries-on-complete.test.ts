@@ -2,6 +2,7 @@ import {
   normalizeGameIdentifier,
   requiresEntriesOnComplete,
   requiresEntriesOnCompleteFromQueue,
+  isSweepstakesStyleGameFromQueue,
   collectQueueGameHintStrings,
 } from '../game-entries-on-complete';
 
@@ -65,6 +66,30 @@ describe('requiresEntriesOnCompleteFromQueue', () => {
         game_code: '',
         remarks: '',
         data: { requires_new_entries: true },
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('isSweepstakesStyleGameFromQueue', () => {
+  it('matches Golden Dragon for username-only add-user flows', () => {
+    expect(
+      isSweepstakesStyleGameFromQueue({
+        game: 'Golden Dragon',
+        game_code: '',
+        remarks: '',
+        data: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('matches Riversweeps for username-only add-user flows', () => {
+    expect(
+      isSweepstakesStyleGameFromQueue({
+        game: 'Riversweeps',
+        game_code: '',
+        remarks: '',
+        data: null,
       }),
     ).toBe(true);
   });
