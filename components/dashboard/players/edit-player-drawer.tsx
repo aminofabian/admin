@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Button, Input, Select, Switch, DateSelect } from '@/components/ui';
 import type { EditablePlayerFields } from '@/types/player-edit';
 import { getPlayerIdentityStatusLabel } from '@/lib/players/player-verification';
@@ -70,6 +71,72 @@ interface EditPlayerDetailsDrawerProps {
   player?: Player | null;
 }
 
+const inputClass =
+  'h-10 w-full rounded-lg text-sm transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500';
+
+function Section({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex items-start gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          {description ? (
+            <p className="mt-0.5 text-xs leading-snug text-gray-500 dark:text-gray-400">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="space-y-4 p-4">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      {children}
+    </label>
+  );
+}
+
+function SwitchRow({
+  title,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{title}</p>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+      </div>
+      <Switch checked={checked} onChange={onChange} disabled={disabled} tone="emerald" />
+    </div>
+  );
+}
+
 export function EditPlayerDetailsDrawer({
   isOpen,
   onClose,
@@ -93,341 +160,286 @@ export function EditPlayerDetailsDrawer({
       
       {/* Drawer Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 z-[60] w-full bg-gray-50 shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-950 sm:max-w-2xl ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex h-full flex-col">
           {/* Drawer Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-b border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-between z-10 backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 px-5 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-900/20">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Edit Player Details</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Update player information</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-600 dark:text-purple-300">
+                    Player profile
+                  </p>
+                  <h2 className="truncate text-lg font-bold text-gray-900 dark:text-gray-100">
+                    Edit details
+                  </h2>
+                </div>
               </div>
+              <button
+                onClick={onClose}
+                className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                disabled={isSaving}
+                aria-label="Close drawer"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 hover:rotate-90 disabled:opacity-50"
-              disabled={isSaving}
-              aria-label="Close drawer"
-            >
-              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
-            {/* Email */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-24 sm:px-5">
+            <Section
+              title="Identity"
+              description="Core profile fields shown across the admin dashboard."
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Email Address
-              </label>
-              <Input
-                type="email"
-                value={editableFields.email}
-                onChange={(e) => setEditableFields(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                disabled={isSaving}
-                placeholder="player@example.com"
-                autoComplete="off"
-              />
-            </div>
-
-            {/* First & Last Name */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  First Name
-                </label>
-                <Input
-                  type="text"
-                  value={editableFields.first_name}
-                  onChange={(e) => setEditableFields(prev => ({ ...prev, first_name: e.target.value }))}
-                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  disabled={isSaving}
-                  placeholder="John"
-                  autoComplete="given-name"
-                />
+              }
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <FieldLabel>First name</FieldLabel>
+                  <Input
+                    type="text"
+                    value={editableFields.first_name}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, first_name: e.target.value }))}
+                    className={inputClass}
+                    disabled={isSaving}
+                    placeholder="John"
+                    autoComplete="given-name"
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Last name</FieldLabel>
+                  <Input
+                    type="text"
+                    value={editableFields.last_name}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, last_name: e.target.value }))}
+                    className={inputClass}
+                    disabled={isSaving}
+                    placeholder="Doe"
+                    autoComplete="family-name"
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Email address</FieldLabel>
+                  <Input
+                    type="email"
+                    value={editableFields.email}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, email: e.target.value }))}
+                    className={inputClass}
+                    disabled={isSaving}
+                    placeholder="player@example.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Mobile number</FieldLabel>
+                  <Input
+                    type="tel"
+                    value={editableFields.mobile_number}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, mobile_number: e.target.value }))}
+                    className={inputClass}
+                    disabled={isSaving}
+                    placeholder="+1 (555) 123-4567"
+                    autoComplete="tel"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <DateSelect
+                    label="Date of Birth"
+                    value={editableFields.dob}
+                    onChange={(value) => setEditableFields(prev => ({ ...prev, dob: value }))}
+                    disabled={isSaving}
+                  />
+                </div>
               </div>
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Last Name
-                </label>
-                <Input
-                  type="text"
-                  value={editableFields.last_name}
-                  onChange={(e) => setEditableFields(prev => ({ ...prev, last_name: e.target.value }))}
-                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  disabled={isSaving}
-                  placeholder="Doe"
-                  autoComplete="family-name"
-                />
-              </div>
-            </div>
+            </Section>
 
-            {/* Date of Birth */}
-            <div className="group">
-              <DateSelect
-                label="Date of Birth"
-                value={editableFields.dob}
-                onChange={(value) => setEditableFields(prev => ({ ...prev, dob: value }))}
-                disabled={isSaving}
-              />
-            </div>
-
-            {/* Address */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <Section
+              title="Address"
+              description="Use the complete mailing address, not just the state."
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 9c0 7-7.5 12-7.5 12S4.5 16 4.5 9a7.5 7.5 0 1115 0z" />
                 </svg>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Address</h3>
-              </div>
-
-              <div className="group">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Street Address
-                </label>
+              }
+            >
+              <div>
+                <FieldLabel>Street address</FieldLabel>
                 <Input
                   type="text"
                   value={editableFields.address}
                   onChange={(e) => setEditableFields(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className={inputClass}
                   disabled={isSaving}
                   placeholder="123 Main St"
                   autoComplete="street-address"
                 />
               </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    City
-                  </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>City</FieldLabel>
                   <Input
                     type="text"
                     value={editableFields.city}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={inputClass}
                     disabled={isSaving}
                     placeholder="New York"
                     autoComplete="address-level2"
                   />
                 </div>
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    ZIP Code
-                  </label>
+                <div>
+                  <FieldLabel>ZIP code</FieldLabel>
                   <Input
                     type="text"
                     value={editableFields.zip_code}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, zip_code: e.target.value }))}
-                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={inputClass}
                     disabled={isSaving}
                     placeholder="10001"
                     autoComplete="postal-code"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    State
-                  </label>
+                <div>
+                  <FieldLabel>State</FieldLabel>
                   <Select
                     value={editableFields.state}
                     onChange={(value: string) => setEditableFields(prev => ({ ...prev, state: value }))}
                     options={US_STATES}
-                    placeholder="Select a state"
+                    placeholder="Select state"
                     disabled={isSaving}
-                    className="w-full"
+                    className="h-10 w-full"
                   />
                 </div>
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Country
-                  </label>
+                <div>
+                  <FieldLabel>Country</FieldLabel>
                   <Input
                     type="text"
                     value={editableFields.country}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, country: e.target.value }))}
-                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={inputClass}
                     disabled={isSaving}
                     placeholder="US"
                     autoComplete="country"
                   />
                 </div>
               </div>
-            </div>
+            </Section>
 
-            {/* Mobile Number */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Mobile Number
-              </label>
-              <Input
-                type="tel"
-                value={editableFields.mobile_number}
-                onChange={(e) => setEditableFields(prev => ({ ...prev, mobile_number: e.target.value }))}
-                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                disabled={isSaving}
-                placeholder="+1 (555) 123-4567"
-                autoComplete="off"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <Section
+              title="Access"
+              description="Control login status and optionally reset the player's password."
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                Password
-                <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(leave blank to keep current)</span>
-              </label>
-              <Input
-                type="password"
-                value={editableFields.password}
-                onChange={(e) => setEditableFields(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              }
+            >
+              <SwitchRow
+                title="Account status"
+                description={editableFields.is_active ? 'Player account is active' : 'Player account is inactive'}
+                checked={editableFields.is_active}
                 disabled={isSaving}
-                placeholder="Enter new password"
-                autoComplete="new-password"
+                onChange={(checked) => setEditableFields(prev => ({ ...prev, is_active: checked }))}
               />
-            </div>
-
-            {/* Confirm Password */}
-            {editableFields.password && (
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  Confirm Password
-                </label>
-                <Input
-                  type="password"
-                  value={editableFields.confirm_password}
-                  onChange={(e) => setEditableFields(prev => ({ ...prev, confirm_password: e.target.value }))}
-                  className={`w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                    editableFields.password && editableFields.confirm_password && editableFields.password !== editableFields.confirm_password
-                      ? 'border-red-500 dark:border-red-400'
-                      : ''
-                  }`}
-                  disabled={isSaving}
-                  placeholder="Confirm new password"
-                  autoComplete="new-password"
-                />
-                {editableFields.password && editableFields.confirm_password && editableFields.password !== editableFields.confirm_password && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">Passwords do not match</p>
-                )}
-              </div>
-            )}
-
-            {/* Active/Inactive Toggle */}
-            <div className="group">
-              <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Account Status
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {editableFields.is_active ? 'Player account is active' : 'Player account is inactive'}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <FieldLabel>New password</FieldLabel>
+                  <Input
+                    type="password"
+                    value={editableFields.password}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, password: e.target.value }))}
+                    className={inputClass}
+                    disabled={isSaving}
+                    placeholder="Leave blank to keep current"
+                    autoComplete="new-password"
+                  />
                 </div>
-                <Switch
-                  checked={editableFields.is_active}
-                  onChange={(checked) => setEditableFields(prev => ({ ...prev, is_active: checked }))}
-                  disabled={isSaving}
-                />
+                {editableFields.password ? (
+                  <div>
+                    <FieldLabel>Confirm password</FieldLabel>
+                    <Input
+                      type="password"
+                      value={editableFields.confirm_password}
+                      onChange={(e) => setEditableFields(prev => ({ ...prev, confirm_password: e.target.value }))}
+                      className={`${inputClass} ${
+                        editableFields.password &&
+                        editableFields.confirm_password &&
+                        editableFields.password !== editableFields.confirm_password
+                          ? 'border-red-500 dark:border-red-400'
+                          : ''
+                      }`}
+                      disabled={isSaving}
+                      placeholder="Repeat password"
+                      autoComplete="new-password"
+                    />
+                    {editableFields.password &&
+                    editableFields.confirm_password &&
+                    editableFields.password !== editableFields.confirm_password ? (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">Passwords do not match</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
-            </div>
+            </Section>
 
             {canEditVerification ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <Section
+                title="KYC verification"
+                description="Manual overrides for step 2 phone and step 3 identity checks."
+                icon={
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">KYC verification</h3>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
-                  Manually mark phone (step 2) and identity (step 3) as verified or unverified.
-                </p>
-
-                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Phone verified
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Step 2 — mobile number OTP verification
-                    </p>
-                  </div>
-                  <Switch
+                }
+              >
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <SwitchRow
+                    title="Phone verified"
+                    description="Step 2 OTP verification"
                     checked={editableFields.phone_verified}
+                    disabled={isSaving}
                     onChange={(checked) =>
                       setEditableFields((prev) => ({ ...prev, phone_verified: checked }))
                     }
-                    disabled={isSaving}
-                    tone="emerald"
                   />
-                </div>
-
-                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Identity verified
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Step 3 — SSN / identity check
-                      {player ? ` · Current: ${getPlayerIdentityStatusLabel(player)}` : ''}
-                    </p>
-                  </div>
-                  <Switch
+                  <SwitchRow
+                    title="Identity verified"
+                    description={`Step 3 identity check${player ? ` · ${getPlayerIdentityStatusLabel(player)}` : ''}`}
                     checked={editableFields.identity_verified}
+                    disabled={isSaving}
                     onChange={(checked) =>
                       setEditableFields((prev) => ({ ...prev, identity_verified: checked }))
                     }
-                    disabled={isSaving}
-                    tone="emerald"
                   />
                 </div>
-              </div>
+              </Section>
             ) : null}
           </div>
 
           {/* Drawer Footer */}
-          <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-end gap-3 shadow-lg">
+          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+            <p className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">
+              Changes apply after saving.
+            </p>
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <Button
               variant="ghost"
               onClick={onClose}
               disabled={isSaving}
-              className="px-6 py-2.5 font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="px-4 py-2 text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               Cancel
             </Button>
@@ -436,10 +448,11 @@ export function EditPlayerDetailsDrawer({
               onClick={onSave}
               disabled={isSaving}
               isLoading={isSaving}
-              className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+              className="min-w-[132px] bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
+            </div>
           </div>
         </div>
       </div>
