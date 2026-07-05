@@ -21,6 +21,7 @@ import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-pla
 import {
   buildEditableFieldsFromPlayer,
   buildPlayerUpdateRequest,
+  applyEditableFieldsToPlayer,
   EMPTY_EDITABLE_PLAYER_FIELDS,
   type EditablePlayerFields,
 } from '@/types/player-edit';
@@ -476,16 +477,7 @@ export default function PlayerDetailPage() {
 
       const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);
 
-      setSelectedPlayer({
-        ...selectedPlayer,
-        ...updatedPlayer,
-        email: editableFields.email.trim() || selectedPlayer.email,
-        full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
-        mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
-        dob: editableFields.dob.trim() || selectedPlayer.dob,
-        state: editableFields.state.trim() || selectedPlayer.state,
-        is_active: editableFields.is_active,
-      });
+      setSelectedPlayer(applyEditableFieldsToPlayer({ ...selectedPlayer, ...updatedPlayer }, editableFields));
 
       addToast({
         type: 'success',

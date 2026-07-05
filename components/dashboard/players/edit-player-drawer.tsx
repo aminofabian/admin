@@ -142,23 +142,39 @@ export function EditPlayerDetailsDrawer({
               />
             </div>
 
-            {/* Full Name */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Full Name
-              </label>
-              <Input
-                type="text"
-                value={editableFields.full_name}
-                onChange={(e) => setEditableFields(prev => ({ ...prev, full_name: e.target.value }))}
-                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                disabled={isSaving}
-                placeholder="John Doe"
-                autoComplete="off"
-              />
+            {/* First & Last Name */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  First Name
+                </label>
+                <Input
+                  type="text"
+                  value={editableFields.first_name}
+                  onChange={(e) => setEditableFields(prev => ({ ...prev, first_name: e.target.value }))}
+                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  disabled={isSaving}
+                  placeholder="John"
+                  autoComplete="given-name"
+                />
+              </div>
+              <div className="group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Last Name
+                </label>
+                <Input
+                  type="text"
+                  value={editableFields.last_name}
+                  onChange={(e) => setEditableFields(prev => ({ ...prev, last_name: e.target.value }))}
+                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  disabled={isSaving}
+                  placeholder="Doe"
+                  autoComplete="family-name"
+                />
+              </div>
             </div>
 
             {/* Date of Birth */}
@@ -171,23 +187,91 @@ export function EditPlayerDetailsDrawer({
               />
             </div>
 
-            {/* State */}
-            <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            {/* Address */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                State
-              </label>
-              <Select
-                value={editableFields.state}
-                onChange={(value: string) => setEditableFields(prev => ({ ...prev, state: value }))}
-                options={US_STATES}
-                placeholder="Select a state"
-                disabled={isSaving}
-                className="w-full"
-              />
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Address</h3>
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Street Address
+                </label>
+                <Input
+                  type="text"
+                  value={editableFields.address}
+                  onChange={(e) => setEditableFields(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  disabled={isSaving}
+                  placeholder="123 Main St"
+                  autoComplete="street-address"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    City
+                  </label>
+                  <Input
+                    type="text"
+                    value={editableFields.city}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    disabled={isSaving}
+                    placeholder="New York"
+                    autoComplete="address-level2"
+                  />
+                </div>
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    ZIP Code
+                  </label>
+                  <Input
+                    type="text"
+                    value={editableFields.zip_code}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, zip_code: e.target.value }))}
+                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    disabled={isSaving}
+                    placeholder="10001"
+                    autoComplete="postal-code"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    State
+                  </label>
+                  <Select
+                    value={editableFields.state}
+                    onChange={(value: string) => setEditableFields(prev => ({ ...prev, state: value }))}
+                    options={US_STATES}
+                    placeholder="Select a state"
+                    disabled={isSaving}
+                    className="w-full"
+                  />
+                </div>
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Country
+                  </label>
+                  <Input
+                    type="text"
+                    value={editableFields.country}
+                    onChange={(e) => setEditableFields(prev => ({ ...prev, country: e.target.value }))}
+                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    disabled={isSaving}
+                    placeholder="US"
+                    autoComplete="country"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Mobile Number */}
