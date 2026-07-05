@@ -97,6 +97,17 @@ export function getPlayerIdentityStatusLabel(player: Player | null | undefined):
   return 'Not verified';
 }
 
+/** Player has completed all required KYC steps — profile fields should be read-only. */
+export function isPlayerKycComplete(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  if (player.is_kyc_complete === true || player.kyc_status?.is_kyc_complete === true) {
+    return true;
+  }
+
+  return isPlayerPhoneVerified(player) && isPlayerIdentityVerified(player);
+}
+
 export type PlayerVerificationPatch = {
   mobile_verified: boolean;
   identity_verification_status: 'verified' | 'not_submitted';

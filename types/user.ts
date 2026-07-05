@@ -57,9 +57,15 @@ export interface SavedPaymentMethod {
 }
 
 export interface PlayerKycStatus {
+  is_kyc_complete?: boolean;
+  profile_complete?: boolean;
   phone_complete?: boolean;
   identity_complete?: boolean;
+  phone_required?: boolean;
+  identity_required?: boolean;
   identity_status?: string | null;
+  identity_provider?: string | null;
+  manual_status?: string | null;
 }
 
 export interface Player extends BaseUser {

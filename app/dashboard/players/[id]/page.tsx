@@ -22,6 +22,7 @@ import {
   buildEditableFieldsFromPlayer,
   buildPlayerUpdateRequest,
   applyEditableFieldsToPlayer,
+  isPlayerProfileLocked,
   EMPTY_EDITABLE_PLAYER_FIELDS,
   type EditablePlayerFields,
 } from '@/types/player-edit';
@@ -473,6 +474,7 @@ export default function PlayerDetailPage() {
     try {
       const updateData = buildPlayerUpdateRequest(editableFields, {
         includeVerification: canEditPlayerVerification(user?.role),
+        lockProfileFields: isPlayerProfileLocked(selectedPlayer),
       });
 
       const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);

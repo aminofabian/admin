@@ -27,6 +27,7 @@ import {
   buildEditableFieldsFromPlayer,
   buildPlayerUpdateRequest,
   applyEditableFieldsToPlayer,
+  isPlayerProfileLocked,
   EMPTY_EDITABLE_PLAYER_FIELDS,
   type EditablePlayerFields,
 } from '@/types/player-edit';
@@ -452,6 +453,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     try {
       const updateData = buildPlayerUpdateRequest(editableFields, {
         includeVerification: canEditPlayerVerification(USER_ROLES.SUPERADMIN),
+        lockProfileFields: isPlayerProfileLocked(selectedPlayer),
       });
 
       const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);

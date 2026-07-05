@@ -2,6 +2,7 @@ import type { UpdateUserRequest, Player } from '@/types';
 import {
   buildPlayerVerificationPatch,
   isPlayerIdentityVerified,
+  isPlayerKycComplete,
   isPlayerPhoneVerified,
 } from '@/lib/players/player-verification';
 
@@ -83,33 +84,41 @@ export function buildEditableFieldsFromPlayer(player: Player): EditablePlayerFie
 
 export function buildPlayerUpdateRequest(
   fields: EditablePlayerFields,
-  options?: { includeVerification?: boolean }
+  options?: { includeVerification?: boolean; lockProfileFields?: boolean }
 ): UpdateUserRequest {
-  const updateData: UpdateUserRequest = {
-    email: fields.email.trim() || undefined,
-    first_name: fields.first_name.trim() || undefined,
-    last_name: fields.last_name.trim() || undefined,
-    mobile_number: fields.mobile_number.trim() || undefined,
-    dob: fields.dob.trim() || undefined,
-    address: fields.address.trim() || undefined,
-    city: fields.city.trim() || undefined,
-    zip_code: fields.zip_code.trim() || undefined,
-    state: fields.state.trim() || undefined,
-    country: fields.country.trim() || undefined,
-    is_active: fields.is_active,
-    ...(fields.password.trim()
-      ? {
-          password: fields.password.trim(),
-          confirm_password: fields.confirm_password.trim(),
-        }
-      : {}),
-  };
+  const updateData: UpdateUserRequest = {};
+
+  if (!options?.lockProfileFields) {
+    Object.assign(updateData, {
+      email: fields.email.trim() || undefined,
+      first_name: fields.first_name.trim() || undefined,
+      last_name: fields.last_name.trim() || undefined,
+      mobile_number: fields.mobile_number.trim() || undefined,
+      dob: fields.dob.trim() || undefined,
+      address: fields.address.trim() || undefined,
+      city: fields.city.trim() || undefined,
+      zip_code: fields.zip_code.trim() || undefined,
+      state: fields.state.trim() || undefined,
+      country: fields.country.trim() || undefined,
+      is_active: fields.is_active,
+      ...(fields.password.trim()
+        ? {
+            password: fields.password.trim(),
+            confirm_password: fields.confirm_password.trim(),
+          }
+        : {}),
+    });
+  }
 
   if (options?.includeVerification) {
     Object.assign(updateData, buildPlayerVerificationPatch(fields.phone_verified, fields.identity_verified));
   }
 
   return updateData;
+}
+
+export function isPlayerProfileLocked(player: Player | null | undefined): boolean {
+  return isPlayerKycComplete(player);
 }
 
 export function applyEditableFieldsToPlayer(player: Player, fields: EditablePlayerFields): Player {

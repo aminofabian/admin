@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Button, Input, Select, Switch, DateSelect } from '@/components/ui';
-import type { EditablePlayerFields } from '@/types/player-edit';
+import { isPlayerProfileLocked, type EditablePlayerFields } from '@/types/player-edit';
 import { getPlayerIdentityStatusLabel } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 
@@ -149,6 +149,10 @@ export function EditPlayerDetailsDrawer({
 }: EditPlayerDetailsDrawerProps) {
   if (!isOpen) return null;
 
+  const profileLocked = isPlayerProfileLocked(player);
+  const profileFieldDisabled = isSaving || profileLocked;
+  const canSaveChanges = !profileLocked || canEditVerification;
+
   return (
     <div className="fixed inset-0 z-[60] overflow-hidden">
       {/* Backdrop */}
@@ -196,6 +200,20 @@ export function EditPlayerDetailsDrawer({
 
           {/* Drawer Body */}
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-24 sm:px-5">
+            {profileLocked ? (
+              <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Profile locked after KYC verification</p>
+                  <p className="mt-0.5 text-xs leading-snug text-amber-800/80 dark:text-amber-200/80">
+                    Identity, address, and access fields cannot be changed once KYC is complete.
+                    {canEditVerification ? ' You can still update manual KYC verification status below.' : ''}
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <Section
               title="Identity"
               description="Core profile fields shown across the admin dashboard."
@@ -213,7 +231,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.first_name}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, first_name: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="John"
                     autoComplete="given-name"
                   />
@@ -225,7 +243,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.last_name}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, last_name: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="Doe"
                     autoComplete="family-name"
                   />
@@ -237,7 +255,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.email}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, email: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="player@example.com"
                     autoComplete="email"
                   />
@@ -249,7 +267,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.mobile_number}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, mobile_number: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="+1 (555) 123-4567"
                     autoComplete="tel"
                   />
@@ -259,7 +277,7 @@ export function EditPlayerDetailsDrawer({
                     label="Date of Birth"
                     value={editableFields.dob}
                     onChange={(value) => setEditableFields(prev => ({ ...prev, dob: value }))}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                   />
                 </div>
               </div>
@@ -282,7 +300,7 @@ export function EditPlayerDetailsDrawer({
                   value={editableFields.address}
                   onChange={(e) => setEditableFields(prev => ({ ...prev, address: e.target.value }))}
                   className={inputClass}
-                  disabled={isSaving}
+                  disabled={profileFieldDisabled}
                   placeholder="123 Main St"
                   autoComplete="street-address"
                 />
@@ -295,7 +313,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.city}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, city: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="New York"
                     autoComplete="address-level2"
                   />
@@ -307,7 +325,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.zip_code}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, zip_code: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="10001"
                     autoComplete="postal-code"
                   />
@@ -319,7 +337,7 @@ export function EditPlayerDetailsDrawer({
                     onChange={(value: string) => setEditableFields(prev => ({ ...prev, state: value }))}
                     options={US_STATES}
                     placeholder="Select state"
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     className="h-10 w-full"
                   />
                 </div>
@@ -330,7 +348,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.country}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, country: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="US"
                     autoComplete="country"
                   />
@@ -351,7 +369,7 @@ export function EditPlayerDetailsDrawer({
                 title="Account status"
                 description={editableFields.is_active ? 'Player account is active' : 'Player account is inactive'}
                 checked={editableFields.is_active}
-                disabled={isSaving}
+                disabled={profileFieldDisabled}
                 onChange={(checked) => setEditableFields(prev => ({ ...prev, is_active: checked }))}
               />
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -362,7 +380,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.password}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, password: e.target.value }))}
                     className={inputClass}
-                    disabled={isSaving}
+                    disabled={profileFieldDisabled}
                     placeholder="Leave blank to keep current"
                     autoComplete="new-password"
                   />
@@ -381,7 +399,7 @@ export function EditPlayerDetailsDrawer({
                           ? 'border-red-500 dark:border-red-400'
                           : ''
                       }`}
-                      disabled={isSaving}
+                      disabled={profileFieldDisabled}
                       placeholder="Repeat password"
                       autoComplete="new-password"
                     />
@@ -432,7 +450,9 @@ export function EditPlayerDetailsDrawer({
           {/* Drawer Footer */}
           <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
             <p className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">
-              Changes apply after saving.
+              {profileLocked && !canEditVerification
+                ? 'Profile is read-only after KYC verification.'
+                : 'Changes apply after saving.'}
             </p>
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <Button
@@ -446,7 +466,7 @@ export function EditPlayerDetailsDrawer({
             <Button
               variant="primary"
               onClick={onSave}
-              disabled={isSaving}
+              disabled={isSaving || !canSaveChanges}
               isLoading={isSaving}
               className="min-w-[132px] bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg"
             >
