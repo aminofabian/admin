@@ -88,7 +88,8 @@ export function getPlayerIdentityStatusLabel(player: Player | null | undefined):
 
   const status = readIdentityStatus(player);
   if (status === 'pending' || status === 'submitted' || status === 'review') return 'Pending review';
-  if (status === 'unverified' || status === 'rejected' || status === 'failed') {
+  if (status === 'not_submitted' || status === 'none') return 'Not submitted';
+  if (status === 'rejected' || status === 'failed' || status === 'declined') {
     return status.charAt(0).toUpperCase() + status.slice(1);
   }
   if (status) return status.charAt(0).toUpperCase() + status.slice(1);
@@ -98,7 +99,7 @@ export function getPlayerIdentityStatusLabel(player: Player | null | undefined):
 
 export type PlayerVerificationPatch = {
   mobile_verified: boolean;
-  identity_verification_status: 'verified' | 'unverified';
+  identity_verification_status: 'verified' | 'not_submitted';
 };
 
 export function buildPlayerVerificationPatch(
@@ -107,6 +108,6 @@ export function buildPlayerVerificationPatch(
 ): PlayerVerificationPatch {
   return {
     mobile_verified: phoneVerified,
-    identity_verification_status: identityVerified ? 'verified' : 'unverified',
+    identity_verification_status: identityVerified ? 'verified' : 'not_submitted',
   };
 }

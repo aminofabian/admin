@@ -135,7 +135,7 @@ export interface UpdateUserRequest {
   agent_id?: number;
   cashout_limit?: string;
   mobile_verified?: boolean;
-  identity_verification_status?: 'verified' | 'unverified' | string;
+  identity_verification_status?: 'verified' | 'not_submitted' | 'pending' | 'rejected' | string;
 }
 
 export interface CheckPlayerGameBalanceRequest {
