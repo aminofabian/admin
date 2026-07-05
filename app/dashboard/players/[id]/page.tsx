@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerVerification } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -18,6 +18,12 @@ import { Badge, Button, Select, DateSelect, ConfirmModal, DropdownMenu, Dropdown
 import type { UpdateUserRequest, ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import {
+  buildEditableFieldsFromPlayer,
+  buildPlayerUpdateRequest,
+  EMPTY_EDITABLE_PLAYER_FIELDS,
+  type EditablePlayerFields,
+} from '@/types/player-edit';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
@@ -176,16 +182,7 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   return { title: errorTitle, message: errorMessage };
 }
 
-interface EditableFields {
-  email: string;
-  full_name: string;
-  dob: string;
-  state: string;
-  mobile_number: string;
-  password: string;
-  confirm_password: string;
-  is_active: boolean;
-}
+interface EditableFields extends EditablePlayerFields {}
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -236,16 +233,7 @@ export default function PlayerDetailPage() {
   const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
     Record<number, boolean>
   >({});
-  const [editableFields, setEditableFields] = useState<EditableFields>({
-    email: '',
-    full_name: '',
-    dob: '',
-    state: '',
-    mobile_number: '',
-    password: '',
-    confirm_password: '',
-    is_active: true,
-  });
+  const [editableFields, setEditableFields] = useState<EditableFields>(EMPTY_EDITABLE_PLAYER_FIELDS);
 
   // Track last agent assignment time to prevent immediate data overwrite
   // Use ref instead of state to avoid triggering re-renders
@@ -416,16 +404,7 @@ export default function PlayerDetailPage() {
 
           return player;
         });
-        setEditableFields({
-          email: player.email || '',
-          full_name: player.full_name || '',
-          dob: player.dob || '',
-          state: player.state || '',
-          mobile_number: player.mobile_number || '',
-          password: '',
-          confirm_password: '',
-          is_active: player.is_active ?? true,
-        });
+        setEditableFields(buildEditableFieldsFromPlayer(player));
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -491,36 +470,22 @@ export default function PlayerDetailPage() {
 
     setIsSaving(true);
     try {
-      const updateData: UpdateUserRequest = {
-        email: editableFields.email.trim() || undefined,
-        full_name: editableFields.full_name.trim() || undefined,
-        mobile_number: editableFields.mobile_number.trim() || undefined,
-        dob: editableFields.dob.trim() || undefined,
-        state: editableFields.state.trim() || undefined,
-        is_active: editableFields.is_active,
-        // Only include password if it's not empty
-        ...(editableFields.password.trim()
-          ? {
-            password: editableFields.password.trim(),
-            confirm_password: editableFields.confirm_password.trim(),
-          }
-          : {}
-        ),
-      };
+      const updateData = buildPlayerUpdateRequest(editableFields, {
+        includeVerification: canEditPlayerVerification(user?.role),
+      });
 
-      await playersApi.update(selectedPlayer.id, updateData);
+      const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);
 
-      // Refresh player data
-      const updatedPlayer = {
+      setSelectedPlayer({
         ...selectedPlayer,
+        ...updatedPlayer,
         email: editableFields.email.trim() || selectedPlayer.email,
         full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
         mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
         dob: editableFields.dob.trim() || selectedPlayer.dob,
         state: editableFields.state.trim() || selectedPlayer.state,
         is_active: editableFields.is_active,
-      };
-      setSelectedPlayer(updatedPlayer);
+      });
 
       addToast({
         type: 'success',
@@ -542,7 +507,7 @@ export default function PlayerDetailPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedPlayer, editableFields, addToast]);
+  }, [selectedPlayer, editableFields, addToast, user?.role]);
 
   const handleAssignAgent = useCallback(async () => {
     console.log('🎯 handleAssignAgent called');
@@ -1682,6 +1647,8 @@ export default function PlayerDetailPage() {
         setEditableFields={setEditableFields}
         isSaving={isSaving}
         onSave={handleSave}
+        canEditVerification={canEditPlayerVerification(user?.role)}
+        player={selectedPlayer}
       />
 
       <ConfirmModal

@@ -56,6 +56,12 @@ export interface SavedPaymentMethod {
   venmo_username?: string | null;
 }
 
+export interface PlayerKycStatus {
+  phone_complete?: boolean;
+  identity_complete?: boolean;
+  identity_status?: string | null;
+}
+
 export interface Player extends BaseUser {
   role: 'player';
   full_name: string;
@@ -70,6 +76,18 @@ export interface Player extends BaseUser {
   mobile_number?: string;
   dob?: string;
   state?: string;
+  mobile_verified?: boolean | null;
+  is_mobile_verified?: boolean | null;
+  phone_verified?: boolean | null;
+  is_phone_verified?: boolean | null;
+  is_identity_verified?: boolean | null;
+  kyc_verified?: boolean | null;
+  is_kyc_verified?: boolean | null;
+  kyc_complete?: boolean | null;
+  is_kyc_complete?: boolean | null;
+  identity_verification_status?: string | null;
+  identity_verification_provider?: string | null;
+  kyc_status?: PlayerKycStatus | null;
   total_purchases?: number;
   total_cashouts?: number;
   total_transfers?: number;
@@ -116,6 +134,8 @@ export interface UpdateUserRequest {
   state?: string;
   agent_id?: number;
   cashout_limit?: string;
+  mobile_verified?: boolean;
+  identity_verification_status?: 'verified' | 'unverified' | string;
 }
 
 export interface CheckPlayerGameBalanceRequest {

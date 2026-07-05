@@ -1,6 +1,9 @@
 'use client';
 
 import { Button, Input, Select, Switch, DateSelect } from '@/components/ui';
+import type { EditablePlayerFields } from '@/types/player-edit';
+import { getPlayerIdentityStatusLabel } from '@/lib/players/player-verification';
+import type { Player } from '@/types';
 
 // All 50 US States
 const US_STATES = [
@@ -59,28 +62,12 @@ const US_STATES = [
 interface EditPlayerDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  editableFields: {
-    email: string;
-    full_name: string;
-    dob: string;
-    state: string;
-    mobile_number: string;
-    password: string;
-    confirm_password: string;
-    is_active: boolean;
-  };
-  setEditableFields: React.Dispatch<React.SetStateAction<{
-    email: string;
-    full_name: string;
-    dob: string;
-    state: string;
-    mobile_number: string;
-    password: string;
-    confirm_password: string;
-    is_active: boolean;
-  }>>;
+  editableFields: EditablePlayerFields;
+  setEditableFields: React.Dispatch<React.SetStateAction<EditablePlayerFields>>;
   isSaving: boolean;
   onSave: () => void;
+  canEditVerification?: boolean;
+  player?: Player | null;
 }
 
 export function EditPlayerDetailsDrawer({
@@ -90,6 +77,8 @@ export function EditPlayerDetailsDrawer({
   setEditableFields,
   isSaving,
   onSave,
+  canEditVerification = false,
+  player = null,
 }: EditPlayerDetailsDrawerProps) {
   if (!isOpen) return null;
 
@@ -293,6 +282,59 @@ export function EditPlayerDetailsDrawer({
                 />
               </div>
             </div>
+
+            {canEditVerification ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">KYC verification</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+                  Manually mark phone (step 2) and identity (step 3) as verified or unverified.
+                </p>
+
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Phone verified
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Step 2 — mobile number OTP verification
+                    </p>
+                  </div>
+                  <Switch
+                    checked={editableFields.phone_verified}
+                    onChange={(checked) =>
+                      setEditableFields((prev) => ({ ...prev, phone_verified: checked }))
+                    }
+                    disabled={isSaving}
+                    tone="emerald"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Identity verified
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Step 3 — SSN / identity check
+                      {player ? ` · Current: ${getPlayerIdentityStatusLabel(player)}` : ''}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={editableFields.identity_verified}
+                    onChange={(checked) =>
+                      setEditableFields((prev) => ({ ...prev, identity_verified: checked }))
+                    }
+                    disabled={isSaving}
+                    tone="emerald"
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Drawer Footer */}
