@@ -6,7 +6,7 @@ import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, 
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
@@ -14,8 +14,8 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, DateSelect, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
-import type { UpdateUserRequest, ApiError } from '@/types';
+import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
+import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import {
@@ -182,7 +182,7 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   return { title: errorTitle, message: errorMessage };
 }
 
-interface EditableFields extends EditablePlayerFields {}
+type EditableFields = EditablePlayerFields;
 
 export default function PlayerDetailPage() {
   const params = useParams();

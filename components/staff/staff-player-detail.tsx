@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Player, UpdateUserRequest } from '@/types';
+import type { Player } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input, Select, DateSelect } from '@/components/ui';
+import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
@@ -40,7 +40,7 @@ interface StaffPlayerDetailProps {
   playerId: number;
 }
 
-interface EditableFields extends EditablePlayerFields {}
+type EditableFields = EditablePlayerFields;
 
 /**
  * Staff Player Detail Component

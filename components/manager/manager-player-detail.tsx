@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Player, UpdateUserRequest } from '@/types';
+import type { Player } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
@@ -40,7 +40,7 @@ interface ManagerPlayerDetailProps {
   playerId: number;
 }
 
-interface EditableFields extends EditablePlayerFields {}
+type EditableFields = EditablePlayerFields;
 
 /**
  * Manager Player Detail Component
