@@ -110,7 +110,7 @@ export function isPlayerKycComplete(player: Player | null | undefined): boolean 
 
 export type PlayerVerificationPatch = {
   mobile_verified: boolean;
-  identity_verification_status: 'verified' | 'not_submitted';
+  identity_verification_status: 'approved' | 'not_submitted';
 };
 
 export function buildPlayerVerificationPatch(
@@ -119,6 +119,6 @@ export function buildPlayerVerificationPatch(
 ): PlayerVerificationPatch {
   return {
     mobile_verified: phoneVerified,
-    identity_verification_status: identityVerified ? 'verified' : 'not_submitted',
+    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
   };
 }
