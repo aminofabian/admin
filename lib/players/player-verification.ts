@@ -82,11 +82,138 @@ export function isPlayerIdentityVerified(player: Player | null | undefined): boo
   return false;
 }
 
-/**
- * Identity was verified through the actual provider flow (BinPay) rather than a
- * manual admin override. The provider flow sets explicit BinPay status/provider
- * fields; a manual override only flips the generic identity flags.
- */
+const IDENTITY_PENDING_STATUSES = new Set(['pending', 'submitted', 'review', 'in_review', 'processing']);
+const IDENTITY_REJECTED_STATUSES = new Set(['rejected', 'failed', 'declined', 'denied']);
+const IDENTITY_NOT_SUBMITTED_STATUSES = new Set(['not_submitted', 'none', 'unverified', '']);
+
+function readExplicitBinpayStatus(player: Player): string {
+  return (
+    player.binpay_verification_status?.trim().toLowerCase() ||
+    player.binpay_kyc_status?.trim().toLowerCase() ||
+    player.binpay_status?.trim().toLowerCase() ||
+    ''
+  );
+}
+
+export type IdentitySubmissionCategory =
+  | 'not_submitted'
+  | 'pending'
+  | 'rejected'
+  | 'verified'
+  | 'unknown';
+
+/** Whether the player has submitted identity KYC or received a provider decision. */
+export function getPlayerIdentitySubmissionCategory(
+  player: Player | null | undefined
+): IdentitySubmissionCategory {
+  if (!player) return 'unknown';
+
+  const explicit = readExplicitBinpayStatus(player);
+  if (explicit) {
+    if (IDENTITY_VERIFIED_STATUSES.has(explicit)) return 'verified';
+    if (IDENTITY_PENDING_STATUSES.has(explicit)) return 'pending';
+    if (IDENTITY_REJECTED_STATUSES.has(explicit)) return 'rejected';
+    if (IDENTITY_NOT_SUBMITTED_STATUSES.has(explicit)) return 'not_submitted';
+    return 'unknown';
+  }
+
+  const status = readIdentityStatus(player);
+  if (status) {
+    if (IDENTITY_VERIFIED_STATUSES.has(status)) return 'verified';
+    if (IDENTITY_PENDING_STATUSES.has(status)) return 'pending';
+    if (IDENTITY_REJECTED_STATUSES.has(status)) return 'rejected';
+    if (IDENTITY_NOT_SUBMITTED_STATUSES.has(status)) return 'not_submitted';
+    return 'unknown';
+  }
+
+  if (player.kyc_status?.identity_complete === true) return 'pending';
+  if (isPlayerIdentityVerified(player)) return 'verified';
+
+  return 'not_submitted';
+}
+
+/** Phone was verified by the player through OTP, not a manual admin override. */
+export function isPlayerPhoneVerifiedViaUser(player: Player | null | undefined): boolean {
+  if (!player || !isPlayerPhoneVerified(player)) return false;
+  if (player.kyc_status?.phone_complete === true) return true;
+  if (player.mobile_verified === true || player.is_mobile_verified === true) return true;
+  if (player.phone_verified === true) return true;
+  return false;
+}
+
+export function isPlayerPhoneManuallyMarked(player: Player | null | undefined): boolean {
+  return isPlayerPhoneVerified(player) && !isPlayerPhoneVerifiedViaUser(player);
+}
+
+export function isPlayerIdentityManuallyMarked(player: Player | null | undefined): boolean {
+  return isPlayerIdentityVerified(player) && !isPlayerIdentityVerifiedViaProvider(player);
+}
+
+export function canAdminMarkPhoneVerified(player: Player | null | undefined): boolean {
+  return Boolean(player) && !isPlayerPhoneVerified(player);
+}
+
+export function canAdminUnmarkPhoneVerified(player: Player | null | undefined): boolean {
+  return isPlayerPhoneManuallyMarked(player);
+}
+
+export function canAdminMarkIdentityVerified(player: Player | null | undefined): boolean {
+  if (!player || isPlayerIdentityVerified(player)) return false;
+
+  const category = getPlayerIdentitySubmissionCategory(player);
+  return category === 'not_submitted' || category === 'rejected';
+}
+
+export function canAdminUnmarkIdentityVerified(player: Player | null | undefined): boolean {
+  return isPlayerIdentityManuallyMarked(player);
+}
+
+export type AdminVerificationAction = 'mark' | 'unmark';
+
+export function getAdminPhoneVerificationAction(
+  player: Player | null | undefined
+): AdminVerificationAction | null {
+  if (canAdminMarkPhoneVerified(player)) return 'mark';
+  if (canAdminUnmarkPhoneVerified(player)) return 'unmark';
+  return null;
+}
+
+export function getAdminIdentityVerificationAction(
+  player: Player | null | undefined
+): AdminVerificationAction | null {
+  if (canAdminMarkIdentityVerified(player)) return 'mark';
+  if (canAdminUnmarkIdentityVerified(player)) return 'unmark';
+  return null;
+}
+
+export function getAdminVerificationBlockReason(
+  target: 'phone' | 'identity',
+  player: Player | null | undefined
+): string | null {
+  if (!player) return 'Player not found.';
+
+  if (target === 'phone') {
+    if (isPlayerPhoneVerifiedViaUser(player)) {
+      return 'Phone was verified by the player and cannot be changed manually.';
+    }
+    return null;
+  }
+
+  if (isPlayerIdentityVerifiedViaProvider(player)) {
+    return 'Identity was verified through BinPay and cannot be changed manually.';
+  }
+
+  const category = getPlayerIdentitySubmissionCategory(player);
+  if (category === 'pending') {
+    return 'Identity verification is pending review and cannot be changed manually.';
+  }
+  if (category === 'verified' && !isPlayerIdentityManuallyMarked(player)) {
+    return 'Identity was verified through the provider flow and cannot be changed manually.';
+  }
+
+  return null;
+}
+
 export function isPlayerIdentityVerifiedViaProvider(player: Player | null | undefined): boolean {
   if (!player) return false;
 
