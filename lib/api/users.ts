@@ -1,4 +1,10 @@
 import { apiClient } from './client';
+import { API_ENDPOINTS } from '@/lib/constants/api';
+import {
+  buildIdentityVerificationPatch,
+  buildPhoneVerificationPatch,
+  isVerificationPersisted,
+} from '@/lib/players/player-verification';
 import { paramsWithClientTimezone } from '@/lib/utils/browser-timezone';
 import type { ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
 
@@ -114,6 +120,31 @@ export const playersApi = {
 
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Player>(`api/admin/players/${id}`, data),
+
+  get: (id: number) => apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id)),
+
+  updateVerification: async (
+    id: number,
+    target: 'phone' | 'identity',
+    verified: boolean
+  ): Promise<Player> => {
+    const patch =
+      target === 'phone'
+        ? buildPhoneVerificationPatch(verified)
+        : buildIdentityVerificationPatch(verified);
+
+    await apiClient.patch(`api/admin/players/${id}`, patch);
+
+    const refreshed = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
+
+    if (!isVerificationPersisted(refreshed, target, verified)) {
+      throw new Error(
+        `Verification was not saved on the server. Expected ${target} to be ${verified ? 'verified' : 'unverified'}.`
+      );
+    }
+
+    return refreshed;
+  },
 
   viewDetails: (id: number) => 
     apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(

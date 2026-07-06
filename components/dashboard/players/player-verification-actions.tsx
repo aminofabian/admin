@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { Button, ConfirmModal, DropdownMenu, DropdownMenuItem, useToast } from '@/components/ui';
 import { playersApi } from '@/lib/api';
 import {
-  buildIdentityVerificationPatch,
-  buildPhoneVerificationPatch,
   getPlayerIdentityStatusLabel,
   isPlayerIdentityVerified,
   isPlayerPhoneVerified,
@@ -40,14 +38,16 @@ export function PlayerVerificationActions({
     if (!pendingTarget) return;
 
     setIsSaving(true);
-    try {
-      const patch =
-        pendingTarget === 'phone'
-          ? buildPhoneVerificationPatch(!phoneVerified)
-          : buildIdentityVerificationPatch(!identityVerified);
+    const nextVerified =
+      pendingTarget === 'phone' ? !phoneVerified : !identityVerified;
 
-      const updatedPlayer = await playersApi.update(player.id, patch);
-      onUpdated({ ...player, ...updatedPlayer });
+    try {
+      const refreshed = await playersApi.updateVerification(
+        player.id,
+        pendingTarget,
+        nextVerified
+      );
+      onUpdated(refreshed);
 
       addToast({
         type: 'success',

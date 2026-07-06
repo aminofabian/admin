@@ -109,28 +109,44 @@ export function isPlayerKycComplete(player: Player | null | undefined): boolean 
 }
 
 export type PlayerVerificationPatch = {
-  mobile_verified: boolean;
-  identity_verification_status: 'approved' | 'not_submitted';
+  is_phone_verified?: boolean;
+  is_identity_verified?: boolean;
+  identity_verification_status?: 'approved' | 'not_submitted';
 };
 
+/** Matches PATCH /api/v1/players/{id}/ contract from backend. */
 export function buildPlayerVerificationPatch(
   phoneVerified: boolean,
   identityVerified: boolean
 ): PlayerVerificationPatch {
   return {
-    mobile_verified: phoneVerified,
+    is_phone_verified: phoneVerified,
+    is_identity_verified: identityVerified,
     identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
   };
 }
 
-export function buildPhoneVerificationPatch(phoneVerified: boolean): Pick<PlayerVerificationPatch, 'mobile_verified'> {
-  return { mobile_verified: phoneVerified };
+export function buildPhoneVerificationPatch(
+  phoneVerified: boolean
+): Pick<PlayerVerificationPatch, 'is_phone_verified'> {
+  return { is_phone_verified: phoneVerified };
 }
 
 export function buildIdentityVerificationPatch(
   identityVerified: boolean
-): Pick<PlayerVerificationPatch, 'identity_verification_status'> {
+): Pick<PlayerVerificationPatch, 'is_identity_verified' | 'identity_verification_status'> {
   return {
+    is_identity_verified: identityVerified,
     identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
   };
+}
+
+export function isVerificationPersisted(
+  player: Player,
+  target: 'phone' | 'identity',
+  expectedVerified: boolean
+): boolean {
+  return target === 'phone'
+    ? isPlayerPhoneVerified(player) === expectedVerified
+    : isPlayerIdentityVerified(player) === expectedVerified;
 }
