@@ -26,6 +26,7 @@ import {
 } from '@/components/features';
 import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
 import { US_STATES } from '@/components/dashboard/players/players-filters';
+import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -919,6 +920,7 @@ function SuperAdminPlayersTable({
               <TableHead>Company</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Cashout limit</TableHead>
+              <TableHead>BinPay</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
@@ -1030,6 +1032,13 @@ function SuperAdminPlayerCard({
         </div>
       </div>
 
+      <div className="px-3 pb-3 flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          BinPay verification
+        </span>
+        <PlayerBinpayVerificationBadge player={player} className="text-[10px] px-2 py-0.5" />
+      </div>
+
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1088,6 +1097,9 @@ function SuperAdminPlayersTableRow({
             ? formatCurrency(player.cashout_limit)
             : '—'}
         </div>
+      </TableCell>
+      <TableCell>
+        <PlayerBinpayVerificationBadge player={player} />
       </TableCell>
       <TableCell>
         <Badge variant={player.is_active ? 'success' : 'danger'}>

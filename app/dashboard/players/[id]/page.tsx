@@ -28,6 +28,7 @@ import {
 } from '@/types/player-edit';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerBinpayVerificationCard } from '@/components/dashboard/players/player-binpay-verification-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
@@ -1350,6 +1351,8 @@ export default function PlayerDetailPage() {
               createdByUsername={selectedPlayer.created_by?.username}
               formatDate={formatDate}
             />
+
+            <PlayerBinpayVerificationCard player={selectedPlayer} formatDate={formatDate} />
 
             <PlayerRouletteSpinAllowanceSection
               playerId={selectedPlayer.id}

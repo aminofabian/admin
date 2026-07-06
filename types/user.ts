@@ -99,6 +99,12 @@ export interface Player extends BaseUser {
   is_kyc_complete?: boolean | null;
   identity_verification_status?: string | null;
   identity_verification_provider?: string | null;
+  identity_verified_at?: string | null;
+  binpay_verification_status?: string | null;
+  binpay_kyc_status?: string | null;
+  binpay_status?: string | null;
+  kyc_manual_status?: string | null;
+  ssn_last4?: string | null;
   kyc_status?: PlayerKycStatus | null;
   total_purchases?: number;
   total_cashouts?: number;

@@ -28,6 +28,7 @@ import {
   PlayerForm,
 } from '@/components/features';
 import { PlayersFilters, type PlayersFiltersState } from './players-filters';
+import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -1079,6 +1080,7 @@ function PlayersTable({
               <TableHead>Email</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Cashout limit</TableHead>
+              <TableHead>BinPay</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
@@ -1215,6 +1217,13 @@ function PlayerCard({
         </div>
       </div>
 
+      <div className="px-3 pb-3 flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          BinPay verification
+        </span>
+        <PlayerBinpayVerificationBadge player={player} className="text-[10px] px-2 py-0.5" />
+      </div>
+
       {/* Bottom Section: Date */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1290,6 +1299,9 @@ function PlayersTableRow({
             ? formatCurrency(player.cashout_limit)
             : '—'}
         </div>
+      </TableCell>
+      <TableCell>
+        <PlayerBinpayVerificationBadge player={player} />
       </TableCell>
       <TableCell>
         <Badge variant={player.is_active ? 'success' : 'danger'}>
