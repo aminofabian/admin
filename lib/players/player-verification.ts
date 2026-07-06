@@ -122,3 +122,15 @@ export function buildPlayerVerificationPatch(
     identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
   };
 }
+
+export function buildPhoneVerificationPatch(phoneVerified: boolean): Pick<PlayerVerificationPatch, 'mobile_verified'> {
+  return { mobile_verified: phoneVerified };
+}
+
+export function buildIdentityVerificationPatch(
+  identityVerified: boolean
+): Pick<PlayerVerificationPatch, 'identity_verification_status'> {
+  return {
+    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
+  };
+}

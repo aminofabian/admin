@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import { Button, Input, Select, Switch, DateSelect } from '@/components/ui';
 import { isPlayerProfileLocked, type EditablePlayerFields } from '@/types/player-edit';
-import { getPlayerIdentityStatusLabel } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 
 // All 50 US States
@@ -67,7 +66,6 @@ interface EditPlayerDetailsDrawerProps {
   setEditableFields: React.Dispatch<React.SetStateAction<EditablePlayerFields>>;
   isSaving: boolean;
   onSave: () => void;
-  canEditVerification?: boolean;
   player?: Player | null;
 }
 
@@ -144,14 +142,13 @@ export function EditPlayerDetailsDrawer({
   setEditableFields,
   isSaving,
   onSave,
-  canEditVerification = false,
   player = null,
 }: EditPlayerDetailsDrawerProps) {
   if (!isOpen) return null;
 
   const profileLocked = isPlayerProfileLocked(player);
   const profileFieldDisabled = isSaving || profileLocked;
-  const canSaveChanges = !profileLocked || canEditVerification;
+  const canSaveChanges = !profileLocked;
 
   return (
     <div className="fixed inset-0 z-[60] overflow-hidden">
@@ -209,7 +206,6 @@ export function EditPlayerDetailsDrawer({
                   <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Profile locked after KYC verification</p>
                   <p className="mt-0.5 text-xs leading-snug text-amber-800/80 dark:text-amber-200/80">
                     Identity, address, and access fields cannot be changed once KYC is complete.
-                    {canEditVerification ? ' You can still update manual KYC verification status below.' : ''}
                   </p>
                 </div>
               </div>
@@ -412,47 +408,12 @@ export function EditPlayerDetailsDrawer({
                 ) : null}
               </div>
             </Section>
-
-            {canEditVerification ? (
-              <Section
-                title="KYC verification"
-                description="Manual overrides for step 2 phone and step 3 identity checks."
-                icon={
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                }
-              >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <SwitchRow
-                    title="Phone verified"
-                    description="Step 2 OTP verification"
-                    checked={editableFields.phone_verified}
-                    disabled={isSaving}
-                    onChange={(checked) =>
-                      setEditableFields((prev) => ({ ...prev, phone_verified: checked }))
-                    }
-                  />
-                  <SwitchRow
-                    title="Identity verified"
-                    description={`Step 3 identity check${player ? ` · ${getPlayerIdentityStatusLabel(player)}` : ''}`}
-                    checked={editableFields.identity_verified}
-                    disabled={isSaving}
-                    onChange={(checked) =>
-                      setEditableFields((prev) => ({ ...prev, identity_verified: checked }))
-                    }
-                  />
-                </div>
-              </Section>
-            ) : null}
           </div>
 
           {/* Drawer Footer */}
           <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
             <p className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">
-              {profileLocked && !canEditVerification
-                ? 'Profile is read-only after KYC verification.'
-                : 'Changes apply after saving.'}
+              {profileLocked ? 'Profile is read-only after KYC verification.' : 'Changes apply after saving.'}
             </p>
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <Button

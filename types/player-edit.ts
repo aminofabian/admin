@@ -1,6 +1,5 @@
 import type { UpdateUserRequest, Player } from '@/types';
 import {
-  buildPlayerVerificationPatch,
   isPlayerIdentityVerified,
   isPlayerKycComplete,
   isPlayerPhoneVerified,
@@ -84,7 +83,7 @@ export function buildEditableFieldsFromPlayer(player: Player): EditablePlayerFie
 
 export function buildPlayerUpdateRequest(
   fields: EditablePlayerFields,
-  options?: { includeVerification?: boolean; lockProfileFields?: boolean }
+  options?: { lockProfileFields?: boolean }
 ): UpdateUserRequest {
   const updateData: UpdateUserRequest = {};
 
@@ -108,10 +107,6 @@ export function buildPlayerUpdateRequest(
           }
         : {}),
     });
-  }
-
-  if (options?.includeVerification) {
-    Object.assign(updateData, buildPlayerVerificationPatch(fields.phone_verified, fields.identity_verified));
   }
 
   return updateData;

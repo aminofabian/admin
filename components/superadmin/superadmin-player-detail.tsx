@@ -24,6 +24,7 @@ import { PlayerPersonalInformationCard } from '@/components/dashboard/players/pl
 import { PlayerBinpayVerificationCard } from '@/components/dashboard/players/player-binpay-verification-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
 import {
   buildEditableFieldsFromPlayer,
   buildPlayerUpdateRequest,
@@ -453,7 +454,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     setIsSaving(true);
     try {
       const updateData = buildPlayerUpdateRequest(editableFields, {
-        includeVerification: canEditPlayerVerification(USER_ROLES.SUPERADMIN),
         lockProfileFields: isPlayerProfileLocked(selectedPlayer),
       });
 
@@ -559,17 +559,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2 shrink-0"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
           </div>
         </div>
       </div>
@@ -643,6 +632,13 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
             </div>
           </div>
         </div>
+
+        <PlayerProfileAdminBar
+          player={selectedPlayer}
+          canEditVerification={canEditPlayerVerification(USER_ROLES.SUPERADMIN)}
+          onEdit={() => setIsEditDrawerOpen(true)}
+          onUpdated={setSelectedPlayer}
+        />
 
         {/* Two Column Grid Layout */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-2">
@@ -970,7 +966,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         setEditableFields={setEditableFields}
         isSaving={isSaving}
         onSave={handleSave}
-        canEditVerification={canEditPlayerVerification(USER_ROLES.SUPERADMIN)}
         player={selectedPlayer}
       />
 

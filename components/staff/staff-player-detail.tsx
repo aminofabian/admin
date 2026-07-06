@@ -18,6 +18,8 @@ import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerDetailHeaderActions } from '@/components/dashboard/players/player-detail-header-actions';
+import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
 import {
   buildEditableFieldsFromPlayer,
   buildPlayerUpdateRequest,
@@ -409,7 +411,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsSaving(true);
     try {
       const updateData = buildPlayerUpdateRequest(editableFields, {
-        includeVerification: canEditPlayerVerification(USER_ROLES.STAFF),
         lockProfileFields: isPlayerProfileLocked(selectedPlayer),
       });
 
@@ -518,52 +519,15 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('previous')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'previous'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
-                <span className="sm:hidden text-xs">◀</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('next')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'next'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
-                <span className="sm:hidden text-xs">▶</span>
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleNavigateToChat}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsEditDrawerOpen(true)}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-              </Button>
-            </div>
+            <PlayerDetailHeaderActions
+              onPrevious={() => handleNavigateToAdjacentPlayer('previous')}
+              onNext={() => handleNavigateToAdjacentPlayer('next')}
+              onChat={handleNavigateToChat}
+              previousDisabled={playerNavDirection !== null}
+              nextDisabled={playerNavDirection !== null}
+              previousLoading={playerNavDirection === 'previous'}
+              nextLoading={playerNavDirection === 'next'}
+            />
           </div>
         </div>
       </div>
@@ -655,6 +619,13 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
             </div>
           </div>
         </div>
+
+        <PlayerProfileAdminBar
+          player={selectedPlayer}
+          canEditVerification={canEditPlayerVerification(USER_ROLES.STAFF)}
+          onEdit={() => setIsEditDrawerOpen(true)}
+          onUpdated={setSelectedPlayer}
+        />
 
         {/* Three Column Grid Layout */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
@@ -970,7 +941,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         setEditableFields={setEditableFields}
         isSaving={isSaving}
         onSave={handleSave}
-        canEditVerification={canEditPlayerVerification(USER_ROLES.STAFF)}
         player={selectedPlayer}
       />
 
