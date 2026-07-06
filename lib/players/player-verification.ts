@@ -82,9 +82,33 @@ export function isPlayerIdentityVerified(player: Player | null | undefined): boo
   return false;
 }
 
+/**
+ * Identity was verified through the actual provider flow (BinPay) rather than a
+ * manual admin override. The provider flow sets explicit BinPay status/provider
+ * fields; a manual override only flips the generic identity flags.
+ */
+export function isPlayerIdentityVerifiedViaProvider(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  const explicitBinpayStatus =
+    player.binpay_verification_status?.trim().toLowerCase() ||
+    player.binpay_kyc_status?.trim().toLowerCase() ||
+    player.binpay_status?.trim().toLowerCase() ||
+    '';
+  if (explicitBinpayStatus) return IDENTITY_VERIFIED_STATUSES.has(explicitBinpayStatus);
+
+  const provider =
+    player.identity_verification_provider?.trim() ||
+    player.kyc_status?.identity_provider?.trim() ||
+    '';
+  return Boolean(provider) && isPlayerIdentityVerified(player);
+}
+
 export function getPlayerIdentityStatusLabel(player: Player | null | undefined): string {
   if (!player) return 'Unknown';
-  if (isPlayerIdentityVerified(player)) return 'Verified';
+  if (isPlayerIdentityVerified(player)) {
+    return isPlayerIdentityVerifiedViaProvider(player) ? 'Verified' : 'Marked verified';
+  }
 
   const status = readIdentityStatus(player);
   if (status === 'pending' || status === 'submitted' || status === 'review') return 'Pending review';

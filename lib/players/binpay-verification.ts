@@ -1,5 +1,8 @@
 import type { Player } from '@/types';
-import { isPlayerIdentityVerified } from '@/lib/players/player-verification';
+import {
+  isPlayerIdentityVerified,
+  isPlayerIdentityVerifiedViaProvider,
+} from '@/lib/players/player-verification';
 
 export type BinpayVerificationStatus =
   | 'verified'
@@ -78,7 +81,8 @@ export function getPlayerBinpayVerificationLabel(
 ): string {
   switch (getPlayerBinpayVerificationStatus(player)) {
     case 'verified':
-      return 'Verified';
+      // Distinguish real provider verification from a manual admin override.
+      return isPlayerIdentityVerifiedViaProvider(player) ? 'Verified' : 'Marked verified';
     case 'pending':
       return 'Pending';
     case 'not_submitted':
