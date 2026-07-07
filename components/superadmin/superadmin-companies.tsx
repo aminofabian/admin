@@ -45,6 +45,7 @@ export function SuperAdminCompanies() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [isLoadingCompany, setIsLoadingCompany] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [confirmModal, setConfirmModal] = useState<{
@@ -254,16 +255,33 @@ export function SuperAdminCompanies() {
         }
     };
 
-    const openEditModal = (company: Company) => {
-        setSelectedCompany(company);
+    const openEditModal = async (company: Company) => {
         setIsEditModalOpen(true);
         setSubmitError('');
+        setSelectedCompany(company);
+        setIsLoadingCompany(true);
+
+        try {
+            const fullCompany = await companiesApi.get(company.id);
+            setSelectedCompany(fullCompany);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to load company details';
+            setSubmitError(errorMessage);
+            addToast({
+                type: 'error',
+                title: 'Failed to Load Company',
+                description: errorMessage,
+            });
+        } finally {
+            setIsLoadingCompany(false);
+        }
     };
 
     const closeModals = () => {
         setIsCreateModalOpen(false);
         setIsEditModalOpen(false);
         setSelectedCompany(null);
+        setIsLoadingCompany(false);
         setSubmitError('');
     };
 
@@ -550,14 +568,17 @@ export function SuperAdminCompanies() {
                         <span>{submitError}</span>
                     </div>
                 )}
-                {selectedCompany && (
+                {isLoadingCompany ? (
+                    <LoadingState />
+                ) : selectedCompany ? (
                     <CompanyForm
+                        key={selectedCompany.id}
                         company={selectedCompany}
                         onSubmit={handleUpdateCompany as (data: CreateCompanyRequest | UpdateCompanyRequest) => Promise<void>}
                         onCancel={closeModals}
                         isLoading={isSubmitting}
                     />
-                )}
+                ) : null}
             </Drawer>
 
             {/* Confirmation Modal for Toggle Status */}

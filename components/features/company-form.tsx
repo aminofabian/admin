@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, ReactNode } from 'react';
+import { useState, useEffect, FormEvent, ReactNode } from 'react';
 import { Input, Button, PasswordInput } from '@/components/ui';
 import { validatePassword } from '@/lib/utils/password-validation';
 import type { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
@@ -195,63 +195,79 @@ const InfoBanner = ({ title, children }: { title: string; children: ReactNode })
 const hasValue = (...values: Array<string | undefined | null>) =>
   values.some((value) => Boolean(value?.trim()));
 
+const buildFormData = (company?: Company): CreateCompanyRequest => ({
+  project_name: company?.project_name || '',
+  project_domain: company?.project_domain || '',
+  admin_project_domain: company?.admin_project_domain || '',
+  username: company?.username || '',
+  password: '',
+  email: company?.email || '',
+  service_email: company?.service_email || '',
+  service_name: company?.service_name || '',
+  game_api_url: company?.game_api_url || '',
+  game_api_key: company?.game_api_key || '',
+  btcpay_api_key: company?.btcpay_api_key ?? '',
+  btcpay_store_id: company?.btcpay_store_id ?? '',
+  btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
+  binpay_api_key: company?.binpay_api_key ?? '',
+  binpay_secret_key: company?.binpay_secret_key ?? '',
+  binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
+  binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
+  binpay_kyc_webhook_secret: company?.binpay_kyc_webhook_secret ?? '',
+  brenzi_api_key: company?.brenzi_api_key ?? '',
+  brenzi_webhook_secret: company?.brenzi_webhook_secret ?? '',
+  taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
+  taparcaida_payout_api_key: company?.taparcaida_payout_api_key ?? '',
+  tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
+  tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
+  tierlock_deposit_secret: company?.tierlock_deposit_secret ?? '',
+  tierlock_withdrawal_secret: company?.tierlock_withdrawal_secret ?? '',
+  tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
+  tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
+});
+
+const buildOpenProviders = (formData: CreateCompanyRequest) => ({
+  gameApi: hasValue(formData.game_api_url, formData.game_api_key),
+  btcpay: hasValue(formData.btcpay_api_key, formData.btcpay_store_id, formData.btcpay_webhook_secret),
+  binpay: hasValue(
+    formData.binpay_api_key,
+    formData.binpay_secret_key,
+    formData.binpay_deposit_secret_key,
+    formData.binpay_withdrawal_secret_key,
+    formData.binpay_kyc_webhook_secret,
+  ),
+  tierlock: hasValue(
+    formData.tierlock_merchant_id,
+    formData.tierlock_merchant_secret,
+    formData.tierlock_deposit_secret,
+    formData.tierlock_withdrawal_secret,
+    formData.tierlock_payout_shared_secret,
+    formData.tierlock_payout_client_secret,
+  ),
+  brenzi: hasValue(formData.brenzi_api_key, formData.brenzi_webhook_secret),
+  taparcaida: hasValue(formData.taparcaida_vendor_id, formData.taparcaida_payout_api_key),
+});
+
 export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyFormProps) => {
   const isEditMode = !!company;
 
-  const [formData, setFormData] = useState<CreateCompanyRequest>({
-    project_name: company?.project_name || '',
-    project_domain: company?.project_domain || '',
-    admin_project_domain: company?.admin_project_domain || '',
-    username: company?.username || '',
-    password: '',
-    email: company?.email || '',
-    service_email: company?.service_email || '',
-    service_name: company?.service_name || '',
-    game_api_url: company?.game_api_url || '',
-    game_api_key: company?.game_api_key || '',
-    btcpay_api_key: company?.btcpay_api_key ?? '',
-    btcpay_store_id: company?.btcpay_store_id ?? '',
-    btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
-    binpay_api_key: company?.binpay_api_key ?? '',
-    binpay_secret_key: company?.binpay_secret_key ?? '',
-    binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
-    binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
-    binpay_kyc_webhook_secret: company?.binpay_kyc_webhook_secret ?? '',
-    brenzi_api_key: company?.brenzi_api_key ?? '',
-    brenzi_webhook_secret: company?.brenzi_webhook_secret ?? '',
-    taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
-    taparcaida_payout_api_key: company?.taparcaida_payout_api_key ?? '',
-    tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
-    tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
-    tierlock_deposit_secret: company?.tierlock_deposit_secret ?? '',
-    tierlock_withdrawal_secret: company?.tierlock_withdrawal_secret ?? '',
-    tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
-    tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
-  });
+  const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormData(company));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<StepId>('setup');
-  const [openProviders, setOpenProviders] = useState<Record<string, boolean>>({
-    gameApi: hasValue(formData.game_api_url, formData.game_api_key),
-    btcpay: hasValue(formData.btcpay_api_key, formData.btcpay_store_id, formData.btcpay_webhook_secret),
-    binpay: hasValue(
-      formData.binpay_api_key,
-      formData.binpay_secret_key,
-      formData.binpay_deposit_secret_key,
-      formData.binpay_withdrawal_secret_key,
-      formData.binpay_kyc_webhook_secret,
-    ),
-    tierlock: hasValue(
-      formData.tierlock_merchant_id,
-      formData.tierlock_merchant_secret,
-      formData.tierlock_deposit_secret,
-      formData.tierlock_withdrawal_secret,
-      formData.tierlock_payout_shared_secret,
-      formData.tierlock_payout_client_secret,
-    ),
-    brenzi: hasValue(formData.brenzi_api_key, formData.brenzi_webhook_secret),
-    taparcaida: hasValue(formData.taparcaida_vendor_id, formData.taparcaida_payout_api_key),
-  });
+  const [openProviders, setOpenProviders] = useState<Record<string, boolean>>(() =>
+    buildOpenProviders(buildFormData(company)),
+  );
+
+  useEffect(() => {
+    if (!company) return;
+
+    const nextFormData = buildFormData(company);
+    setFormData(nextFormData);
+    setOpenProviders(buildOpenProviders(nextFormData));
+    setErrors({});
+    setStep('setup');
+  }, [company]);
 
   const toggleProvider = (id: string) => {
     setOpenProviders((prev) => ({ ...prev, [id]: !prev[id] }));

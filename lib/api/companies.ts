@@ -76,25 +76,56 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
   return cleaned as T;
 };
 
+function unwrapCompany(response: unknown): Company {
+  if (!response || typeof response !== 'object') {
+    throw new Error('Invalid company response');
+  }
+
+  const obj = response as Record<string, unknown>;
+
+  if (
+    'data' in obj &&
+    obj.data &&
+    typeof obj.data === 'object' &&
+    'id' in (obj.data as Record<string, unknown>)
+  ) {
+    return obj.data as Company;
+  }
+
+  if ('id' in obj && 'username' in obj) {
+    return obj as Company;
+  }
+
+  throw new Error('Invalid company response');
+}
+
 export const companiesApi = {
   list: (filters?: CompanyFilters) => 
     apiClient.get<PaginatedResponse<Company>>('api/admin/companies', {
       params: filters,
     }),
 
-  create: (data: CreateCompanyRequest) => {
+  get: async (id: number) => {
+    const response = await apiClient.get<unknown>(`api/admin/companies/${id}`);
+    return unwrapCompany(response);
+  },
+
+  create: async (data: CreateCompanyRequest) => {
     const cleanedData = cleanCompanyData(data, true); // true = isCreate
-    return apiClient.post<Company>('api/admin/companies', cleanedData);
+    const response = await apiClient.post<unknown>('api/admin/companies', cleanedData);
+    return unwrapCompany(response);
   },
 
-  update: (id: number, data: UpdateCompanyRequest) => {
+  update: async (id: number, data: UpdateCompanyRequest) => {
     const cleanedData = cleanCompanyData(data);
-    return apiClient.put<Company>(`api/admin/companies/${id}`, cleanedData);
+    const response = await apiClient.put<unknown>(`api/admin/companies/${id}`, cleanedData);
+    return unwrapCompany(response);
   },
 
-  partialUpdate: (id: number, data: Partial<UpdateCompanyRequest>) => {
+  partialUpdate: async (id: number, data: Partial<UpdateCompanyRequest>) => {
     const cleanedData = cleanCompanyData(data as UpdateCompanyRequest);
-    return apiClient.patch<Company>(`api/admin/companies/${id}`, cleanedData);
+    const response = await apiClient.patch<unknown>(`api/admin/companies/${id}`, cleanedData);
+    return unwrapCompany(response);
   },
 };
 
