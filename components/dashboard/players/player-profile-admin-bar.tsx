@@ -4,7 +4,6 @@ import { Button } from '@/components/ui';
 import {
   getPlayerIdentityStatusLabel,
   isPlayerIdentityVerified,
-  isPlayerPhoneVerified,
 } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 import { PlayerVerificationActions } from '@/components/dashboard/players/player-verification-actions';
@@ -48,7 +47,6 @@ export function PlayerProfileAdminBar({
   onEdit,
   onUpdated,
 }: PlayerProfileAdminBarProps) {
-  const phoneVerified = isPlayerPhoneVerified(player);
   const identityVerified = isPlayerIdentityVerified(player);
   const identityLabel = getPlayerIdentityStatusLabel(player);
 
@@ -84,11 +82,6 @@ export function PlayerProfileAdminBar({
 
       <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
         <div className="flex flex-wrap gap-2">
-          <StatusPill
-            label="Phone"
-            value={phoneVerified ? 'Verified' : 'Unverified'}
-            tone={phoneVerified ? 'success' : 'warning'}
-          />
           <StatusPill label="Identity" value={identityLabel} tone={identityTone} />
         </div>
 
