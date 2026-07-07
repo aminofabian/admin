@@ -93,7 +93,7 @@ function unwrapCompany(response: unknown): Company {
   }
 
   if ('id' in obj && 'username' in obj) {
-    return obj as Company;
+    return obj as unknown as Company;
   }
 
   throw new Error('Invalid company response');
