@@ -26,9 +26,11 @@ import {
   applyEditableFieldsToPlayer,
   isPlayerProfileLocked,
   EMPTY_EDITABLE_PLAYER_FIELDS,
+  getPlayerPersonalInfoCardAddressProps,
   type EditablePlayerFields,
 } from '@/types/player-edit';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerBinpayVerificationCard } from '@/components/dashboard/players/player-binpay-verification-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
@@ -696,7 +698,9 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               fullName={selectedPlayer.full_name}
               dob={selectedPlayer.dob}
               state={selectedPlayer.state}
+              {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
               mobileNumber={selectedPlayer.mobile_number}
+              phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
             />
 
             <PlayerBinpayVerificationCard player={selectedPlayer} />

@@ -59,17 +59,39 @@ export function formatPlayerFullName(fields: Pick<EditablePlayerFields, 'first_n
   return [fields.first_name.trim(), fields.last_name.trim()].filter(Boolean).join(' ');
 }
 
+export function getPlayerAddressDisplayFields(
+  player: Pick<Player, 'address' | 'street' | 'city' | 'zip_code' | 'postal_code'>
+): Pick<EditablePlayerFields, 'address' | 'city' | 'zip_code'> {
+  return {
+    address: player.address?.trim() || player.street?.trim() || '',
+    city: player.city?.trim() || '',
+    zip_code: player.zip_code?.trim() || player.postal_code?.trim() || '',
+  };
+}
+
+export function getPlayerPersonalInfoCardAddressProps(
+  player: Pick<Player, 'address' | 'street' | 'city' | 'zip_code' | 'postal_code'>
+): { address: string | null; city: string | null; zipCode: string | null } {
+  const fields = getPlayerAddressDisplayFields(player);
+  return {
+    address: fields.address || null,
+    city: fields.city || null,
+    zipCode: fields.zip_code || null,
+  };
+}
+
 export function buildEditableFieldsFromPlayer(player: Player): EditablePlayerFields {
   const { first_name, last_name } = parseNameFromPlayer(player);
+  const addressFields = getPlayerAddressDisplayFields(player);
 
   return {
     email: player.email || '',
     first_name,
     last_name,
     dob: player.dob || '',
-    address: player.address?.trim() || player.street?.trim() || '',
-    city: player.city?.trim() || '',
-    zip_code: player.zip_code?.trim() || player.postal_code?.trim() || '',
+    address: addressFields.address,
+    city: addressFields.city,
+    zip_code: addressFields.zip_code,
     state: player.state || '',
     country: player.country?.trim() || 'US',
     mobile_number: player.mobile_number || '',

@@ -5,7 +5,11 @@ export interface PlayerPersonalInformationCardProps {
   fullName?: string | null;
   dob?: string | null;
   state?: string | null;
+  address?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
   mobileNumber?: string | null;
+  phoneVerified?: boolean;
   created?: string | null;
   createdByUsername?: string | null;
   companyUsername?: string | null;
@@ -40,6 +44,34 @@ function PersonalInfoRow({
   );
 }
 
+function PhoneValue({
+  mobileNumber,
+  phoneVerified,
+}: {
+  mobileNumber?: string | null;
+  phoneVerified?: boolean;
+}) {
+  if (!mobileNumber) return '—';
+
+  const hasPhone = mobileNumber.trim().length > 0;
+  if (!hasPhone) return '—';
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-baseline justify-end gap-x-1.5 gap-y-0.5">
+      <span className="truncate">{mobileNumber}</span>
+      <span
+        className={`shrink-0 text-[10px] font-medium sm:text-[11px] ${
+          phoneVerified
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : 'text-amber-600 dark:text-amber-400'
+        }`}
+      >
+        {phoneVerified ? 'Verified' : 'Not Verified'}
+      </span>
+    </span>
+  );
+}
+
 function PersonalInfoHalf({
   label,
   value,
@@ -62,7 +94,11 @@ export function PlayerPersonalInformationCard({
   fullName,
   dob,
   state,
+  address,
+  city,
+  zipCode,
   mobileNumber,
+  phoneVerified,
   created,
   createdByUsername,
   companyUsername,
@@ -95,8 +131,18 @@ export function PlayerPersonalInformationCard({
           <PersonalInfoHalf label="State" value={state} />
         </div>
 
+        <PersonalInfoRow label="Address" value={address} breakAll />
+
+        <div className="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+          <PersonalInfoHalf label="City" value={city} />
+          <PersonalInfoHalf label="ZIP Code" value={zipCode} />
+        </div>
+
         <PersonalInfoRow label="Email" value={email} breakAll />
-        <PersonalInfoRow label="Phone" value={mobileNumber} />
+        <PersonalInfoRow
+          label="Phone"
+          value={<PhoneValue mobileNumber={mobileNumber} phoneVerified={phoneVerified} />}
+        />
 
         {companyUsername ? <PersonalInfoRow label="Company" value={companyUsername} /> : null}
 
