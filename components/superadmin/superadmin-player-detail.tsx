@@ -22,7 +22,6 @@ import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
-import { PlayerBinpayVerificationCard } from '@/components/dashboard/players/player-binpay-verification-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
@@ -716,8 +715,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
               phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
               companyUsername={selectedPlayer.company_username}
             />
-
-            <PlayerBinpayVerificationCard player={selectedPlayer} formatDate={formatDate} />
 
             <PlayerRouletteSpinAllowanceSection
               playerId={selectedPlayer.id}

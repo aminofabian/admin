@@ -32,7 +32,6 @@ import {
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
-import { PlayerBinpayVerificationCard } from '@/components/dashboard/players/player-binpay-verification-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import {
   USER_ROLES,
@@ -702,8 +701,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               mobileNumber={selectedPlayer.mobile_number}
               phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
             />
-
-            <PlayerBinpayVerificationCard player={selectedPlayer} />
 
             <PlayerRouletteSpinAllowanceSection
               playerId={selectedPlayer.id}
