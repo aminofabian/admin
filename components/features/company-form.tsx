@@ -216,6 +216,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     binpay_secret_key: company?.binpay_secret_key ?? '',
     binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
     binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
+    binpay_kyc_webhook_secret: company?.binpay_kyc_webhook_secret ?? '',
     brenzi_api_key: company?.brenzi_api_key ?? '',
     brenzi_webhook_secret: company?.brenzi_webhook_secret ?? '',
     taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
@@ -238,6 +239,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
       formData.binpay_secret_key,
       formData.binpay_deposit_secret_key,
       formData.binpay_withdrawal_secret_key,
+      formData.binpay_kyc_webhook_secret,
     ),
     tierlock: hasValue(
       formData.tierlock_merchant_id,
@@ -332,6 +334,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           binpay_secret_key: formData.binpay_secret_key,
           binpay_deposit_secret_key: formData.binpay_deposit_secret_key,
           binpay_withdrawal_secret_key: formData.binpay_withdrawal_secret_key,
+          binpay_kyc_webhook_secret: formData.binpay_kyc_webhook_secret,
           brenzi_api_key: formData.brenzi_api_key,
           brenzi_webhook_secret: formData.brenzi_webhook_secret,
           taparcaida_vendor_id: formData.taparcaida_vendor_id,
@@ -493,12 +496,13 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
         title="Binpay"
         isOpen={openProviders.binpay}
         onToggle={() => toggleProvider('binpay')}
-        configured={hasValue(formData.binpay_api_key, formData.binpay_secret_key, formData.binpay_deposit_secret_key, formData.binpay_withdrawal_secret_key)}
+        configured={hasValue(formData.binpay_api_key, formData.binpay_secret_key, formData.binpay_deposit_secret_key, formData.binpay_withdrawal_secret_key, formData.binpay_kyc_webhook_secret)}
       >
         <SecretInput label="API key" value={formData.binpay_api_key} onChange={(v) => handleChange('binpay_api_key', v)} placeholder="bp_key_..." disabled={isLoading} />
         <SecretInput label="Secret key" value={formData.binpay_secret_key} onChange={(v) => handleChange('binpay_secret_key', v)} placeholder="bp_secret_..." disabled={isLoading} />
         <SecretInput label="Deposit secret" value={formData.binpay_deposit_secret_key} onChange={(v) => handleChange('binpay_deposit_secret_key', v)} placeholder="bp_dep_..." disabled={isLoading} />
         <SecretInput label="Withdrawal secret" value={formData.binpay_withdrawal_secret_key} onChange={(v) => handleChange('binpay_withdrawal_secret_key', v)} placeholder="bp_wd_..." disabled={isLoading} />
+        <SecretInput label="KYC webhook secret" value={formData.binpay_kyc_webhook_secret} onChange={(v) => handleChange('binpay_kyc_webhook_secret', v)} placeholder="bp_kyc_wh_..." disabled={isLoading} className="md:col-span-2" />
       </Provider>
 
       <Provider

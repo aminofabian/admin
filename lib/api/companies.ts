@@ -25,6 +25,7 @@ type CleanableFields = {
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
   binpay_withdrawal_secret_key?: string;
+  binpay_kyc_webhook_secret?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
   tierlock_deposit_secret?: string;
@@ -50,6 +51,7 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'binpay_secret_key',
     'binpay_deposit_secret_key',
     'binpay_withdrawal_secret_key',
+    'binpay_kyc_webhook_secret',
     'tierlock_merchant_id',
     'tierlock_merchant_secret',
     'tierlock_deposit_secret',
