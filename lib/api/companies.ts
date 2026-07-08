@@ -31,6 +31,9 @@ type CleanableFields = {
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  taparcaida_vendor_id?: string;
+  taparcaida_payout_api_key?: string;
+  taparcaida_payout_api_secret?: string;
 };
 
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
@@ -56,6 +59,9 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'tierlock_withdrawal_secret',
     'tierlock_payout_shared_secret',
     'tierlock_payout_client_secret',
+    'taparcaida_vendor_id',
+    'taparcaida_payout_api_key',
+    'taparcaida_payout_api_secret',
   ];
   // On create, omit empty optional strings so we do not send noisy blank fields.
   // On update/patch, keep '' so the backend can clear stored secrets and IDs.

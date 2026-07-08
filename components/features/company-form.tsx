@@ -118,6 +118,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     brenzi_webhook_secret: company?.brenzi_webhook_secret ?? '',
     taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
     taparcaida_payout_api_key: company?.taparcaida_payout_api_key ?? '',
+    taparcaida_payout_api_secret: company?.taparcaida_payout_api_secret ?? '',
     tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
     tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
     tierlock_deposit_secret: company?.tierlock_deposit_secret ?? '',
@@ -144,7 +145,11 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
       formData.tierlock_payout_client_secret,
     ),
     brenzi: hasValue(formData.brenzi_api_key, formData.brenzi_webhook_secret),
-    taparcaida: hasValue(formData.taparcaida_vendor_id, formData.taparcaida_payout_api_key),
+    taparcaida: hasValue(
+      formData.taparcaida_vendor_id,
+      formData.taparcaida_payout_api_key,
+      formData.taparcaida_payout_api_secret,
+    ),
   });
 
   const toggleProvider = (id: string) => {
@@ -225,6 +230,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           brenzi_webhook_secret: formData.brenzi_webhook_secret,
           taparcaida_vendor_id: formData.taparcaida_vendor_id,
           taparcaida_payout_api_key: formData.taparcaida_payout_api_key,
+          taparcaida_payout_api_secret: formData.taparcaida_payout_api_secret,
           tierlock_merchant_id: formData.tierlock_merchant_id,
           tierlock_merchant_secret: formData.tierlock_merchant_secret,
           tierlock_deposit_secret: formData.tierlock_deposit_secret,
@@ -301,9 +307,10 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             <SecretInput label="Webhook Secret" value={formData.brenzi_webhook_secret} onChange={(v) => handleChange('brenzi_webhook_secret', v)} placeholder="brz_wh_..." disabled={isLoading} />
           </Provider>
 
-          <Provider title="Taparcaida" isOpen={openProviders.taparcaida} onToggle={() => toggleProvider('taparcaida')} configured={hasValue(formData.taparcaida_vendor_id, formData.taparcaida_payout_api_key)}>
+          <Provider title="Taparcaida" isOpen={openProviders.taparcaida} onToggle={() => toggleProvider('taparcaida')} configured={hasValue(formData.taparcaida_vendor_id, formData.taparcaida_payout_api_key, formData.taparcaida_payout_api_secret)}>
             <Input {...field} label="Vendor ID" value={formData.taparcaida_vendor_id} onChange={(e) => handleChange('taparcaida_vendor_id', e.target.value)} placeholder="tap_vendor_..." disabled={isLoading} />
             <SecretInput label="Payout API Key" value={formData.taparcaida_payout_api_key} onChange={(v) => handleChange('taparcaida_payout_api_key', v)} placeholder="tap_payout_..." disabled={isLoading} />
+            <SecretInput label="Payout API Secret" value={formData.taparcaida_payout_api_secret} onChange={(v) => handleChange('taparcaida_payout_api_secret', v)} placeholder="tap_secret_..." disabled={isLoading} />
           </Provider>
         </div>
       </div>
