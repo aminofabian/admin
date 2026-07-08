@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, ConfirmModal, DropdownMenu, DropdownMenuItem, useToast } from '@/components/ui';
+import { Button, ConfirmModal, useToast } from '@/components/ui';
 import { playersApi } from '@/lib/api';
 import {
   getAdminIdentityVerificationAction,
@@ -14,7 +14,6 @@ interface PlayerVerificationActionsProps {
   player: Player;
   canEdit: boolean;
   onUpdated: (player: Player) => void;
-  variant?: 'menu' | 'buttons';
 }
 
 function getIdentityActionLabel(action: 'mark' | 'unmark'): string {
@@ -25,7 +24,6 @@ export function PlayerVerificationActions({
   player,
   canEdit,
   onUpdated,
-  variant = 'menu',
 }: PlayerVerificationActionsProps) {
   const { addToast } = useToast();
   const [pendingAction, setPendingAction] = useState<'mark' | 'unmark' | null>(null);
@@ -97,59 +95,24 @@ export function PlayerVerificationActions({
     />
   );
 
-  if (variant === 'buttons') {
-    return (
-      <>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setPendingAction(identityAction)}
-          disabled={isSaving}
-          className="flex items-center gap-1.5 px-3 py-2"
-        >
-          {getIdentityActionLabel(identityAction)}
-        </Button>
-        {confirmModal}
-      </>
-    );
-  }
-
   return (
     <>
-      <DropdownMenu
-        align="right"
-        trigger={
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={isSaving}
-            className="flex items-center gap-1.5 px-3 py-2"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
-            Manage KYC
-            <svg className="h-3.5 w-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </Button>
-        }
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => setPendingAction(identityAction)}
+        disabled={isSaving}
+        className="flex items-center gap-1.5 px-3 py-2"
       >
-        <DropdownMenuItem onClick={() => setPendingAction(identityAction)} className="flex items-center gap-2">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-            />
-          </svg>
-          {getIdentityActionLabel(identityAction)}
-        </DropdownMenuItem>
-      </DropdownMenu>
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+        {getIdentityActionLabel(identityAction)}
+      </Button>
       {confirmModal}
     </>
   );
