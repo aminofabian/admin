@@ -132,29 +132,8 @@ export function getPlayerIdentitySubmissionCategory(
   return 'not_submitted';
 }
 
-/** Phone was verified by the player through OTP, not a manual admin override. */
-export function isPlayerPhoneVerifiedViaUser(player: Player | null | undefined): boolean {
-  if (!player || !isPlayerPhoneVerified(player)) return false;
-  if (player.kyc_status?.phone_complete === true) return true;
-  if (player.mobile_verified === true || player.is_mobile_verified === true) return true;
-  if (player.phone_verified === true) return true;
-  return false;
-}
-
-export function isPlayerPhoneManuallyMarked(player: Player | null | undefined): boolean {
-  return isPlayerPhoneVerified(player) && !isPlayerPhoneVerifiedViaUser(player);
-}
-
 export function isPlayerIdentityManuallyMarked(player: Player | null | undefined): boolean {
   return isPlayerIdentityVerified(player) && !isPlayerIdentityVerifiedViaProvider(player);
-}
-
-export function canAdminMarkPhoneVerified(player: Player | null | undefined): boolean {
-  return Boolean(player) && !isPlayerPhoneVerified(player);
-}
-
-export function canAdminUnmarkPhoneVerified(player: Player | null | undefined): boolean {
-  return isPlayerPhoneManuallyMarked(player);
 }
 
 export function canAdminMarkIdentityVerified(player: Player | null | undefined): boolean {
@@ -170,14 +149,6 @@ export function canAdminUnmarkIdentityVerified(player: Player | null | undefined
 
 export type AdminVerificationAction = 'mark' | 'unmark';
 
-export function getAdminPhoneVerificationAction(
-  player: Player | null | undefined
-): AdminVerificationAction | null {
-  if (canAdminMarkPhoneVerified(player)) return 'mark';
-  if (canAdminUnmarkPhoneVerified(player)) return 'unmark';
-  return null;
-}
-
 export function getAdminIdentityVerificationAction(
   player: Player | null | undefined
 ): AdminVerificationAction | null {
@@ -187,17 +158,9 @@ export function getAdminIdentityVerificationAction(
 }
 
 export function getAdminVerificationBlockReason(
-  target: 'phone' | 'identity',
   player: Player | null | undefined
 ): string | null {
   if (!player) return 'Player not found.';
-
-  if (target === 'phone') {
-    if (isPlayerPhoneVerifiedViaUser(player)) {
-      return 'Phone was verified by the player and cannot be changed manually.';
-    }
-    return null;
-  }
 
   if (isPlayerIdentityVerifiedViaProvider(player)) {
     return 'Identity was verified through BinPay and cannot be changed manually.';
@@ -277,12 +240,6 @@ export function buildPlayerVerificationPatch(
   };
 }
 
-export function buildPhoneVerificationPatch(
-  phoneVerified: boolean
-): Pick<PlayerVerificationPatch, 'is_phone_verified'> {
-  return { is_phone_verified: phoneVerified };
-}
-
 export function buildIdentityVerificationPatch(
   identityVerified: boolean
 ): Pick<PlayerVerificationPatch, 'is_identity_verified' | 'identity_verification_status'> {
@@ -292,12 +249,9 @@ export function buildIdentityVerificationPatch(
   };
 }
 
-export function isVerificationPersisted(
+export function isIdentityVerificationPersisted(
   player: Player,
-  target: 'phone' | 'identity',
   expectedVerified: boolean
 ): boolean {
-  return target === 'phone'
-    ? isPlayerPhoneVerified(player) === expectedVerified
-    : isPlayerIdentityVerified(player) === expectedVerified;
+  return isPlayerIdentityVerified(player) === expectedVerified;
 }

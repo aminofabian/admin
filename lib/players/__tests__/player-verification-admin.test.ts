@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAdminMarkIdentityVerified,
-  canAdminMarkPhoneVerified,
   canAdminUnmarkIdentityVerified,
-  canAdminUnmarkPhoneVerified,
   getAdminIdentityVerificationAction,
-  getAdminPhoneVerificationAction,
 } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 
@@ -24,35 +21,6 @@ const basePlayer = {
 } satisfies Player;
 
 describe('admin verification override rules', () => {
-  it('blocks unmarking phone verified by the player', () => {
-    const player = {
-      ...basePlayer,
-      is_phone_verified: true,
-      mobile_verified: true,
-      kyc_status: { phone_complete: true },
-    };
-    expect(canAdminUnmarkPhoneVerified(player)).toBe(false);
-    expect(getAdminPhoneVerificationAction(player)).toBeNull();
-  });
-
-  it('allows unmarking a manually marked phone', () => {
-    const player = {
-      ...basePlayer,
-      is_phone_verified: true,
-    };
-    expect(canAdminUnmarkPhoneVerified(player)).toBe(true);
-    expect(getAdminPhoneVerificationAction(player)).toBe('unmark');
-  });
-
-  it('allows marking an unverified phone', () => {
-    const player = {
-      ...basePlayer,
-      is_phone_verified: false,
-    };
-    expect(canAdminMarkPhoneVerified(player)).toBe(true);
-    expect(getAdminPhoneVerificationAction(player)).toBe('mark');
-  });
-
   it('blocks identity overrides while pending review', () => {
     const player = {
       ...basePlayer,
