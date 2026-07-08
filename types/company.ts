@@ -22,6 +22,7 @@ export interface Company {
   brenzi_webhook_secret?: string | null;
   taparcaida_vendor_id?: string | null;
   taparcaida_payout_api_key?: string | null;
+  taparcaida_payout_api_secret?: string | null;
   tierlock_merchant_id?: string | null;
   tierlock_merchant_secret?: string | null;
   tierlock_deposit_secret?: string | null;
@@ -56,6 +57,7 @@ export interface CreateCompanyRequest {
   brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
+  taparcaida_payout_api_secret?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
   tierlock_deposit_secret?: string;
@@ -88,6 +90,7 @@ export interface UpdateCompanyRequest {
   brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
+  taparcaida_payout_api_secret?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
   tierlock_deposit_secret?: string;
