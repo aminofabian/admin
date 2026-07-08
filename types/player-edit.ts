@@ -4,6 +4,7 @@ import {
   isPlayerKycComplete,
   isPlayerPhoneVerified,
 } from '@/lib/players/player-verification';
+import { normalizeUsStateCode } from '@/lib/utils/us-states';
 
 export interface EditablePlayerFields {
   email: string;
@@ -92,7 +93,7 @@ export function buildEditableFieldsFromPlayer(player: Player): EditablePlayerFie
     address: addressFields.address,
     city: addressFields.city,
     zip_code: addressFields.zip_code,
-    state: player.state || '',
+    state: normalizeUsStateCode(player.state),
     country: player.country?.trim() || 'US',
     mobile_number: player.mobile_number || '',
     password: '',

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
+import { normalizeUsStateCode } from '@/lib/utils/us-states';
 import { playersApi, agentsApi } from '@/lib/api';
 import { Badge, Button, Input, DateSelect } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
@@ -56,7 +57,7 @@ export function PlayerDetailView({
         email: player.email || '',
         full_name: player.full_name || '',
         dob: player.dob || '',
-        state: player.state || '',
+        state: normalizeUsStateCode(player.state),
         mobile_number: player.mobile_number || '',
       });
       setAgentUsername('');
