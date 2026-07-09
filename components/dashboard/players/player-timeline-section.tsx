@@ -464,7 +464,7 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
-  const amountColor = getTransactionAmountColorClass(item.type, item.amount);
+  const amountColor = getTransactionAmountColorClass(item.type, item.amount, item.status);
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
     item.type,
@@ -546,7 +546,7 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
-  const amountColor = getTransactionAmountColorClass(item.type, item.amount);
+  const amountColor = getTransactionAmountColorClass(item.type, item.amount, item.status);
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const detailLabel = formatPlayerTimelineDetailLabel(item);
 

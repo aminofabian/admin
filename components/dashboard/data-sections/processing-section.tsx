@@ -50,6 +50,7 @@ import {
   getProviderDisplayName,
   resolvePayoutContactFromTransaction,
 } from '@/lib/utils/formatters';
+import { getTransactionAmountColorClass } from '@/lib/utils/transaction-display';
 import { transactionsApi, type TransactionActionOptions } from '@/lib/api/transactions';
 import { fetchPlayerPayoutContact } from '@/lib/api/payout-contact';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
@@ -324,8 +325,12 @@ function ProcessingTransactionRow({
 
   const formattedAmount = formatCurrency(transaction.amount || '0');
   const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
-  const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-  const bonusColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  const amountColorClass = getTransactionAmountColorClass(
+    transaction.type,
+    transaction.amount,
+    transaction.status,
+  );
+  const bonusColorClass = amountColorClass;
 
   const amountCell = (
     <TableCell className="align-top">

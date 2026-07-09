@@ -22,28 +22,40 @@ describe('transaction-display', () => {
 
   describe('getTransactionAmountColorClass', () => {
     it('should use green for add regardless of positive amount', () => {
-      expect(getTransactionAmountColorClass('add', '5')).toContain('emerald');
-      expect(getTransactionAmountColorClass('ADD', '5')).toContain('emerald');
+      expect(getTransactionAmountColorClass('add', '5')).toContain('green');
+      expect(getTransactionAmountColorClass('ADD', '5')).toContain('green');
     });
 
     it('should use green for purchase', () => {
-      expect(getTransactionAmountColorClass('purchase', '10')).toContain('emerald');
+      expect(getTransactionAmountColorClass('purchase', '10')).toContain('green');
     });
 
     it('should use red for deduct regardless of positive amount', () => {
-      expect(getTransactionAmountColorClass('deduct', '5')).toContain('rose');
-      expect(getTransactionAmountColorClass('DEDUCT', '5')).toContain('rose');
+      expect(getTransactionAmountColorClass('deduct', '5')).toContain('red');
+      expect(getTransactionAmountColorClass('DEDUCT', '5')).toContain('red');
     });
 
     it('should use red for cashout regardless of amount sign', () => {
-      expect(getTransactionAmountColorClass('cashout', '5')).toContain('rose');
-      expect(getTransactionAmountColorClass('CASHOUT', '5')).toContain('rose');
-      expect(getTransactionAmountColorClass('cashout', '-3')).toContain('rose');
+      expect(getTransactionAmountColorClass('cashout', '5')).toContain('red');
+      expect(getTransactionAmountColorClass('CASHOUT', '5')).toContain('red');
+      expect(getTransactionAmountColorClass('cashout', '-3')).toContain('red');
     });
 
     it('should fall back to amount sign for other types', () => {
-      expect(getTransactionAmountColorClass('unknown', '5')).toContain('emerald');
-      expect(getTransactionAmountColorClass('unknown', '-3')).toContain('rose');
+      expect(getTransactionAmountColorClass('unknown', '5')).toContain('green');
+      expect(getTransactionAmountColorClass('unknown', '-3')).toContain('red');
+    });
+
+    it('should use grey for expired and failed statuses', () => {
+      expect(getTransactionAmountColorClass('purchase', '60', 'expired')).toContain('gray');
+      expect(getTransactionAmountColorClass('purchase', '60', 'Expired')).toContain('gray');
+      expect(getTransactionAmountColorClass('purchase', '60', 'failed')).toContain('gray');
+      expect(getTransactionAmountColorClass('purchase', '60', 'Failed')).toContain('gray');
+    });
+
+    it('should keep type colors for other statuses', () => {
+      expect(getTransactionAmountColorClass('purchase', '60', 'completed')).toContain('green');
+      expect(getTransactionAmountColorClass('purchase', '60', 'pending')).toContain('green');
     });
   });
 
