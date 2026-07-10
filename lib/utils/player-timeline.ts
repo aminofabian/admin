@@ -930,6 +930,8 @@ export function playerTimelineItemToTransaction(item: PlayerTimelineItem): Trans
     company_username:
       typeof raw.company_username === 'string' ? raw.company_username : undefined,
     binpay_status: typeof raw.binpay_status === 'string' ? raw.binpay_status : null,
+    binpay_order_id:
+      raw.binpay_order_id != null ? String(raw.binpay_order_id) : null,
     tierlock_status:
       typeof raw.tierlock_status === 'string' ? raw.tierlock_status : null,
     tierlock_order_id:

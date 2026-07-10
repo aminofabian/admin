@@ -51,6 +51,8 @@ export interface Transaction {
   company_username?: string;
   /** Provider-specific status when sent via "Send to X" (e.g. Binpay, Tierlock, Taparcadia) */
   binpay_status?: string | null;
+  /** Binpay purchase/cashout reference returned by the API after send-to-binpay. */
+  binpay_order_id?: string | null;
   tierlock_status?: string | null;
   /** Tierlock purchase/cashout reference returned by the API after send-to-tierlock. */
   tierlock_order_id?: string | null;

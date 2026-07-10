@@ -299,6 +299,10 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
     payment_details: paymentDetails,
     binpay_status:
       rawCashout.binpay_status ?? nestedData?.binpay_status ?? undefined,
+    binpay_order_id:
+      rawCashout.binpay_order_id ??
+      nestedData?.binpay_order_id ??
+      undefined,
     tierlock_status:
       rawCashout.tierlock_status ?? nestedData?.tierlock_status ?? undefined,
     taparcadia_status:
