@@ -42,13 +42,17 @@ import {
 import {
   formatPlayerTimelineDetailLabel,
   formatRouletteTimelineTypeLabel,
+  formatVerificationTimelineTypeLabel,
   isRouletteTimelineItem,
+  isVerificationTimelineItem,
   mapPlayerTimelineResult,
   playerTimelineItemToTransaction,
   playerTimelineItemToTransactionQueue,
   resolvePlayerTimelineAmountDisplay,
   resolvePlayerTimelineBalanceDisplay,
+  resolveVerificationTimelineOutcome,
   type PlayerTimelineItem,
+  type VerificationTimelineOutcome,
 } from '@/lib/utils/player-timeline';
 import type { Transaction, TransactionQueue } from '@/types';
 
@@ -185,12 +189,70 @@ function formatTimelineTypeLabel(item: PlayerTimelineItem): string {
   if (item.kind === 'game_activity') {
     return mapGameTypeToLabel(item.type);
   }
+  if (isVerificationTimelineItem(item)) {
+    return formatVerificationTimelineTypeLabel(item);
+  }
   if (isRouletteTimelineItem(item)) {
     return formatRouletteTimelineTypeLabel(item);
   }
   const { isTransfer } = getTransactionTypeBadgeStyle(item.type, item.payment_method);
   if (isTransfer) return 'Transfer';
   return item.type.charAt(0).toUpperCase() + item.type.slice(1);
+}
+
+function getVerificationTypeBadgeStyle(
+  outcome: VerificationTimelineOutcome,
+): { variant: 'success' | 'danger' | 'default'; className: string } {
+  switch (outcome) {
+    case 'approved':
+      return {
+        variant: 'success',
+        className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+      };
+    case 'rejected':
+      return {
+        variant: 'danger',
+        className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      };
+    case 'pending':
+      return {
+        variant: 'default',
+        className: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
+      };
+    default:
+      return {
+        variant: 'default',
+        className: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+      };
+  }
+}
+
+function getVerificationAmountColorClass(outcome: VerificationTimelineOutcome): string {
+  switch (outcome) {
+    case 'approved':
+      return 'text-emerald-600 dark:text-emerald-400';
+    case 'rejected':
+      return 'text-red-600 dark:text-red-400';
+    case 'pending':
+      return 'text-amber-600 dark:text-amber-400';
+    default:
+      return 'text-sky-600 dark:text-sky-400';
+  }
+}
+
+function mapVerificationStatusVariant(
+  outcome: VerificationTimelineOutcome,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (outcome) {
+    case 'approved':
+      return 'success';
+    case 'rejected':
+      return 'danger';
+    case 'pending':
+      return 'warning';
+    default:
+      return 'default';
+  }
 }
 
 function sanitizeDateFilters(filters: TimelineDateFilters): TimelineDateFilters {
@@ -226,6 +288,14 @@ function getKindStyles(kind: PlayerTimelineItem['kind']) {
       pill: 'bg-emerald-50 text-emerald-800 ring-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50',
       iconBg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400',
       label: 'Game',
+    };
+  }
+  if (kind === 'verification') {
+    return {
+      accent: 'border-l-amber-500',
+      pill: 'bg-amber-50 text-amber-900 ring-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800/50',
+      iconBg: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+      label: 'Verification',
     };
   }
   return {
@@ -455,7 +525,18 @@ interface TimelineRowProps {
 }
 
 const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: TimelineRowProps) {
-  const statusVariant = mapStatusToVariant(item.status);
+  const isVerification = isVerificationTimelineItem(item);
+  const verificationOutcome = isVerification
+    ? resolveVerificationTimelineOutcome(item)
+    : null;
+  const statusVariant = verificationOutcome
+    ? mapVerificationStatusVariant(verificationOutcome)
+    : mapStatusToVariant(item.status);
+  const statusLabel = verificationOutcome
+    ? verificationOutcome === 'unknown'
+      ? item.status
+      : verificationOutcome
+    : item.status;
   const typeLabel = formatTimelineTypeLabel(item);
   const kindStyles = getKindStyles(item.kind);
   const detailLabel = formatPlayerTimelineDetailLabel(item);
@@ -464,12 +545,24 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
-  const amountColor = getTransactionAmountColorClass(item.type, item.amount, item.status);
+  const amountColor = verificationOutcome
+    ? getVerificationAmountColorClass(verificationOutcome)
+    : getTransactionAmountColorClass(item.type, item.amount, item.status);
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
+  const verificationBadge = verificationOutcome
+    ? getVerificationTypeBadgeStyle(verificationOutcome)
+    : null;
   const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
     item.type,
     item.payment_method,
   );
+
+  const categoryLabel =
+    kindStyles.label === 'Game'
+      ? 'Game activity'
+      : kindStyles.label === 'Verification'
+        ? 'Verification'
+        : 'Transaction';
 
   return (
     <TableRow
@@ -479,8 +572,13 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
       <TableCell className="align-middle">
         <div className="rounded-lg border border-gray-200/80 bg-gray-50/60 px-2.5 py-2 dark:border-gray-600/80 dark:bg-gray-800/40">
           <Badge
-            variant={typeVariant}
-            className={`text-xs font-medium uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}`}
+            variant={verificationBadge?.variant ?? typeVariant}
+            className={`text-xs font-medium uppercase ${
+              verificationBadge?.className ??
+              (isTransfer
+                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
+                : '')
+            }`}
           >
             {typeLabel}
           </Badge>
@@ -490,7 +588,7 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${kindStyles.pill}`}
         >
-          {kindStyles.label === 'Game' ? 'Game activity' : 'Transaction'}
+          {categoryLabel}
         </span>
       </TableCell>
       <TableCell className="align-middle">
@@ -527,7 +625,7 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
       </TableCell>
       <TableCell className="align-middle">
         <Badge variant={statusVariant} className="capitalize">
-          {item.status}
+          {statusLabel}
         </Badge>
       </TableCell>
       <TableCell className="align-middle text-sm text-gray-600 dark:text-gray-400">
@@ -539,14 +637,27 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
 });
 
 const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: TimelineRowProps) {
-  const statusVariant = mapStatusToVariant(item.status);
+  const isVerification = isVerificationTimelineItem(item);
+  const verificationOutcome = isVerification
+    ? resolveVerificationTimelineOutcome(item)
+    : null;
+  const statusVariant = verificationOutcome
+    ? mapVerificationStatusVariant(verificationOutcome)
+    : mapStatusToVariant(item.status);
+  const statusLabel = verificationOutcome
+    ? verificationOutcome === 'unknown'
+      ? item.status
+      : verificationOutcome
+    : item.status;
   const typeLabel = formatTimelineTypeLabel(item);
   const kindStyles = getKindStyles(item.kind);
   const showAmount = !(
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
-  const amountColor = getTransactionAmountColorClass(item.type, item.amount, item.status);
+  const amountColor = verificationOutcome
+    ? getVerificationAmountColorClass(verificationOutcome)
+    : getTransactionAmountColorClass(item.type, item.amount, item.status);
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const detailLabel = formatPlayerTimelineDetailLabel(item);
 
@@ -572,6 +683,14 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
               d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
+        ) : item.kind === 'verification' ? (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
         ) : (
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
@@ -586,7 +705,7 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{typeLabel}</span>
           <Badge variant={statusVariant} className="text-[10px] capitalize">
-            {item.status}
+            {statusLabel}
           </Badge>
         </div>
         {detailLabel && (
@@ -822,7 +941,7 @@ export function PlayerTimelineSection({
   }, [selectedItem]);
 
   const selectedTransaction = useMemo((): Transaction | null => {
-    if (!selectedItem || selectedItem.kind !== 'transaction') return null;
+    if (!selectedItem || selectedItem.kind === 'game_activity') return null;
     return playerTimelineItemToTransaction(selectedItem);
   }, [selectedItem]);
 
@@ -854,6 +973,7 @@ export function PlayerTimelineSection({
   const pageEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
 
   const gameCountOnPage = items.filter((i) => i.kind === 'game_activity').length;
+  const verificationCountOnPage = items.filter((i) => i.kind === 'verification').length;
   const txnCountOnPage = items.filter((i) => i.kind === 'transaction').length;
 
   return (
@@ -925,7 +1045,11 @@ export function PlayerTimelineSection({
                   <span className="text-gray-400 dark:text-gray-500">
                     {' '}
                     · {txnCountOnPage} txn{txnCountOnPage !== 1 ? 's' : ''}, {gameCountOnPage}{' '}
-                    game{gameCountOnPage !== 1 ? 's' : ''} on this page
+                    game{gameCountOnPage !== 1 ? 's' : ''}
+                    {verificationCountOnPage > 0
+                      ? `, ${verificationCountOnPage} verification${verificationCountOnPage !== 1 ? 's' : ''}`
+                      : ''}{' '}
+                    on this page
                   </span>
                 )}
               </p>

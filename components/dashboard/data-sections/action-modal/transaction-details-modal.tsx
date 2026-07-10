@@ -15,9 +15,12 @@ import { playersApi } from '@/lib/api';
 import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
 import {
   getRouletteTransactionDetailEntries,
+  getVerificationTransactionDetailEntries,
   isRouletteTransaction,
+  isVerificationTransaction,
   parseRouletteTimelineSpins,
   resolvePlayerTimelineAmountDisplay,
+  resolveVerificationTimelineOutcome,
   type PlayerTimelineItem,
 } from '@/lib/utils/player-timeline';
 import {
@@ -160,14 +163,23 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   // Memoize expensive computations
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const isRoulette = useMemo(() => isRouletteTransaction(transaction), [transaction]);
+  const isVerification = useMemo(
+    () => isVerificationTransaction(transaction),
+    [transaction],
+  );
 
   const rouletteDetailEntries = useMemo(
     () => getRouletteTransactionDetailEntries(transaction),
     [transaction],
   );
 
+  const verificationDetailEntries = useMemo(
+    () => getVerificationTransactionDetailEntries(transaction),
+    [transaction],
+  );
+
   const timelineAmountPreview = useMemo(() => {
-    if (!isRoulette) return null;
+    if (!isRoulette && !isVerification) return null;
     const spins = parseRouletteTimelineSpins({
       roulette_spins:
         transaction.payment_details &&
@@ -175,20 +187,50 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           ? transaction.payment_details.roulette_spins
           : undefined,
     });
+    const pd =
+      transaction.payment_details && typeof transaction.payment_details === 'object'
+        ? (transaction.payment_details as Record<string, unknown>)
+        : {};
     const preview: PlayerTimelineItem = {
       id: transaction.id,
-      kind: 'transaction',
+      kind: isVerification ? 'verification' : 'transaction',
       type: transaction.type,
       status: transaction.status,
       amount: transaction.amount,
       bonus_amount: transaction.bonus_amount,
       roulette_spins: spins,
-      provider: transaction.provider ?? 'roulette',
+      provider: transaction.provider ?? (isRoulette ? 'roulette' : undefined),
+      payment_method: transaction.payment_method,
+      reason: transaction.reason ?? undefined,
+      reason_display: transaction.reason_display ?? undefined,
       created_at: transaction.created_at,
-      raw: {},
+      raw: {
+        verification: pd.verification,
+        payload: pd.payload,
+        identity_verification_status: pd.identity_verification_status,
+        reason: transaction.reason,
+      },
     };
     return resolvePlayerTimelineAmountDisplay(preview);
-  }, [isRoulette, transaction]);
+  }, [isRoulette, isVerification, transaction]);
+
+  const verificationOutcome = useMemo(() => {
+    if (!isVerification) return null;
+    const pd =
+      transaction.payment_details && typeof transaction.payment_details === 'object'
+        ? (transaction.payment_details as Record<string, unknown>)
+        : {};
+    return resolveVerificationTimelineOutcome({
+      reason: transaction.reason,
+      status: transaction.status,
+      raw: {
+        verification: pd.verification,
+        payload: pd.payload,
+        identity_verification_status: pd.identity_verification_status,
+        reason: transaction.reason,
+      },
+    });
+  }, [isVerification, transaction]);
 
   const formattedAmount = useMemo(() => {
     if (timelineAmountPreview && !timelineAmountPreview.showAsCurrency) {
@@ -288,7 +330,25 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     }
   }, [router, playerId, transaction.user_username, onClose]);
 
-  const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
+  const statusColor =
+    verificationOutcome === 'approved'
+      ? 'green'
+      : verificationOutcome === 'rejected'
+        ? 'red'
+        : verificationOutcome === 'pending'
+          ? 'yellow'
+          : transaction.status === 'completed'
+            ? 'green'
+            : transaction.status === 'failed' || transaction.status === 'cancelled'
+              ? 'red'
+              : 'yellow';
+  const headerStatusLabel =
+    verificationOutcome && verificationOutcome !== 'unknown'
+      ? verificationOutcome
+      : transaction.status;
+  const headerTypeLabel = isVerification
+    ? 'IDENTITY VERIFICATION'
+    : transaction.type.toUpperCase();
   const showActions = isPending && (hasComplete || hasCancel || hasSendToProvider);
   const disableComplete = isActionLoading || !isPending;
   const disableCancel = isActionLoading || !isPending;
@@ -347,8 +407,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
                 )}
               </svg>
             }
-            label={transaction.type.toUpperCase()}
-            status={transaction.status}
+            label={headerTypeLabel}
+            status={headerStatusLabel}
             statusColor={statusColor}
           />
 
@@ -396,6 +456,34 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
               </div>
               <div className="bg-violet-50 dark:bg-violet-950/30 rounded-md p-3 space-y-2">
                 {rouletteDetailEntries.map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-3">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-0 flex-shrink-0">
+                      {label}:
+                    </span>
+                    <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {verificationDetailEntries.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Identity verification
+              </div>
+              <div
+                className={`rounded-md p-3 space-y-2 ${
+                  verificationOutcome === 'approved'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30'
+                    : verificationOutcome === 'rejected'
+                      ? 'bg-red-50 dark:bg-red-950/30'
+                      : 'bg-amber-50 dark:bg-amber-950/30'
+                }`}
+              >
+                {verificationDetailEntries.map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-3">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-0 flex-shrink-0">
                       {label}:
