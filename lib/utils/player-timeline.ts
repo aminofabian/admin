@@ -753,7 +753,7 @@ export function getVerificationTransactionDetailEntries(
       ? (transaction.payment_details as Record<string, unknown>)
       : {};
   const outcome = resolveVerificationTimelineOutcome({
-    reason: transaction.reason,
+    reason: transaction.reason ?? undefined,
     status: '',
     raw: {
       reason: transaction.reason,

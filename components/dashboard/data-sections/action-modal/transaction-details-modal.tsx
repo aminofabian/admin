@@ -221,7 +221,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
         ? (transaction.payment_details as Record<string, unknown>)
         : {};
     return resolveVerificationTimelineOutcome({
-      reason: transaction.reason,
+      reason: transaction.reason ?? undefined,
       status: transaction.status,
       raw: {
         verification: pd.verification,

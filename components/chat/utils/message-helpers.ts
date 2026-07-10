@@ -346,7 +346,7 @@ export const parseKycMessage = (message: {
     .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, "") // Remove anchor but we show button instead
     .replace(/<br\s*\/?>/gi, "\n")
     .trim();
-  let bodyText = stripHtml(body)
+  const bodyText = stripHtml(body)
     .replace(/^\s*\*?binpay\*?\s*/i, "")
     .replace(/\s+/g, " ")
     .trim();
