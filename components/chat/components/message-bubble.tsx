@@ -19,6 +19,7 @@ import {
   parseTransactionMessage,
   prepareChatMessageHtmlForDisplay,
   transactionTypeToVisualKind,
+  type BinpayVerificationKind,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -160,7 +161,7 @@ function TransactionMessage({ message, isPurchase }: {
   );
 }
 
-// Normalize KYC message to design copy: "Complete your KYC to proceed with your [Purchase|Cashout]." (action bolded)
+// Normalize KYC prompt copy: "Complete your KYC to proceed with your [Purchase|Cashout]." (action bolded)
 function formatKycBodyWithBoldAction(text: string): ReactNode {
   const lower = (text || '').toLowerCase();
   const isPurchase = /purchase|deposit|recharge|buy|top.?up/i.test(lower);
@@ -172,22 +173,79 @@ function formatKycBodyWithBoldAction(text: string): ReactNode {
   );
 }
 
+function binpayCardClass(kind: BinpayVerificationKind): string {
+  switch (kind) {
+    case 'approved':
+      return 'border-emerald-500/30 bg-emerald-500/10 dark:border-emerald-500/35 dark:bg-emerald-500/15';
+    case 'rejected':
+      return 'border-red-500/30 bg-red-500/10 dark:border-red-500/35 dark:bg-red-500/15';
+    case 'pending':
+      return 'border-amber-500/30 bg-amber-500/10 dark:border-amber-500/35 dark:bg-amber-500/15';
+    default:
+      return 'border-[#F0E6D7] bg-[#fbf2e3] dark:border-gray-700 dark:bg-gray-800/95';
+  }
+}
+
+function binpayTitleClass(kind: BinpayVerificationKind): string {
+  switch (kind) {
+    case 'approved':
+      return 'text-emerald-700 dark:text-emerald-400';
+    case 'rejected':
+      return 'text-red-700 dark:text-red-400';
+    case 'pending':
+      return 'text-amber-700 dark:text-amber-400';
+    default:
+      return 'text-[#B3672C] dark:text-amber-400';
+  }
+}
+
+function BinpayShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+      />
+    </svg>
+  );
+}
+
 function KycVerificationMessage({ message }: { message: ChatMessage }) {
-  const { link, bodyText } = parseKycMessage(message);
+  const { link, bodyText, kind } = parseKycMessage(message);
+  const isPrompt = kind === 'prompt';
+  const showVerifyButton = Boolean(link && isPrompt);
 
   return (
     <div className="flex w-full min-w-0 justify-center my-4">
       <div className="min-w-0 w-full max-w-[85%] md:max-w-[75%]">
         <div
-          className="rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm border-[#F0E6D7] bg-[#fbf2e3] dark:border-gray-700 dark:bg-gray-800/95 dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.4)]"
+          className={`rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.4)] ${binpayCardClass(kind)}`}
         >
-          <p className="text-center font-bold mb-1.5 text-[13px] md:text-sm text-[#B3672C] dark:text-amber-400">
-            Binpay
+          <div className="flex items-center justify-center gap-2 mb-1.5">
+            <span
+              className={`flex items-center justify-center w-7 h-7 rounded-lg border ${
+                kind === 'approved'
+                  ? 'bg-emerald-500/15 border-emerald-500/30'
+                  : kind === 'rejected'
+                    ? 'bg-red-500/15 border-red-500/30'
+                    : 'bg-amber-500/15 border-amber-500/30'
+              }`}
+            >
+              <BinpayShieldIcon className={`w-3.5 h-3.5 ${binpayTitleClass(kind)}`} />
+            </span>
+            <p className={`text-center font-bold text-[13px] md:text-sm ${binpayTitleClass(kind)}`}>
+              Binpay
+            </p>
+          </div>
+          <p
+            className={`text-center leading-relaxed break-words [overflow-wrap:anywhere] text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground dark:text-gray-200 [&_b]:dark:text-gray-100 ${
+              showVerifyButton ? 'mb-3' : 'mb-1'
+            }`}
+          >
+            {isPrompt ? formatKycBodyWithBoldAction(bodyText) : bodyText}
           </p>
-          <p className="text-center leading-relaxed break-words [overflow-wrap:anywhere] mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground dark:text-gray-200 [&_b]:dark:text-gray-100">
-            {formatKycBodyWithBoldAction(bodyText)}
-          </p>
-          {link && (
+          {showVerifyButton && link && (
             <div className="flex justify-center mb-2">
               <a
                 href={link}

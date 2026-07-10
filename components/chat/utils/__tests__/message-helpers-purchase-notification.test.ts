@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getBinpayVerificationKind,
   getTransactionCardClass,
   getTransactionTextColorClass,
   isAutoMessage,
+  isKycVerificationMessage,
   isPurchaseNotification,
   isPrizeWheelMessage,
+  parseKycMessage,
   parseTransactionMessage,
   transactionTypeToVisualKind,
 } from '../message-helpers';
@@ -143,5 +146,39 @@ describe('transaction visual colors', () => {
     expect(transactionTypeToVisualKind('prize_wheel')).toBe('prize_wheel');
     expect(getTransactionTextColorClass('prize_wheel')).toContain('amber');
     expect(getTransactionCardClass('prize_wheel')).toContain('amber');
+  });
+});
+
+describe('Binpay verification messages', () => {
+  it('detects identity verification approved copy as a Binpay card', () => {
+    const msg = {
+      text: 'Binpay\nYour identity verification has been approved. You can now continue with eligible Binpay purchases.',
+      type: 'system' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(true);
+    expect(isAutoMessage(msg)).toBe(false);
+    expect(getBinpayVerificationKind(msg)).toBe('approved');
+    expect(parseKycMessage(msg).bodyText).toBe(
+      'Your identity verification has been approved. You can now continue with eligible Binpay purchases.',
+    );
+  });
+
+  it('detects KYC prompt copy as a prompt with verify CTA', () => {
+    const msg = {
+      text: 'Complete your KYC verification to proceed with cashout. <a href="https://example.com/kyc">Verify</a>',
+      type: 'message' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(true);
+    expect(getBinpayVerificationKind(msg)).toBe('prompt');
+    expect(parseKycMessage(msg).link).toBe('https://example.com/kyc');
+  });
+
+  it('detects rejected identity verification copy', () => {
+    const msg = {
+      text: 'Your identity verification was not approved. You can update your profile details and resubmit.',
+      type: 'system' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(true);
+    expect(getBinpayVerificationKind(msg)).toBe('rejected');
   });
 });

@@ -254,7 +254,10 @@ export const isPurchaseNotification = (message: {
   );
 };
 
-// Check if a message is a Binpay KYC verification prompt (display as auto message with button)
+/** Binpay KYC prompt or identity-verification status update in chat. */
+export type BinpayVerificationKind = "prompt" | "approved" | "rejected" | "pending" | "status";
+
+// Check if a message is a Binpay KYC / identity verification system message
 export const isKycVerificationMessage = (message: {
   text: string;
   type?: string;
@@ -267,23 +270,66 @@ export const isKycVerificationMessage = (message: {
     /complete your kyc verification/i,
     /kyc verification.*cashout|cashout.*kyc verification/i,
     /verify kyc/i,
+    /identity verification/i,
+    /verification has been (approved|submitted)/i,
+    /verification was (not )?approved/i,
+    /eligible binpay/i,
+    /^\s*binpay\s*$/im,
   ];
   return kycPatterns.some(
     (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
   );
 };
 
+export const getBinpayVerificationKind = (message: {
+  text: string;
+}): BinpayVerificationKind => {
+  const text = stripHtml(message.text || "").toLowerCase();
+  if (
+    /verification has been approved|was approved|eligible binpay/.test(text)
+  ) {
+    return "approved";
+  }
+  if (
+    /was not approved|verification was rejected|identity verification was rejected/.test(
+      text,
+    )
+  ) {
+    return "rejected";
+  }
+  if (
+    /has been submitted|is under review|being reviewed|check back for updates/.test(
+      text,
+    )
+  ) {
+    return "pending";
+  }
+  if (
+    /complete your kyc|verify kyc|kyc verification|proceed with your/.test(text)
+  ) {
+    return "prompt";
+  }
+  return "status";
+};
+
 export interface KycMessageParsed {
   link: string | null;
   bodyText: string;
+  kind: BinpayVerificationKind;
 }
 
 // Extract KYC link and body text (without the link) for Binpay KYC messages
 export const parseKycMessage = (message: {
   text: string;
 }): KycMessageParsed => {
-  const result: KycMessageParsed = { link: null, bodyText: "" };
+  const result: KycMessageParsed = {
+    link: null,
+    bodyText: "",
+    kind: "status",
+  };
   if (!message.text) return result;
+
+  result.kind = getBinpayVerificationKind(message);
 
   // Extract first <a href="..."> from HTML
   const hrefMatch = message.text.match(/<a\s+href=["']([^"']+)["'][^>]*>/i);
@@ -298,9 +344,13 @@ export const parseKycMessage = (message: {
   // Body: strip <a> tags (keep text between tags), then strip other HTML for display
   const body = message.text
     .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, "") // Remove anchor but we show button instead
-    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
     .trim();
-  result.bodyText = stripHtml(body).replace(/\s+/g, " ").trim();
+  let bodyText = stripHtml(body)
+    .replace(/^\s*\*?binpay\*?\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  result.bodyText = bodyText;
   return result;
 };
 
@@ -376,8 +426,12 @@ export const isAutoMessage = (message: {
     /manual withdraw/i,
   ];
 
-  // Don't treat purchase / prize wheel messages as auto messages - they have their own handler
-  if (isPurchaseNotification(message) || isPrizeWheelMessage(message)) {
+  // Don't treat purchase / prize wheel / Binpay verification as auto messages - they have their own handlers
+  if (
+    isPurchaseNotification(message) ||
+    isPrizeWheelMessage(message) ||
+    isKycVerificationMessage(message)
+  ) {
     return false;
   }
 
