@@ -56,6 +56,14 @@ export const US_STATES = [
     { value: 'WY', label: 'Wyoming' },
 ];
 
+export const IDENTITY_VERIFICATION_STATUS_OPTIONS = [
+    { value: 'all', label: 'All Verification Statuses' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'not_submitted', label: 'Not Submitted' },
+] as const;
+
 export interface PlayersFiltersState {
     username: string;
     full_name: string;
@@ -66,6 +74,7 @@ export interface PlayersFiltersState {
     date_to: string;
     status: string;
     state: string;
+    identity_verification_status: string;
 }
 
 type PlayersFilterKey = keyof PlayersFiltersState;
@@ -247,6 +256,15 @@ export function PlayersFilters({
                                         ...US_STATES,
                                     ]}
                                     placeholder="All States"
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Identity verification</label>
+                                <Select
+                                    value={filters.identity_verification_status}
+                                    onChange={(v) => onFilterChange('identity_verification_status', v)}
+                                    options={[...IDENTITY_VERIFICATION_STATUS_OPTIONS]}
+                                    placeholder="All Verification Statuses"
                                 />
                             </div>
                         </div>

@@ -25,7 +25,7 @@ import {
   ErrorState,
 } from '@/components/features';
 import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
-import { US_STATES } from '@/components/dashboard/players/players-filters';
+import { IDENTITY_VERIFICATION_STATUS_OPTIONS, US_STATES } from '@/components/dashboard/players/players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
@@ -444,6 +444,14 @@ function useSuperAdminPlayersData({
         params.state = filters.state.trim();
       }
 
+      // Add identity verification status filter if provided
+      if (
+        filters.identity_verification_status.trim() &&
+        filters.identity_verification_status !== 'all'
+      ) {
+        params.identity_verification_status = filters.identity_verification_status.trim();
+      }
+
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
     } catch (error) {
@@ -462,6 +470,7 @@ function useSuperAdminPlayersData({
     filters.date_to,
     filters.status,
     filters.state,
+    filters.identity_verification_status,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -503,6 +512,7 @@ function useSuperAdminPlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<SuperAdminFilterState>({
@@ -516,6 +526,7 @@ function useSuperAdminPlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const setFilter = useCallback((key: keyof SuperAdminFilterState, value: string) => {
@@ -539,6 +550,7 @@ function useSuperAdminPlayerFilters(
       date_to: '',
       status: 'all',
       state: 'all',
+      identity_verification_status: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -555,7 +567,9 @@ function useSuperAdminPlayerFilters(
       appliedFilters.date_from.trim() !== '' ||
       appliedFilters.date_to.trim() !== '' ||
       (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
-      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all')
+      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all') ||
+      (appliedFilters.identity_verification_status.trim() !== '' &&
+        appliedFilters.identity_verification_status !== 'all')
     );
   }, [appliedFilters]);
 
@@ -645,7 +659,9 @@ function SuperAdminPlayersFiltersWrapper({
       filters.date_from.trim() !== '' ||
       filters.date_to.trim() !== '' ||
       (filters.status.trim() !== '' && filters.status !== 'all') ||
-      (filters.state.trim() !== '' && filters.state !== 'all');
+      (filters.state.trim() !== '' && filters.state !== 'all') ||
+      (filters.identity_verification_status.trim() !== '' &&
+        filters.identity_verification_status !== 'all');
 
     if (hasActiveFilters) {
       setIsOpen(true);
@@ -793,6 +809,15 @@ function SuperAdminPlayersFiltersWrapper({
                     ...US_STATES,
                   ]}
                   placeholder="All States"
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Identity verification</label>
+                <Select
+                  value={filters.identity_verification_status}
+                  onChange={(v) => onFilterChange('identity_verification_status', v)}
+                  options={[...IDENTITY_VERIFICATION_STATUS_OPTIONS]}
+                  placeholder="All Verification Statuses"
                 />
               </div>
             </div>

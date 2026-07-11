@@ -475,6 +475,14 @@ function usePlayersData({
         params.state = filters.state.trim();
       }
 
+      // Add identity verification status filter if provided
+      if (
+        filters.identity_verification_status.trim() &&
+        filters.identity_verification_status !== 'all'
+      ) {
+        params.identity_verification_status = filters.identity_verification_status.trim();
+      }
+
       // Log the final params to verify date format
       console.log('🔍 Sending API request with params:', params);
 
@@ -495,6 +503,7 @@ function usePlayersData({
     filters.date_to,
     filters.status,
     filters.state,
+    filters.identity_verification_status,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -535,6 +544,7 @@ function usePlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
@@ -547,6 +557,7 @@ function usePlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -570,6 +581,7 @@ function usePlayerFilters(
       date_to: '',
       status: 'all',
       state: 'all',
+      identity_verification_status: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -585,7 +597,9 @@ function usePlayerFilters(
       appliedFilters.date_from.trim() !== '' ||
       appliedFilters.date_to.trim() !== '' ||
       (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
-      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all')
+      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all') ||
+      (appliedFilters.identity_verification_status.trim() !== '' &&
+        appliedFilters.identity_verification_status !== 'all')
     );
   }, [appliedFilters]);
 
@@ -934,7 +948,9 @@ function PlayersFiltersWrapper({
       filters.date_from.trim() !== '' ||
       filters.date_to.trim() !== '' ||
       (filters.status.trim() !== '' && filters.status !== 'all') ||
-      (filters.state.trim() !== '' && filters.state !== 'all');
+      (filters.state.trim() !== '' && filters.state !== 'all') ||
+      (filters.identity_verification_status.trim() !== '' &&
+        filters.identity_verification_status !== 'all');
 
     if (hasActiveFilters) {
       setIsOpen(true);
