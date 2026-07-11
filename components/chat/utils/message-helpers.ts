@@ -348,7 +348,10 @@ export const parseKycMessage = (message: {
     .trim();
   const bodyText = stripHtml(body)
     .replace(/^\s*\*?binpay\*?\s*/i, "")
+    .replace(/\beligible\s+binpay\s+purchases\b/gi, "eligible purchases")
+    .replace(/\bbinpay\b/gi, "")
     .replace(/\s+/g, " ")
+    .replace(/\s+([.,;:!?])/g, "$1")
     .trim();
   result.bodyText = bodyText;
   return result;

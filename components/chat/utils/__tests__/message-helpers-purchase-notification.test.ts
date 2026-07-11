@@ -150,7 +150,7 @@ describe('transaction visual colors', () => {
 });
 
 describe('Binpay verification messages', () => {
-  it('detects identity verification approved copy as a Binpay card', () => {
+  it('detects identity verification approved copy as a verification card', () => {
     const msg = {
       text: 'Binpay\nYour identity verification has been approved. You can now continue with eligible Binpay purchases.',
       type: 'system' as const,
@@ -159,7 +159,7 @@ describe('Binpay verification messages', () => {
     expect(isAutoMessage(msg)).toBe(false);
     expect(getBinpayVerificationKind(msg)).toBe('approved');
     expect(parseKycMessage(msg).bodyText).toBe(
-      'Your identity verification has been approved. You can now continue with eligible Binpay purchases.',
+      'Your identity verification has been approved. You can now continue with eligible purchases.',
     );
   });
 

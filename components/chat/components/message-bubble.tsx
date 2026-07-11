@@ -235,7 +235,7 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
               <BinpayShieldIcon className={`w-3.5 h-3.5 ${binpayTitleClass(kind)}`} />
             </span>
             <p className={`text-center font-bold text-[13px] md:text-sm ${binpayTitleClass(kind)}`}>
-              Binpay
+              Identity Verification
             </p>
           </div>
           <p
