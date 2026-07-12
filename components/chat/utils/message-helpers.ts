@@ -257,7 +257,9 @@ export const isPurchaseNotification = (message: {
 /** Binpay KYC prompt or identity-verification status update in chat. */
 export type BinpayVerificationKind = "prompt" | "approved" | "rejected" | "pending" | "status";
 
-// Check if a message is a Binpay KYC / identity verification system message
+// Check if a message is a Binpay KYC / identity verification system message.
+// Do NOT match casual mentions of "identity verification" in staff/player chat —
+// only real status outcomes and dedicated KYC prompt copy.
 export const isKycVerificationMessage = (message: {
   text: string;
   type?: string;
@@ -270,11 +272,12 @@ export const isKycVerificationMessage = (message: {
     /complete your kyc verification/i,
     /kyc verification.*cashout|cashout.*kyc verification/i,
     /verify kyc/i,
-    /identity verification/i,
+    /identity verification has been (approved|submitted)/i,
+    /identity verification was (not )?approved/i,
+    /identity verification was rejected/i,
     /verification has been (approved|submitted)/i,
     /verification was (not )?approved/i,
     /eligible binpay/i,
-    /^\s*binpay\s*$/im,
   ];
   return kycPatterns.some(
     (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),

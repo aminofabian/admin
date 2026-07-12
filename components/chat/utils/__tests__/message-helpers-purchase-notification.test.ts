@@ -181,4 +181,12 @@ describe('Binpay verification messages', () => {
     expect(isKycVerificationMessage(msg)).toBe(true);
     expect(getBinpayVerificationKind(msg)).toBe('rejected');
   });
+
+  it('does not treat casual mentions of identity verification as a verification card', () => {
+    const msg = {
+      text: 'reload the browser, there you will so complete identity verification option',
+      type: 'message' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
 });
