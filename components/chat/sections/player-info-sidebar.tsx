@@ -2,6 +2,7 @@
 
 import { useState, memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { Button, ConfirmModal, useToast } from '@/components/ui';
 import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
@@ -182,8 +183,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 className="flex w-full min-w-0 flex-col items-stretch gap-0.5 text-left"
                 title="Open full profile"
               >
-                <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-xs">
-                  {selectedPlayer.fullName || selectedPlayer.username}
+                <span className="flex min-w-0 items-center gap-1">
+                  <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-xs">
+                    {selectedPlayer.fullName || selectedPlayer.username}
+                  </span>
+                  {selectedPlayer.isIdentityVerified ? (
+                    <IdentityVerifiedTick size="md" />
+                  ) : null}
                 </span>
                 <span className="truncate text-sm font-normal leading-tight tracking-normal text-muted-foreground md:text-xs">
                   @{selectedPlayer.username}

@@ -1,9 +1,13 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { Skeleton } from '@/components/ui';
+import { TOKEN_KEY } from '@/lib/constants/api';
+import { isPlayerIdentityVerified } from '@/lib/players/player-verification';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
-import type { ChatUser } from '@/types';
+import { storage } from '@/lib/utils/storage';
+import type { ChatUser, Player } from '@/types';
 
 interface ChatHeaderProps {
   selectedPlayer: ChatUser;
@@ -13,6 +17,8 @@ interface ChatHeaderProps {
   setMobileView: (view: 'list' | 'chat' | 'info') => void;
   onOpenNotesDrawer: () => void;
   playerLastSeenAt?: string | null;
+  /** Called when identity status is resolved from player details (list API may omit it). */
+  onIdentityVerifiedResolved?: (userId: number, isIdentityVerified: boolean) => void;
 }
 
 export const ChatHeader = memo(function ChatHeader({
@@ -22,9 +28,11 @@ export const ChatHeader = memo(function ChatHeader({
   setMobileView,
   onOpenNotesDrawer,
   playerLastSeenAt,
+  onIdentityVerifiedResolved,
 }: ChatHeaderProps) {
   // Use only actual last-seen data; do not show last message time as "last seen"
   const lastSeenTime = playerLastSeenAt ?? selectedPlayer.playerLastSeenAt ?? null;
+  const [fetchedVerified, setFetchedVerified] = useState<boolean | null>(null);
 
   // Check for notes in selectedPlayer or localStorage as fallback
   const hasNotes = useMemo(() => {
@@ -39,6 +47,56 @@ export const ChatHeader = memo(function ChatHeader({
     }
     return false;
   }, [selectedPlayer?.notes, selectedPlayer?.user_id]);
+
+  useEffect(() => {
+    setFetchedVerified(null);
+
+    if (selectedPlayer.isIdentityVerified === true || selectedPlayer.isIdentityVerified === false) {
+      return;
+    }
+
+    const userId = selectedPlayer.user_id;
+    if (!userId) return;
+
+    let cancelled = false;
+
+    const enrichIdentity = async () => {
+      try {
+        const token = storage.get(TOKEN_KEY);
+        const response = await fetch(`/api/player-details/${userId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        if (!response.ok || cancelled) return;
+
+        const data = (await response.json()) as { player?: Player } & Player;
+        const player = (data.player ?? data) as Player;
+        const verified = isPlayerIdentityVerified(player);
+        if (cancelled) return;
+
+        setFetchedVerified(verified);
+        onIdentityVerifiedResolved?.(userId, verified);
+      } catch {
+        // Leave badge hidden if enrichment fails
+      }
+    };
+
+    void enrichIdentity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedPlayer.user_id,
+    selectedPlayer.isIdentityVerified,
+    onIdentityVerifiedResolved,
+  ]);
+
+  const isIdentityVerified =
+    selectedPlayer.isIdentityVerified === true || fetchedVerified === true;
+
   return (
     <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-card/80 px-3 py-2 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] backdrop-blur-md dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)] md:px-4 md:py-3">
       {/* Back button for mobile */}
@@ -67,8 +125,11 @@ export const ChatHeader = memo(function ChatHeader({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="block min-w-0 flex-1 truncate text-left font-semibold capitalize text-foreground text-xs md:text-sm">
-              {selectedPlayer.username}
+            <span className="flex min-w-0 flex-1 items-center gap-1">
+              <span className="block min-w-0 truncate text-left font-semibold capitalize text-foreground text-xs md:text-sm">
+                {selectedPlayer.username}
+              </span>
+              {isIdentityVerified ? <IdentityVerifiedTick /> : null}
             </span>
             {isConnected ? (
               <span className="hidden shrink-0 sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">

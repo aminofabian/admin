@@ -82,6 +82,53 @@ export function isPlayerIdentityVerified(player: Player | null | undefined): boo
   return false;
 }
 
+/**
+ * Resolve identity-verified for chat/list API rows.
+ * Returns `undefined` when the payload has no identity fields (caller may enrich later).
+ */
+export function isIdentityVerifiedFromRecord(
+  row: Record<string, unknown> | null | undefined
+): boolean | undefined {
+  if (!row) return undefined;
+
+  const nested =
+    row.player && typeof row.player === 'object' && !Array.isArray(row.player)
+      ? (row.player as Record<string, unknown>)
+      : null;
+  const sources = nested ? [row, nested] : [row];
+
+  let sawIdentityField = false;
+  for (const source of sources) {
+    for (const flag of IDENTITY_VERIFICATION_FLAGS) {
+      if (source[flag] !== undefined && source[flag] !== null) {
+        sawIdentityField = true;
+      }
+    }
+    if (
+      source.identity_verification_status !== undefined &&
+      source.identity_verification_status !== null &&
+      String(source.identity_verification_status).trim() !== ''
+    ) {
+      sawIdentityField = true;
+    }
+    const kyc = source.kyc_status;
+    if (kyc && typeof kyc === 'object' && !Array.isArray(kyc)) {
+      const kycRow = kyc as Record<string, unknown>;
+      if (
+        kycRow.identity_status != null ||
+        kycRow.identity_complete != null ||
+        kycRow.is_kyc_complete != null
+      ) {
+        sawIdentityField = true;
+      }
+    }
+  }
+
+  if (!sawIdentityField) return undefined;
+
+  return isPlayerIdentityVerified(row as unknown as Player);
+}
+
 const IDENTITY_PENDING_STATUSES = new Set(['pending', 'submitted', 'review', 'in_review', 'processing']);
 const IDENTITY_REJECTED_STATUSES = new Set(['rejected', 'failed', 'declined', 'denied']);
 const IDENTITY_NOT_SUBMITTED_STATUSES = new Set(['not_submitted', 'none', 'unverified', '']);

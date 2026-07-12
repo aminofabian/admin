@@ -3,6 +3,7 @@ import {
   canAdminMarkIdentityVerified,
   canAdminUnmarkIdentityVerified,
   getAdminIdentityVerificationAction,
+  isIdentityVerifiedFromRecord,
 } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 
@@ -19,6 +20,24 @@ const basePlayer = {
   created: '2026-01-01T00:00:00Z',
   modified: '2026-01-01T00:00:00Z',
 } satisfies Player;
+
+describe('isIdentityVerifiedFromRecord', () => {
+  it('returns undefined when no identity fields are present', () => {
+    expect(isIdentityVerifiedFromRecord({ id: 1, username: 'a' })).toBeUndefined();
+  });
+
+  it('returns true for verified flags and approved statuses', () => {
+    expect(isIdentityVerifiedFromRecord({ is_identity_verified: true })).toBe(true);
+    expect(isIdentityVerifiedFromRecord({ identity_verification_status: 'approved' })).toBe(true);
+  });
+
+  it('returns false for pending or explicitly unverified', () => {
+    expect(
+      isIdentityVerifiedFromRecord({ identity_verification_status: 'pending' }),
+    ).toBe(false);
+    expect(isIdentityVerifiedFromRecord({ is_identity_verified: false })).toBe(false);
+  });
+});
 
 describe('admin verification override rules', () => {
   it('blocks identity overrides while pending review', () => {
