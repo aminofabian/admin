@@ -150,7 +150,7 @@ describe('transaction visual colors', () => {
 });
 
 describe('Binpay verification messages', () => {
-  it('detects identity verification approved copy as a verification card', () => {
+  it('shows Identity Verification card only when verification is approved', () => {
     const msg = {
       text: 'Binpay\nYour identity verification has been approved. You can now continue with eligible Binpay purchases.',
       type: 'system' as const,
@@ -163,28 +163,36 @@ describe('Binpay verification messages', () => {
     );
   });
 
-  it('detects KYC prompt copy as a prompt with verify CTA', () => {
+  it('does not show Identity Verification card for KYC prompts', () => {
     const msg = {
       text: 'Complete your KYC verification to proceed with cashout. <a href="https://example.com/kyc">Verify</a>',
       type: 'message' as const,
     };
-    expect(isKycVerificationMessage(msg)).toBe(true);
     expect(getBinpayVerificationKind(msg)).toBe('prompt');
+    expect(isKycVerificationMessage(msg)).toBe(false);
     expect(parseKycMessage(msg).link).toBe('https://example.com/kyc');
   });
 
-  it('detects rejected identity verification copy', () => {
+  it('does not show Identity Verification card for rejected verification copy', () => {
     const msg = {
       text: 'Your identity verification was not approved. You can update your profile details and resubmit.',
       type: 'system' as const,
     };
-    expect(isKycVerificationMessage(msg)).toBe(true);
     expect(getBinpayVerificationKind(msg)).toBe('rejected');
+    expect(isKycVerificationMessage(msg)).toBe(false);
   });
 
   it('does not treat casual mentions of identity verification as a verification card', () => {
     const msg = {
       text: 'reload the browser, there you will so complete identity verification option',
+      type: 'message' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not show Identity Verification card for complete-your-KYC cashout prompts', () => {
+    const msg = {
+      text: 'Complete your KYC to proceed with your Cashout.',
       type: 'message' as const,
     };
     expect(isKycVerificationMessage(msg)).toBe(false);
