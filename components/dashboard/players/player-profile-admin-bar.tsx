@@ -92,8 +92,13 @@ export function PlayerProfileAdminBar({
 }: PlayerProfileAdminBarProps) {
   const identityVerified = isPlayerIdentityVerified(player);
   const identityLabel = getPlayerIdentityStatusLabel(player);
-  const identityAction = getAdminIdentityVerificationAction(player);
-  const identityBlockReason = getAdminVerificationBlockReason(player);
+  // Mark/unmark copy and actions are admin/manager-only (`canEditVerification`).
+  const identityAction = canEditVerification
+    ? getAdminIdentityVerificationAction(player)
+    : null;
+  const identityBlockReason = canEditVerification
+    ? getAdminVerificationBlockReason(player)
+    : null;
   const kycComplete = isPlayerKycComplete(player);
 
   const identityTone: 'success' | 'warning' | 'neutral' = identityVerified

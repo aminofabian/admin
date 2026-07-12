@@ -42,7 +42,10 @@ export function canEditPlayerRouletteAllowance(role: UserRole | undefined): bool
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
-/** Company/superadmin and managers may manually verify/unverify player KYC steps; staff/agents may not. */
+/**
+ * Who may manually mark/reset player identity verification in the dashboard.
+ * Allowed: company (admin), superadmin, manager. Denied: staff, agent, player.
+ */
 export function canEditPlayerVerification(role: UserRole | undefined): boolean {
   if (!role) return false;
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
