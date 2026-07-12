@@ -8,7 +8,9 @@ interface IdentityVerifiedTickProps {
   size?: 'sm' | 'md';
 }
 
-/** Meta-style blue verified badge shown beside identity-verified player names. */
+const BADGE_BLUE = '#1CA8F5';
+
+/** Blue circle + white shield check — identity verified badge beside player names. */
 export function IdentityVerifiedTick({
   className,
   size = 'sm',
@@ -16,21 +18,34 @@ export function IdentityVerifiedTick({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-white',
-        size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5',
+        'inline-flex shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.18)]',
+        size === 'md' ? 'h-[18px] w-[18px]' : 'h-3.5 w-3.5',
         className,
       )}
       title="Identity verified"
       aria-label="Identity verified"
     >
-      <svg
-        viewBox="0 0 12 12"
-        className={size === 'md' ? 'h-2.5 w-2.5' : 'h-2 w-2'}
-        aria-hidden
-      >
+      <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden>
+        {/* Blue disc */}
+        <circle cx="12" cy="12" r="12" fill={BADGE_BLUE} />
+        {/* Soft rim highlight */}
+        <circle
+          cx="12"
+          cy="12"
+          r="11.15"
+          fill="none"
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="0.7"
+        />
+        {/* White shield */}
         <path
-          fill="currentColor"
-          d="M4.65 8.85 2.1 6.3l.85-.85 1.7 1.7 3.9-3.9.85.85z"
+          fill="#FFFFFF"
+          d="M12 4.15c.4 0 .78.07 1.42.3l4.05 1.42c.58.2.93.74.93 1.35v4.7c0 3.72-2.42 6.82-6.05 8.28a1.1 1.1 0 0 1-.7 0C7.02 18.49 4.6 15.39 4.6 11.67v-4.7c0-.61.35-1.15.93-1.35l4.05-1.42c.64-.23 1.02-.3 1.42-.3z"
+        />
+        {/* Blue check cutout */}
+        <path
+          fill={BADGE_BLUE}
+          d="M10.42 14.95 7.7 12.23l1.2-1.2 1.52 1.52 3.9-3.9 1.2 1.2z"
         />
       </svg>
     </span>
