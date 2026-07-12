@@ -19,8 +19,9 @@ import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
-import { isPlayerPhoneVerified } from '@/lib/players/player-verification';
+import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -532,15 +533,20 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 {usernameInitial}
               </button>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={handleNavigateToChat}
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
-                    title="Open chat with this player"
-                    aria-label="Open chat"
-                  >
-                    {selectedPlayer.username}
-                  </button>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <button
+                      onClick={handleNavigateToChat}
+                      className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
+                      title="Open chat with this player"
+                      aria-label="Open chat"
+                    >
+                      {selectedPlayer.username}
+                    </button>
+                    {isPlayerIdentityVerified(selectedPlayer) ? (
+                      <IdentityVerifiedTick size="md" />
+                    ) : null}
+                  </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
