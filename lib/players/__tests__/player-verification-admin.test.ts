@@ -3,7 +3,11 @@ import {
   canAdminMarkIdentityVerified,
   canAdminUnmarkIdentityVerified,
   getAdminIdentityVerificationAction,
+  getAdminVerificationBlockReason,
+  getPlayerIdentityStatusLabel,
   isIdentityVerifiedFromRecord,
+  isPlayerIdentityManuallyMarked,
+  isPlayerIdentityVerifiedViaProvider,
 } from '@/lib/players/player-verification';
 import type { Player } from '@/types';
 
@@ -89,5 +93,36 @@ describe('admin verification override rules', () => {
     };
     expect(canAdminUnmarkIdentityVerified(player)).toBe(true);
     expect(getAdminIdentityVerificationAction(player)).toBe('unmark');
+  });
+
+  it('treats identity_verification_provider "manual" as an admin override (not BinPay)', () => {
+    const player = {
+      ...basePlayer,
+      is_identity_verified: true,
+      identity_verification_status: 'approved',
+      identity_verification_provider: 'manual',
+      kyc_status: {
+        identity_complete: true,
+        identity_status: 'approved',
+        identity_provider: 'manual',
+      },
+    };
+    expect(isPlayerIdentityVerifiedViaProvider(player)).toBe(false);
+    expect(isPlayerIdentityManuallyMarked(player)).toBe(true);
+    expect(canAdminUnmarkIdentityVerified(player)).toBe(true);
+    expect(getAdminIdentityVerificationAction(player)).toBe('unmark');
+    expect(getPlayerIdentityStatusLabel(player)).toBe('Marked verified');
+    expect(getAdminVerificationBlockReason(player)).toBeNull();
+  });
+
+  it('still treats null provider + verified as a manual override', () => {
+    const player = {
+      ...basePlayer,
+      is_identity_verified: true,
+      identity_verification_status: 'approved',
+      identity_verification_provider: null,
+    };
+    expect(isPlayerIdentityVerifiedViaProvider(player)).toBe(false);
+    expect(getPlayerIdentityStatusLabel(player)).toBe('Marked verified');
   });
 });

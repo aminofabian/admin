@@ -224,6 +224,9 @@ export function getAdminVerificationBlockReason(
   return null;
 }
 
+/** Providers that represent admin/manual overrides, not BinPay (or other) KYC rails. */
+const MANUAL_IDENTITY_PROVIDERS = new Set(['manual']);
+
 export function isPlayerIdentityVerifiedViaProvider(player: Player | null | undefined): boolean {
   if (!player) return false;
 
@@ -234,11 +237,16 @@ export function isPlayerIdentityVerifiedViaProvider(player: Player | null | unde
     '';
   if (explicitBinpayStatus) return IDENTITY_VERIFIED_STATUSES.has(explicitBinpayStatus);
 
-  const provider =
+  const provider = (
     player.identity_verification_provider?.trim() ||
     player.kyc_status?.identity_provider?.trim() ||
-    '';
-  return Boolean(provider) && isPlayerIdentityVerified(player);
+    ''
+  ).toLowerCase();
+  // Prod sets provider to "manual" for admin overrides; staging may leave it null.
+  // Only treat a real KYC rail (e.g. binpay) as provider-verified.
+  if (!provider || MANUAL_IDENTITY_PROVIDERS.has(provider)) return false;
+
+  return isPlayerIdentityVerified(player);
 }
 
 export function getPlayerIdentityStatusLabel(player: Player | null | undefined): string {
