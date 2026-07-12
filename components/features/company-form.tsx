@@ -256,7 +256,7 @@ const buildOpenProviders = (formData: CreateCompanyRequest) => ({
 export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyFormProps) => {
   const isEditMode = !!company;
 
-  const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormData(company));
+const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormData(company));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<StepId>('setup');
@@ -548,7 +548,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
         <SecretInput label="Payout client secret" value={formData.tierlock_payout_client_secret} onChange={(v) => handleChange('tierlock_payout_client_secret', v)} placeholder="tl_pcl_..." disabled={isLoading} />
       </Provider>
 
-      <Provider
+<Provider
         title="Brenzi"
         isOpen={openProviders.brenzi}
         onToggle={() => toggleProvider('brenzi')}
