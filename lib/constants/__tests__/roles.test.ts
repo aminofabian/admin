@@ -5,6 +5,7 @@ import {
   canEditPlayerRouletteAllowance,
   canEditPlayerVerification,
   canEditRouletteRewards,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 
 describe('canEditPlayerVerification', () => {
@@ -19,6 +20,28 @@ describe('canEditPlayerVerification', () => {
     expect(canEditPlayerVerification(USER_ROLES.AGENT)).toBe(false);
     expect(canEditPlayerVerification(USER_ROLES.PLAYER)).toBe(false);
     expect(canEditPlayerVerification(undefined)).toBe(false);
+  });
+});
+
+describe('canSyncBinpayKycStatus', () => {
+  it('allows company, superadmin, manager, staff, and agent', () => {
+    expect(canSyncBinpayKycStatus(USER_ROLES.COMPANY)).toBe(true);
+    expect(canSyncBinpayKycStatus(USER_ROLES.SUPERADMIN)).toBe(true);
+    expect(canSyncBinpayKycStatus(USER_ROLES.MANAGER)).toBe(true);
+    expect(canSyncBinpayKycStatus(USER_ROLES.STAFF)).toBe(true);
+    expect(canSyncBinpayKycStatus(USER_ROLES.AGENT)).toBe(true);
+  });
+
+  it('denies player and missing role', () => {
+    expect(canSyncBinpayKycStatus(USER_ROLES.PLAYER)).toBe(false);
+    expect(canSyncBinpayKycStatus(undefined)).toBe(false);
+  });
+
+  it('is broader than manual verification edit', () => {
+    expect(canSyncBinpayKycStatus(USER_ROLES.STAFF)).toBe(true);
+    expect(canEditPlayerVerification(USER_ROLES.STAFF)).toBe(false);
+    expect(canSyncBinpayKycStatus(USER_ROLES.AGENT)).toBe(true);
+    expect(canEditPlayerVerification(USER_ROLES.AGENT)).toBe(false);
   });
 });
 

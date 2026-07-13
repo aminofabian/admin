@@ -40,6 +40,7 @@ import {
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
   canEditPlayerVerification,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 
 /**
@@ -643,6 +644,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         <PlayerProfileAdminBar
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.SUPERADMIN)}
+          canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.SUPERADMIN)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

@@ -39,6 +39,7 @@ import {
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
   canEditPlayerVerification,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 
@@ -630,6 +631,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         <PlayerProfileAdminBar
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.STAFF)}
+          canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.STAFF)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

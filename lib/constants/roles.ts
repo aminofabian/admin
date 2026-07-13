@@ -51,6 +51,16 @@ export function canEditPlayerVerification(role: UserRole | undefined): boolean {
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
+/**
+ * Who may sync BinPay KYC status from the provider (missed-webhook recovery).
+ * Broader than manual mark/reset: staff and agents need this for stuck pending players.
+ * Allowed: company, superadmin, manager, staff, agent. Denied: player.
+ */
+export function canSyncBinpayKycStatus(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return ADMIN_ROLES.includes(role) || STAFF_ROLES.includes(role);
+}
+
 /** Company/superadmin and managers may edit the company-wide prize wheel rewards; staff/agents may not. */
 export function canEditRouletteRewards(role: UserRole | undefined): boolean {
   if (!role) return false;

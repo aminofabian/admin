@@ -126,3 +126,11 @@ export function getPlayerBinpayVerificationProvider(
   if (!provider) return 'BinPay';
   return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
+
+/**
+ * Whether admins should see "Sync BinPay status" for this player.
+ * Intended for players stuck in pending when BinPay webhooks never arrived.
+ */
+export function canRefreshBinpayKyc(player: Player | null | undefined): boolean {
+  return getPlayerBinpayVerificationStatus(player) === 'pending';
+}

@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerVerification } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerVerification, canSyncBinpayKycStatus } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -1193,6 +1193,7 @@ export default function PlayerDetailPage() {
         <PlayerProfileAdminBar
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(user?.role)}
+          canSyncBinpay={canSyncBinpayKycStatus(user?.role)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

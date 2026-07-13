@@ -9,12 +9,16 @@ import {
   isPlayerIdentityVerified,
   isPlayerKycComplete,
 } from '@/lib/players/player-verification';
+import { canRefreshBinpayKyc } from '@/lib/players/binpay-verification';
 import type { Player } from '@/types';
+import { PlayerBinpayKycRefreshButton } from '@/components/dashboard/players/player-binpay-kyc-refresh-button';
 import { PlayerVerificationActions } from '@/components/dashboard/players/player-verification-actions';
 
 interface PlayerProfileAdminBarProps {
   player: Player;
   canEditVerification: boolean;
+  /** Sync from BinPay — staff/agents allowed; broader than manual mark/reset. */
+  canSyncBinpay: boolean;
   onEdit: () => void;
   onUpdated: (player: Player) => void;
 }
@@ -87,6 +91,7 @@ function AdminActionRow({
 export function PlayerProfileAdminBar({
   player,
   canEditVerification,
+  canSyncBinpay,
   onEdit,
   onUpdated,
 }: PlayerProfileAdminBarProps) {
@@ -107,13 +112,17 @@ export function PlayerProfileAdminBar({
       ? 'warning'
       : 'neutral';
 
-  const identityDescription =
-    identityBlockReason ??
-    (identityAction === 'mark'
-      ? 'Manually approve identity when documents cannot be verified through the provider.'
-      : identityAction === 'unmark'
-        ? 'Remove a manual verification override and reset identity to not submitted.'
-        : 'Current identity verification status for this player.');
+  const showBinpaySync =
+    canSyncBinpay && canRefreshBinpayKyc(player);
+
+  const identityDescription = showBinpaySync
+    ? 'Pending with BinPay — sync status if the webhook never arrived.'
+    : identityBlockReason ??
+      (identityAction === 'mark'
+        ? 'Manually approve identity when documents cannot be verified through the provider.'
+        : identityAction === 'unmark'
+          ? 'Remove a manual verification override and reset identity to not submitted.'
+          : 'Current identity verification status for this player.');
 
   const profileDescription = kycComplete
     ? 'Profile is read-only while KYC is complete.'
@@ -144,6 +153,11 @@ export function PlayerProfileAdminBar({
           trailing={
             <>
               <StatusBadge value={identityLabel} tone={identityTone} />
+              <PlayerBinpayKycRefreshButton
+                player={player}
+                canSync={canSyncBinpay}
+                onUpdated={onUpdated}
+              />
               <PlayerVerificationActions
                 player={player}
                 canEdit={canEditVerification}

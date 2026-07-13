@@ -138,6 +138,12 @@ export const playersApi = {
     return refreshed;
   },
 
+  /** Call BinPay KYC status API and refresh player verification fields. */
+  refreshBinpayKyc: async (id: number): Promise<Player> => {
+    await apiClient.post(`api/admin/players/${id}/refresh-binpay-kyc`, {});
+    return apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
+  },
+
   viewDetails: (id: number) => 
     apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(
       `api/view-player/${id}`

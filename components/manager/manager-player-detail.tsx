@@ -40,6 +40,7 @@ import {
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
   canEditPlayerVerification,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 
 
@@ -630,6 +631,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
         <PlayerProfileAdminBar
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.MANAGER)}
+          canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.MANAGER)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

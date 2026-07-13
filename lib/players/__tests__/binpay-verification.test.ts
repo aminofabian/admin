@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canRefreshBinpayKyc,
   getPlayerBinpayVerificationLabel,
   getPlayerBinpayVerificationStatus,
 } from '@/lib/players/binpay-verification';
@@ -41,5 +42,38 @@ describe('binpay verification helpers', () => {
   it('returns not submitted when no verification data exists', () => {
     expect(getPlayerBinpayVerificationStatus(basePlayer)).toBe('not_submitted');
     expect(getPlayerBinpayVerificationLabel(basePlayer)).toBe('Not submitted');
+  });
+});
+
+describe('canRefreshBinpayKyc', () => {
+  it('returns true when identity is pending review', () => {
+    const player = {
+      ...basePlayer,
+      identity_verification_status: 'pending',
+    };
+    expect(canRefreshBinpayKyc(player)).toBe(true);
+  });
+
+  it('returns true for explicit BinPay pending status', () => {
+    const player = {
+      ...basePlayer,
+      binpay_verification_status: 'pending',
+    };
+    expect(canRefreshBinpayKyc(player)).toBe(true);
+  });
+
+  it('returns false when verified, rejected, or not submitted', () => {
+    expect(
+      canRefreshBinpayKyc({ ...basePlayer, binpay_verification_status: 'verified' }),
+    ).toBe(false);
+    expect(
+      canRefreshBinpayKyc({ ...basePlayer, binpay_verification_status: 'rejected' }),
+    ).toBe(false);
+    expect(canRefreshBinpayKyc(basePlayer)).toBe(false);
+  });
+
+  it('returns false for null/undefined player', () => {
+    expect(canRefreshBinpayKyc(null)).toBe(false);
+    expect(canRefreshBinpayKyc(undefined)).toBe(false);
   });
 });
