@@ -59,6 +59,7 @@ export const US_STATES = [
 export const IDENTITY_VERIFICATION_STATUS_OPTIONS = [
     { value: 'all', label: 'All Verification Statuses' },
     { value: 'approved', label: 'Verified' },
+    { value: 'manually_approved', label: 'Marked Verified' },
     { value: 'pending', label: 'Pending' },
     { value: 'rejected', label: 'Rejected' },
     { value: 'not_submitted', label: 'Not Submitted' },

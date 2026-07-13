@@ -11,7 +11,13 @@ export type BinpayVerificationStatus =
   | 'rejected'
   | 'unknown';
 
-const VERIFIED_STATUSES = new Set(['verified', 'approved', 'complete', 'completed']);
+const VERIFIED_STATUSES = new Set([
+  'verified',
+  'approved',
+  'manually_approved',
+  'complete',
+  'completed',
+]);
 const PENDING_STATUSES = new Set(['pending', 'submitted', 'review', 'in_review', 'processing']);
 const NOT_SUBMITTED_STATUSES = new Set(['not_submitted', 'none', 'unverified', '']);
 const REJECTED_STATUSES = new Set(['rejected', 'failed', 'declined', 'denied']);

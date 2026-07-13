@@ -15,7 +15,13 @@ const IDENTITY_VERIFICATION_FLAGS = [
   'is_kyc_complete',
 ] as const;
 
-const IDENTITY_VERIFIED_STATUSES = new Set(['verified', 'approved', 'complete', 'completed']);
+const IDENTITY_VERIFIED_STATUSES = new Set([
+  'verified',
+  'approved',
+  'manually_approved',
+  'complete',
+  'completed',
+]);
 
 function isTruthyFlag(value: unknown): boolean {
   if (value === true || value === 1) return true;
@@ -180,6 +186,8 @@ export function getPlayerIdentitySubmissionCategory(
 }
 
 export function isPlayerIdentityManuallyMarked(player: Player | null | undefined): boolean {
+  if (!player) return false;
+  if (readIdentityStatus(player) === 'manually_approved') return true;
   return isPlayerIdentityVerified(player) && !isPlayerIdentityVerifiedViaProvider(player);
 }
 
@@ -229,6 +237,9 @@ const MANUAL_IDENTITY_PROVIDERS = new Set(['manual']);
 
 export function isPlayerIdentityVerifiedViaProvider(player: Player | null | undefined): boolean {
   if (!player) return false;
+
+  // Explicit admin/manual approval is never provider-verified.
+  if (readIdentityStatus(player) === 'manually_approved') return false;
 
   const explicitBinpayStatus =
     player.binpay_verification_status?.trim().toLowerCase() ||

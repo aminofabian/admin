@@ -167,7 +167,7 @@ export interface UpdateUserRequest {
   is_identity_verified?: boolean;
   kyc_verified?: boolean;
   is_kyc_verified?: boolean;
-  identity_verification_status?: 'verified' | 'approved' | 'not_submitted' | 'pending' | 'rejected' | string;
+  identity_verification_status?: 'verified' | 'approved' | 'manually_approved' | 'not_submitted' | 'pending' | 'rejected' | string;
 }
 
 export interface CheckPlayerGameBalanceRequest {
