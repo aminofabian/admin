@@ -33,6 +33,9 @@ describe('isIdentityVerifiedFromRecord', () => {
   it('returns true for verified flags and approved statuses', () => {
     expect(isIdentityVerifiedFromRecord({ is_identity_verified: true })).toBe(true);
     expect(isIdentityVerifiedFromRecord({ identity_verification_status: 'approved' })).toBe(true);
+    expect(
+      isIdentityVerifiedFromRecord({ identity_verification_status: 'manually_approved' }),
+    ).toBe(true);
   });
 
   it('returns false for pending or explicitly unverified', () => {
@@ -93,6 +96,20 @@ describe('admin verification override rules', () => {
     };
     expect(canAdminUnmarkIdentityVerified(player)).toBe(true);
     expect(getAdminIdentityVerificationAction(player)).toBe('unmark');
+  });
+
+  it('treats manually_approved status as a manual override', () => {
+    const player = {
+      ...basePlayer,
+      is_identity_verified: true,
+      identity_verification_status: 'manually_approved',
+      identity_verification_provider: 'binpay',
+    };
+    expect(isPlayerIdentityVerifiedViaProvider(player)).toBe(false);
+    expect(isPlayerIdentityManuallyMarked(player)).toBe(true);
+    expect(canAdminUnmarkIdentityVerified(player)).toBe(true);
+    expect(getAdminIdentityVerificationAction(player)).toBe('unmark');
+    expect(getPlayerIdentityStatusLabel(player)).toBe('Marked verified');
   });
 
   it('treats identity_verification_provider "manual" as an admin override (not BinPay)', () => {

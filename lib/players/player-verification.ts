@@ -291,7 +291,7 @@ export function isPlayerKycComplete(player: Player | null | undefined): boolean 
 export type PlayerVerificationPatch = {
   is_phone_verified?: boolean;
   is_identity_verified?: boolean;
-  identity_verification_status?: 'approved' | 'not_submitted';
+  identity_verification_status?: 'approved' | 'manually_approved' | 'not_submitted';
 };
 
 /** Matches PATCH /api/v1/players/{id}/ contract from backend. */
@@ -302,7 +302,7 @@ export function buildPlayerVerificationPatch(
   return {
     is_phone_verified: phoneVerified,
     is_identity_verified: identityVerified,
-    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
+    identity_verification_status: identityVerified ? 'manually_approved' : 'not_submitted',
   };
 }
 
@@ -311,7 +311,7 @@ export function buildIdentityVerificationPatch(
 ): Pick<PlayerVerificationPatch, 'is_identity_verified' | 'identity_verification_status'> {
   return {
     is_identity_verified: identityVerified,
-    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
+    identity_verification_status: identityVerified ? 'manually_approved' : 'not_submitted',
   };
 }
 
