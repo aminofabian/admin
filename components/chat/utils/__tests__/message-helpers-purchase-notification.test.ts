@@ -190,6 +190,23 @@ describe('Binpay verification messages', () => {
     expect(isKycVerificationMessage(msg)).toBe(false);
   });
 
+  it('does not treat casual "was approved" chat as an Identity Verification card', () => {
+    const msg = {
+      text: "wtf thought it was approved now it's rejected??",
+      type: 'message' as const,
+    };
+    expect(getBinpayVerificationKind(msg)).toBe('status');
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not show Identity Verification card when casual text is prefixed with the IV title', () => {
+    const msg = {
+      text: "Identity Verification\nwtf thought it was approved now it's rejected??",
+      type: 'system' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
   it('does not show Identity Verification card for complete-your-KYC cashout prompts', () => {
     const msg = {
       text: 'Complete your KYC to proceed with your Cashout.',

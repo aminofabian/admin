@@ -271,13 +271,17 @@ export const getBinpayVerificationKind = (message: {
   text: string;
 }): BinpayVerificationKind => {
   const text = stripHtml(message.text || "").toLowerCase();
+  // Require real system copy — bare "was approved" matches casual chat
+  // e.g. "wtf thought it was approved now it's rejected??"
   if (
-    /verification has been approved|was approved|eligible binpay/.test(text)
+    /(?:identity )?verification has been approved|identity verification was approved|you can now continue with eligible(?:\s+binpay)?\s+purchases|eligible binpay/.test(
+      text,
+    )
   ) {
     return "approved";
   }
   if (
-    /was not approved|verification was rejected|identity verification was rejected/.test(
+    /(?:identity )?verification was not approved|verification was rejected|identity verification was rejected/.test(
       text,
     )
   ) {
