@@ -129,8 +129,9 @@ export function getPlayerBinpayVerificationProvider(
 
 /**
  * Whether admins should see "Sync BinPay status" for this player.
- * Intended for players stuck in pending when BinPay webhooks never arrived.
+ * Always available when a player record exists so ops can pull latest provider status
+ * even if the player has not submitted yet.
  */
 export function canRefreshBinpayKyc(player: Player | null | undefined): boolean {
-  return getPlayerBinpayVerificationStatus(player) === 'pending';
+  return Boolean(player);
 }

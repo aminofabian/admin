@@ -46,30 +46,17 @@ describe('binpay verification helpers', () => {
 });
 
 describe('canRefreshBinpayKyc', () => {
-  it('returns true when identity is pending review', () => {
-    const player = {
-      ...basePlayer,
-      identity_verification_status: 'pending',
-    };
-    expect(canRefreshBinpayKyc(player)).toBe(true);
-  });
-
-  it('returns true for explicit BinPay pending status', () => {
-    const player = {
-      ...basePlayer,
-      binpay_verification_status: 'pending',
-    };
-    expect(canRefreshBinpayKyc(player)).toBe(true);
-  });
-
-  it('returns false when verified, rejected, or not submitted', () => {
+  it('returns true for any player status including not submitted', () => {
+    expect(canRefreshBinpayKyc(basePlayer)).toBe(true);
+    expect(
+      canRefreshBinpayKyc({ ...basePlayer, identity_verification_status: 'pending' }),
+    ).toBe(true);
     expect(
       canRefreshBinpayKyc({ ...basePlayer, binpay_verification_status: 'verified' }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRefreshBinpayKyc({ ...basePlayer, binpay_verification_status: 'rejected' }),
-    ).toBe(false);
-    expect(canRefreshBinpayKyc(basePlayer)).toBe(false);
+    ).toBe(true);
   });
 
   it('returns false for null/undefined player', () => {

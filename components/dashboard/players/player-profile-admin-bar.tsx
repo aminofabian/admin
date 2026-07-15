@@ -114,15 +114,20 @@ export function PlayerProfileAdminBar({
 
   const showBinpaySync =
     canSyncBinpay && canRefreshBinpayKyc(player);
+  const isPendingBinpay =
+    identityLabel.toLowerCase().includes('pending');
 
-  const identityDescription = showBinpaySync
-    ? 'Pending with BinPay — sync status if the webhook never arrived.'
-    : identityBlockReason ??
-      (identityAction === 'mark'
+  const identityDescription = identityBlockReason
+    ? identityBlockReason
+    : showBinpaySync
+      ? isPendingBinpay
+        ? 'Pending with BinPay — sync status if the webhook never arrived.'
+        : 'Pull the latest BinPay KYC status for this player.'
+      : identityAction === 'mark'
         ? 'Manually approve identity when documents cannot be verified through the provider.'
         : identityAction === 'unmark'
           ? 'Remove a manual verification override and reset identity to not submitted.'
-          : 'Current identity verification status for this player.');
+          : 'Current identity verification status for this player.';
 
   const profileDescription = kycComplete
     ? 'Profile is read-only while KYC is complete.'
