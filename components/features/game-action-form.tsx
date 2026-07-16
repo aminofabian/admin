@@ -13,7 +13,10 @@ import {
 } from '@/lib/utils/game-queue-display';
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
-import { requiresEntriesOnCompleteFromQueue } from '@/lib/utils/game-entries-on-complete';
+import {
+  requiresEntriesOnCompleteFromQueue,
+  isRiversweepGameFromQueue,
+} from '@/lib/utils/game-entries-on-complete';
 import {
   sanitizeGameActionEntriesInput,
   sanitizeGameActionNumericInput,
@@ -136,6 +139,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
+  const isRiversweepAddUser = useMemo(() => {
+    if (!queue) return false;
+    return isRiversweepGameFromQueue(queue, matchedGame);
+  }, [queue, matchedGame]);
+
   const isManualMode = useMemo(() => {
     if (!queue) return false;
     if (isManualQueueRequest(queue.remarks)) return true;
@@ -222,7 +230,10 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         
         if (isAddUserType) {
           if (username?.trim()) data.game_username = username.trim();
-          if (password?.trim()) data.game_password = password.trim();
+          // Riversweep complete is username-only — omit game_password
+          if (!isRiversweepAddUser && password?.trim()) {
+            data.game_password = password.trim();
+          }
         } else {
           if (username?.trim()) data.new_username = username.trim();
           if (password?.trim()) data.new_password = password.trim();
@@ -272,8 +283,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       };
     }
     if (queue.type === 'add_user_game' || queue.type === 'create_game') {
-      // Backend requires game_username + game_password for create_game / add_user_game
-      return { balance: false, entries: false, password: true, username: true };
+      return {
+        balance: false,
+        entries: false,
+        password: !isRiversweepAddUser,
+        username: true,
+      };
     }
     // For future types like change_password_game
     if ((queue.type as string).includes('password')) {
@@ -532,7 +547,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 : queue.type === 'redeem_game'
                 ? 'Redeem Operation - Required Field'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? 'Create Game Account - Required Fields'
+                ? isRiversweepAddUser
+                  ? 'Create Game Account - Required Field'
+                  : 'Create Game Account - Required Fields'
                 : 'Complete Operation - Required Fields'}
             </h4>
             <p className="text-[10px] text-muted-foreground">
@@ -541,7 +558,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   ? 'Enter the new game balance and entries after manually completing the operation.'
                   : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? 'Enter the game username and password that were created.'
+                ? isRiversweepAddUser
+                  ? 'Enter the game username that was created.'
+                  : 'Enter the game username and password that were created.'
                 : 'Enter the required information to complete this operation.'}
             </p>
           </div>

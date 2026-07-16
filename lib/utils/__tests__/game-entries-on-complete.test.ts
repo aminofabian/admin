@@ -3,6 +3,7 @@ import {
   requiresEntriesOnComplete,
   requiresEntriesOnCompleteFromQueue,
   isSweepstakesStyleGameFromQueue,
+  isRiversweepGameFromQueue,
   collectQueueGameHintStrings,
 } from '../game-entries-on-complete';
 
@@ -92,5 +93,45 @@ describe('isSweepstakesStyleGameFromQueue', () => {
         data: null,
       }),
     ).toBe(true);
+  });
+});
+
+describe('isRiversweepGameFromQueue', () => {
+  it('matches Riversweep title variants', () => {
+    expect(
+      isRiversweepGameFromQueue({
+        game: 'Riversweeps',
+        game_code: '',
+        remarks: '',
+        data: null,
+      }),
+    ).toBe(true);
+    expect(
+      isRiversweepGameFromQueue({
+        game: 'River Sweeps',
+        game_code: '',
+        remarks: '',
+        data: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('does not match Golden Dragon or RiverPay', () => {
+    expect(
+      isRiversweepGameFromQueue({
+        game: 'Golden Dragon',
+        game_code: '',
+        remarks: '',
+        data: null,
+      }),
+    ).toBe(false);
+    expect(
+      isRiversweepGameFromQueue({
+        game: 'RiverPay',
+        game_code: '',
+        remarks: '',
+        data: null,
+      }),
+    ).toBe(false);
   });
 });
