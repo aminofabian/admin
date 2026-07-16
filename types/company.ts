@@ -29,6 +29,8 @@ export interface Company {
   tierlock_withdrawal_secret?: string | null;
   tierlock_payout_shared_secret?: string | null;
   tierlock_payout_client_secret?: string | null;
+  meta_pixel_id?: string | null;
+  meta_capi_token?: string | null;
   created: string;
   modified?: string;
 }
@@ -64,6 +66,8 @@ export interface CreateCompanyRequest {
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  meta_pixel_id?: string;
+  meta_capi_token?: string;
   logo?: File;
 }
 
@@ -97,5 +101,7 @@ export interface UpdateCompanyRequest {
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  meta_pixel_id?: string;
+  meta_capi_token?: string;
 }
 

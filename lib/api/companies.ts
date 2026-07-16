@@ -35,6 +35,8 @@ type CleanableFields = {
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
   taparcaida_payout_api_secret?: string;
+  meta_pixel_id?: string;
+  meta_capi_token?: string;
 };
 
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
@@ -64,6 +66,8 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'taparcaida_vendor_id',
     'taparcaida_payout_api_key',
     'taparcaida_payout_api_secret',
+    'meta_pixel_id',
+    'meta_capi_token',
   ];
   // On create, omit empty optional strings so we do not send noisy blank fields.
   // On update/patch, keep '' so the backend can clear stored secrets and IDs.

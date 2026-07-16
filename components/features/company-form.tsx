@@ -225,6 +225,8 @@ const buildFormData = (company?: Company): CreateCompanyRequest => ({
   tierlock_withdrawal_secret: company?.tierlock_withdrawal_secret ?? '',
   tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
   tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
+  meta_pixel_id: company?.meta_pixel_id ?? '',
+  meta_capi_token: company?.meta_capi_token ?? '',
 });
 
 const buildOpenProviders = (formData: CreateCompanyRequest) => ({
@@ -251,6 +253,7 @@ const buildOpenProviders = (formData: CreateCompanyRequest) => ({
     formData.taparcaida_payout_api_key,
     formData.taparcaida_payout_api_secret,
   ),
+  meta: hasValue(formData.meta_pixel_id, formData.meta_capi_token),
 });
 
 export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyFormProps) => {
@@ -367,6 +370,8 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
           tierlock_withdrawal_secret: formData.tierlock_withdrawal_secret,
           tierlock_payout_shared_secret: formData.tierlock_payout_shared_secret,
           tierlock_payout_client_secret: formData.tierlock_payout_client_secret,
+          meta_pixel_id: formData.meta_pixel_id,
+          meta_capi_token: formData.meta_capi_token,
         };
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
       } else {
@@ -571,6 +576,29 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
         <Input {...field} label="Vendor ID" value={formData.taparcaida_vendor_id} onChange={(e) => handleChange('taparcaida_vendor_id', e.target.value)} placeholder="tap_vendor_..." disabled={isLoading} />
         <SecretInput label="Payout API key" value={formData.taparcaida_payout_api_key} onChange={(v) => handleChange('taparcaida_payout_api_key', v)} placeholder="tap_payout_..." disabled={isLoading} />
         <SecretInput label="Payout API secret" value={formData.taparcaida_payout_api_secret} onChange={(v) => handleChange('taparcaida_payout_api_secret', v)} placeholder="tap_secret_..." disabled={isLoading} />
+      </Provider>
+
+      <Provider
+        title="Meta"
+        isOpen={openProviders.meta}
+        onToggle={() => toggleProvider('meta')}
+        configured={hasValue(formData.meta_pixel_id, formData.meta_capi_token)}
+      >
+        <Input
+          {...field}
+          label="Pixel ID"
+          value={formData.meta_pixel_id}
+          onChange={(e) => handleChange('meta_pixel_id', e.target.value)}
+          placeholder="123456789012345"
+          disabled={isLoading}
+        />
+        <SecretInput
+          label="CAPI token"
+          value={formData.meta_capi_token}
+          onChange={(v) => handleChange('meta_capi_token', v)}
+          placeholder="EAAxxxxx..."
+          disabled={isLoading}
+        />
       </Provider>
     </div>
   );
