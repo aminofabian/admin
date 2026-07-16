@@ -118,8 +118,8 @@ export function requiresEntriesOnCompleteFromQueue(
 }
 
 /**
- * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows.
- * Add-user completion is username-only (no password).
+ * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows
+ * (balance + entries on recharge/redeem complete).
  */
 export function isSweepstakesStyleGameFromQueue(
   queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,

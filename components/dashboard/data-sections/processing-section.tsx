@@ -1236,7 +1236,32 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, []);
 
   const handleActionSubmit = async (data: Parameters<typeof handleGameAction>[0]) => {
-    await handleGameAction(data);
+    try {
+      await handleGameAction(data);
+      addToast({
+        type: 'success',
+        title: 'Action Successful',
+        description: `Queue item ${data.type === 'retry' ? 'retried' : data.type === 'cancel' ? 'cancelled' : 'completed'} successfully`,
+        duration: 3000,
+      });
+    } catch (error) {
+      let errorMessage = 'Failed to process action';
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      console.error('Failed to process game action:', error);
+
+      addToast({
+        type: 'error',
+        title: 'Action Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
+      throw error;
+    }
   };
 
   const handleViewTransaction = (transaction: Transaction) => {

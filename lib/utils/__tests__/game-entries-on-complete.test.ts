@@ -72,7 +72,7 @@ describe('requiresEntriesOnCompleteFromQueue', () => {
 });
 
 describe('isSweepstakesStyleGameFromQueue', () => {
-  it('matches Golden Dragon for username-only add-user flows', () => {
+  it('matches Golden Dragon as a sweepstakes-style game', () => {
     expect(
       isSweepstakesStyleGameFromQueue({
         game: 'Golden Dragon',
@@ -83,7 +83,7 @@ describe('isSweepstakesStyleGameFromQueue', () => {
     ).toBe(true);
   });
 
-  it('matches Riversweeps for username-only add-user flows', () => {
+  it('matches Riversweeps as a sweepstakes-style game', () => {
     expect(
       isSweepstakesStyleGameFromQueue({
         game: 'Riversweeps',
