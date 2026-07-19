@@ -42,6 +42,18 @@ export function canEditPlayerRouletteAllowance(role: UserRole | undefined): bool
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
+/** Company/superadmin and managers may override a player's referral bonuses; staff/agents may not. */
+export function canEditPlayerReferralOverride(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
+/** Company/superadmin and managers may manage custom referral promo codes. */
+export function canManageReferralPromoCodes(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
 /**
  * Who may manually mark/reset player identity verification in the dashboard.
  * Allowed: company (admin), superadmin, manager. Denied: staff, agent, player.

@@ -27,6 +27,7 @@ import {
 import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
 import { IDENTITY_VERIFICATION_STATUS_OPTIONS, US_STATES } from '@/components/dashboard/players/players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
+import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -943,6 +944,7 @@ function SuperAdminPlayersTable({
               <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
+              <TableHead>Referred By</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Cashout limit</TableHead>
               <TableHead>BinPay</TableHead>
@@ -1109,6 +1111,11 @@ function SuperAdminPlayersTableRow({
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">
           {player.company_username || '—'}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {getPlayerReferredByDisplay(player)}
         </div>
       </TableCell>
       <TableCell>

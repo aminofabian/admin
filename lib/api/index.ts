@@ -13,6 +13,8 @@ export * from './settings';
 export * from './bonus-settings';
 export * from './affiliate-settings';
 export * from './referral-settings';
+export * from './referral-player-overrides';
+export * from './referral-promo-codes';
 export * from './game-settings';
 export * from './payment-methods';
 export * from './chat-links';

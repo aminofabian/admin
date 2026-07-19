@@ -35,10 +35,13 @@ import { IdentityVerifiedTick } from '@/components/chat/components/identity-veri
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
+import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import {
   USER_ROLES,
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
+  canEditPlayerReferralOverride,
   canEditPlayerVerification,
   canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
@@ -715,6 +718,14 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
               playerUsername={selectedPlayer.username}
               canEdit={canEditPlayerRouletteAllowance(USER_ROLES.MANAGER)}
             />
+
+            <PlayerReferralOverrideSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerReferralOverride(USER_ROLES.MANAGER)}
+            />
+
+            <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>
 
           {/* Column 2: Transaction Summary */}

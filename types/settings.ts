@@ -80,7 +80,6 @@ export interface ReferralSettings {
   referrer_bonus_percentage: string;
   referrer_bonus_cap: string;
   referred_player_bonus_amount: string;
-  first_deposit_min_amount: string;
   created: string;
   modified: string;
 }
@@ -90,7 +89,40 @@ export interface UpdateReferralSettingsRequest {
   referrer_bonus_percentage?: number;
   referrer_bonus_cap?: number;
   referred_player_bonus_amount?: number;
-  first_deposit_min_amount?: number;
+}
+
+export interface ReferralPlayerOverride {
+  id: number;
+  player: number;
+  player_username?: string;
+  referrer_bonus_percentage: string;
+  referred_player_bonus_amount: string;
+  created?: string;
+  modified?: string;
+}
+
+export interface SaveReferralPlayerOverrideRequest {
+  player: number;
+  referrer_bonus_percentage: number;
+  referred_player_bonus_amount: number;
+}
+
+export interface ReferralPromoCode {
+  id: number;
+  code: string;
+  is_active: boolean;
+  total_signed_up_players: number;
+  created?: string;
+  modified?: string;
+}
+
+export interface CreateReferralPromoCodeRequest {
+  code: string;
+}
+
+export interface UpdateReferralPromoCodeRequest {
+  code?: string;
+  is_active?: boolean;
 }
 
 // Game Settings Types

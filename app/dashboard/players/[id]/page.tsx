@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerVerification, canSyncBinpayKycStatus } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerReferralOverride, canEditPlayerVerification, canSyncBinpayKycStatus } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -34,6 +34,8 @@ import { IdentityVerifiedTick } from '@/components/chat/components/identity-veri
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
+import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
@@ -1343,6 +1345,14 @@ export default function PlayerDetailPage() {
               playerUsername={selectedPlayer.username}
               canEdit={canEditPlayerRouletteAllowance(user?.role)}
             />
+
+            <PlayerReferralOverrideSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerReferralOverride(user?.role)}
+            />
+
+            <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>
 
           {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}

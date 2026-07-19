@@ -29,6 +29,7 @@ import {
 } from '@/components/features';
 import { PlayersFilters, type PlayersFiltersState } from './players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
+import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -1094,6 +1095,7 @@ function PlayersTable({
             <TableRow>
               <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Referred By</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Cashout limit</TableHead>
               <TableHead>BinPay</TableHead>
@@ -1210,6 +1212,15 @@ function PlayerCard({
           </span>
         </div>
 
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">
+            Referred by
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
+            {getPlayerReferredByDisplay(player)}
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 pt-1">
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
             <div className="flex items-center gap-1.5 mb-0.5">
@@ -1303,6 +1314,11 @@ function PlayersTableRow({
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">{player.email}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {getPlayerReferredByDisplay(player)}
+        </div>
       </TableCell>
       <TableCell>
         <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">

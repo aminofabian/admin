@@ -68,6 +68,19 @@ export interface PlayerKycStatus {
   manual_status?: string | null;
 }
 
+export interface PlayerReferralSource {
+  display?: string | null;
+  type?: string | null;
+  code?: string | null;
+}
+
+export interface PlayerReferralDetails {
+  referral_code?: string | null;
+  referral_link?: string | null;
+  total_referral_rewards_earned?: string | number | null;
+  total_referred_players?: number | null;
+}
+
 export interface Player extends BaseUser {
   role: 'player';
   full_name: string;
@@ -79,6 +92,9 @@ export interface Player extends BaseUser {
   last_name?: string | null;
   gender?: string | null;
   affiliated_by?: string | null;
+  referred_by_display?: string | null;
+  referral_source?: PlayerReferralSource | null;
+  referral_details?: PlayerReferralDetails | null;
   mobile_number?: string;
   dob?: string;
   state?: string;

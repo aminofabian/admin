@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES } from '@/lib/constants/roles';
+import { USER_ROLES, canManageReferralPromoCodes } from '@/lib/constants/roles';
 import { useReferralSettingsStore } from '@/stores';
 import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { ReferralPromoCodesSection } from '@/components/dashboard/settings/referral-promo-codes-section';
 
 type FormFieldKey =
   | 'referrer_bonus_percentage'
   | 'referrer_bonus_cap'
-  | 'referred_player_bonus_amount'
-  | 'first_deposit_min_amount';
+  | 'referred_player_bonus_amount';
 
 type ReferralSettingField = {
   key: FormFieldKey;
@@ -42,12 +42,6 @@ const REFERRAL_FIELDS: ReferralSettingField[] = [
     description: 'Flat bonus for the new player when eligibility is met.',
     suffix: '$',
   },
-  {
-    key: 'first_deposit_min_amount',
-    title: 'Minimum first deposit',
-    description: 'Lowest first deposit required to trigger referral rewards.',
-    suffix: '$',
-  },
 ];
 
 const parseNumericField = (value: string) => {
@@ -66,7 +60,6 @@ export default function ReferralSettingsPage() {
     referrer_bonus_percentage: '0',
     referrer_bonus_cap: '0',
     referred_player_bonus_amount: '0',
-    first_deposit_min_amount: '0',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,10 +67,15 @@ export default function ReferralSettingsPage() {
     useReferralSettingsStore();
 
   const canEdit = user?.role === USER_ROLES.COMPANY || user?.role === USER_ROLES.SUPERADMIN;
+  const canManagePromoCodes = canManageReferralPromoCodes(user?.role);
 
   useEffect(() => {
-    if (user?.role === USER_ROLES.STAFF || user?.role === USER_ROLES.MANAGER) {
+    if (user?.role === USER_ROLES.STAFF) {
       router.push('/dashboard/settings');
+      return;
+    }
+    if (user?.role === USER_ROLES.MANAGER) {
+      router.push('/dashboard/settings/referral-promo-codes');
     }
   }, [user?.role, router]);
 
@@ -94,7 +92,6 @@ export default function ReferralSettingsPage() {
         referrer_bonus_percentage: referralSettings.referrer_bonus_percentage,
         referrer_bonus_cap: referralSettings.referrer_bonus_cap,
         referred_player_bonus_amount: referralSettings.referred_player_bonus_amount,
-        first_deposit_min_amount: referralSettings.first_deposit_min_amount,
       });
     }
   }, [referralSettings]);
@@ -105,7 +102,6 @@ export default function ReferralSettingsPage() {
       referrer_bonus_percentage: parseNumericField(formData.referrer_bonus_percentage),
       referrer_bonus_cap: parseNumericField(formData.referrer_bonus_cap),
       referred_player_bonus_amount: parseNumericField(formData.referred_player_bonus_amount),
-      first_deposit_min_amount: parseNumericField(formData.first_deposit_min_amount),
     }),
     [formData],
   );
@@ -129,14 +125,14 @@ export default function ReferralSettingsPage() {
   };
 
   const validateForm = () => {
-    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount, first_deposit_min_amount } =
+    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount } =
       numericFormData;
 
     if (referrer_bonus_percentage < 0 || referrer_bonus_percentage > 100) {
       addToast({ type: 'error', title: 'Referrer bonus percentage must be between 0 and 100' });
       return false;
     }
-    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0 || first_deposit_min_amount < 0) {
+    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0) {
       addToast({ type: 'error', title: 'Amounts must be 0 or greater' });
       return false;
     }
@@ -185,7 +181,7 @@ export default function ReferralSettingsPage() {
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Referral</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Configure player referral rewards and first-deposit eligibility rules.
+          Configure player referral rewards and custom promo codes.
         </p>
       </div>
 
@@ -248,8 +244,7 @@ export default function ReferralSettingsPage() {
               {formData.is_enabled
                 ? `Referrer: earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) on a referred player’s first deposit. `
                 : 'Referral program is disabled. '}
-              Referred player: {formatCurrency(numericFormData.referred_player_bonus_amount)} bonus at{' '}
-              {formatCurrency(numericFormData.first_deposit_min_amount)} minimum first deposit.
+              Referred player: {formatCurrency(numericFormData.referred_player_bonus_amount)} bonus.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button type="submit" disabled={isSubmitting}>
@@ -267,6 +262,8 @@ export default function ReferralSettingsPage() {
           </div>
         </div>
       </form>
+
+      {canManagePromoCodes ? <ReferralPromoCodesSection /> : null}
     </div>
   );
 }

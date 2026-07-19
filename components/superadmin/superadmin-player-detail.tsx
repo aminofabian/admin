@@ -24,6 +24,8 @@ import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/playe
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
+import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
 import {
@@ -39,6 +41,7 @@ import {
   USER_ROLES,
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
+  canEditPlayerReferralOverride,
   canEditPlayerVerification,
   canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
@@ -729,6 +732,14 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
               playerUsername={selectedPlayer.username}
               canEdit={canEditPlayerRouletteAllowance(USER_ROLES.SUPERADMIN)}
             />
+
+            <PlayerReferralOverrideSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerReferralOverride(USER_ROLES.SUPERADMIN)}
+            />
+
+            <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>
 
           {/* Column 2: Transaction Summary & Player Games */}
