@@ -901,6 +901,7 @@ export function SuperAdminHistoryTransactions() {
                                             const amountColorClass = getTransactionAmountColorClass(
                                                 transaction.type,
                                                 transaction.amount,
+                                                transaction.status,
                                             );
 
                                             const bonusAmount = parseFloat(transaction.bonus_amount || '0');
@@ -1084,6 +1085,7 @@ export function SuperAdminHistoryTransactions() {
                                     const amountColorClass = getTransactionAmountColorClass(
                                         transaction.type,
                                         transaction.amount,
+                                        transaction.status,
                                     );
                                     const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                     const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;

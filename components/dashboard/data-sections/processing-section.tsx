@@ -50,6 +50,7 @@ import {
   getProviderDisplayName,
   resolvePayoutContactFromTransaction,
 } from '@/lib/utils/formatters';
+import { getTransactionAmountColorClass } from '@/lib/utils/transaction-display';
 import { transactionsApi, type TransactionActionOptions } from '@/lib/api/transactions';
 import { fetchPlayerPayoutContact } from '@/lib/api/payout-contact';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
@@ -324,8 +325,12 @@ function ProcessingTransactionRow({
 
   const formattedAmount = formatCurrency(transaction.amount || '0');
   const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
-  const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-  const bonusColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  const amountColorClass = getTransactionAmountColorClass(
+    transaction.type,
+    transaction.amount,
+    transaction.status,
+  );
+  const bonusColorClass = amountColorClass;
 
   const amountCell = (
     <TableCell className="align-top">
@@ -1231,7 +1236,32 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, []);
 
   const handleActionSubmit = async (data: Parameters<typeof handleGameAction>[0]) => {
-    await handleGameAction(data);
+    try {
+      await handleGameAction(data);
+      addToast({
+        type: 'success',
+        title: 'Action Successful',
+        description: `Queue item ${data.type === 'retry' ? 'retried' : data.type === 'cancel' ? 'cancelled' : 'completed'} successfully`,
+        duration: 3000,
+      });
+    } catch (error) {
+      let errorMessage = 'Failed to process action';
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      console.error('Failed to process game action:', error);
+
+      addToast({
+        type: 'error',
+        title: 'Action Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
+      throw error;
+    }
   };
 
   const handleViewTransaction = (transaction: Transaction) => {

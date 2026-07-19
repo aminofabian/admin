@@ -71,6 +71,34 @@ describe('map-chat-api', () => {
       expect(u.username).toBe('bitslotbeta');
       expect(u.playerLastSeenAt).toBe('2026-04-03T14:41:10.956951+00:00');
       expect('winningBalance' in u).toBe(false);
+      expect(u.isIdentityVerified).toBeUndefined();
+    });
+
+    it('should map isIdentityVerified when identity fields are present', () => {
+      const verified = transformPlayerToUser({
+        id: 1,
+        username: 'verified_player',
+        chatroom_id: 1,
+        is_identity_verified: true,
+      });
+      expect(verified.isIdentityVerified).toBe(true);
+
+      const byStatus = transformPlayerToUser({
+        id: 2,
+        username: 'approved_player',
+        chatroom_id: 2,
+        identity_verification_status: 'approved',
+      });
+      expect(byStatus.isIdentityVerified).toBe(true);
+
+      const unverified = transformPlayerToUser({
+        id: 3,
+        username: 'pending_player',
+        chatroom_id: 3,
+        is_identity_verified: false,
+        identity_verification_status: 'pending',
+      });
+      expect(unverified.isIdentityVerified).toBe(false);
     });
 
     it('should include winningBalance only when winning_balance is present on API row', () => {

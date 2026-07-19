@@ -118,12 +118,57 @@ export function requiresEntriesOnCompleteFromQueue(
 }
 
 /**
- * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows.
- * Add-user completion is username-only (no password).
+ * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows
+ * (balance + entries on recharge/redeem complete).
  */
 export function isSweepstakesStyleGameFromQueue(
   queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,
   matchedGame?: Pick<Game, 'code' | 'title' | 'game_category'>,
 ): boolean {
   return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
+}
+
+const RIVERSWEEP_SIGNATURES = ['riversweep', 'riversweeps'] as const;
+
+function identifiersMatchRiversweep(...values: Array<string | null | undefined>): boolean {
+  const combined = values.map(normalizeGameIdentifier).join('|');
+  return RIVERSWEEP_SIGNATURES.some((signature) => combined.includes(signature));
+}
+
+/**
+ * Riversweep add-user manual complete is username-only (no game_password in payload).
+ */
+export function isRiversweepGameFromQueue(
+  queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,
+  matchedGame?: Pick<Game, 'code' | 'title' | 'game_category'>,
+): boolean {
+  const data =
+    queue.data && typeof queue.data === 'object' && !Array.isArray(queue.data)
+      ? queue.data
+      : null;
+
+  const dataGameCode =
+    typeof data?.game_code === 'string'
+      ? data.game_code
+      : typeof data?.gameCode === 'string'
+        ? data.gameCode
+        : null;
+  const dataGameTitle =
+    typeof data?.game_title === 'string'
+      ? data.game_title
+      : typeof data?.game === 'string'
+        ? data.game
+        : null;
+
+  return identifiersMatchRiversweep(
+    queue.game_code,
+    queue.game,
+    queue.remarks,
+    dataGameCode,
+    dataGameTitle,
+    matchedGame?.code,
+    matchedGame?.title,
+    matchedGame?.game_category,
+    ...collectQueueGameHintStrings(data),
+  );
 }

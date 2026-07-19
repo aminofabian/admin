@@ -28,6 +28,7 @@ import {
   PlayerForm,
 } from '@/components/features';
 import { PlayersFilters, type PlayersFiltersState } from './players-filters';
+import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -474,6 +475,14 @@ function usePlayersData({
         params.state = filters.state.trim();
       }
 
+      // Add identity verification status filter if provided
+      if (
+        filters.identity_verification_status.trim() &&
+        filters.identity_verification_status !== 'all'
+      ) {
+        params.identity_verification_status = filters.identity_verification_status.trim();
+      }
+
       // Log the final params to verify date format
       console.log('🔍 Sending API request with params:', params);
 
@@ -494,6 +503,7 @@ function usePlayersData({
     filters.date_to,
     filters.status,
     filters.state,
+    filters.identity_verification_status,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -534,6 +544,7 @@ function usePlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
@@ -546,6 +557,7 @@ function usePlayerFilters(
     date_to: '',
     status: 'all',
     state: 'all',
+    identity_verification_status: 'all',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -569,6 +581,7 @@ function usePlayerFilters(
       date_to: '',
       status: 'all',
       state: 'all',
+      identity_verification_status: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -584,7 +597,9 @@ function usePlayerFilters(
       appliedFilters.date_from.trim() !== '' ||
       appliedFilters.date_to.trim() !== '' ||
       (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
-      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all')
+      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all') ||
+      (appliedFilters.identity_verification_status.trim() !== '' &&
+        appliedFilters.identity_verification_status !== 'all')
     );
   }, [appliedFilters]);
 
@@ -933,7 +948,9 @@ function PlayersFiltersWrapper({
       filters.date_from.trim() !== '' ||
       filters.date_to.trim() !== '' ||
       (filters.status.trim() !== '' && filters.status !== 'all') ||
-      (filters.state.trim() !== '' && filters.state !== 'all');
+      (filters.state.trim() !== '' && filters.state !== 'all') ||
+      (filters.identity_verification_status.trim() !== '' &&
+        filters.identity_verification_status !== 'all');
 
     if (hasActiveFilters) {
       setIsOpen(true);
@@ -1079,6 +1096,7 @@ function PlayersTable({
               <TableHead>Email</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Cashout limit</TableHead>
+              <TableHead>BinPay</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
@@ -1215,6 +1233,13 @@ function PlayerCard({
         </div>
       </div>
 
+      <div className="px-3 pb-3 flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          BinPay verification
+        </span>
+        <PlayerBinpayVerificationBadge player={player} className="text-[10px] px-2 py-0.5" />
+      </div>
+
       {/* Bottom Section: Date */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1290,6 +1315,9 @@ function PlayersTableRow({
             ? formatCurrency(player.cashout_limit)
             : '—'}
         </div>
+      </TableCell>
+      <TableCell>
+        <PlayerBinpayVerificationBadge player={player} />
       </TableCell>
       <TableCell>
         <Badge variant={player.is_active ? 'success' : 'danger'}>

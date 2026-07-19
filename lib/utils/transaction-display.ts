@@ -2,6 +2,7 @@ const AMOUNT_GREEN = "text-green-600 dark:text-green-400";
 const AMOUNT_RED = "text-red-600 dark:text-red-400";
 const AMOUNT_PURPLE = "text-purple-600 dark:text-purple-400";
 const AMOUNT_ORANGE = "text-orange-600 dark:text-orange-400";
+const AMOUNT_GREY = "text-gray-500 dark:text-gray-400";
 
 /**
  * History / list payloads may expose the row kind as `type` and/or `txn_type`.
@@ -21,7 +22,11 @@ export function getTransactionKind(transaction: {
 export function getTransactionAmountColorClass(
   type: string | undefined | null,
   amount: string | number | undefined | null,
+  status?: string | null,
 ): string {
+  const s = (status || "").toLowerCase();
+  if (s === "expired" || s === "failed") return AMOUNT_GREY;
+
   const t = (type || "").toLowerCase();
   if (t === "add" || t === "purchase") return AMOUNT_GREEN;
   if (t === "deduct" || t === "cashout" || t === "withdraw") return AMOUNT_RED;

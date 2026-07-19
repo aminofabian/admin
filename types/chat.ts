@@ -20,6 +20,8 @@ export interface ChatUser {
   phone?: string;
   unreadCount?: number;
   notes?: string;
+  /** Identity / KYC verified — Meta-style blue tick in chat header when true. */
+  isIdentityVerified?: boolean;
 }
 
 export interface ChatMessageSender {

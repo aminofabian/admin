@@ -3,9 +3,11 @@ import {
   formatPlayerTimelineDetailLabel,
   formatRouletteSpinQuantityLine,
   formatRouletteTimelineTypeLabel,
+  formatVerificationTimelineTypeLabel,
   mapPlayerTimelineResult,
   resolvePlayerTimelineAmountDisplay,
   resolvePlayerTimelineBalanceDisplay,
+  resolveVerificationTimelineOutcome,
 } from '../player-timeline';
 
 describe('player-timeline roulette entries', () => {
@@ -214,5 +216,65 @@ describe('player-timeline roulette entries', () => {
     expect(amount.primaryText).toBe('Try again');
     expect(amount.showAsCurrency).toBe(false);
     expect(formatPlayerTimelineDetailLabel(item)).toBe('Prize wheel · Slot 5');
+  });
+});
+
+describe('player-timeline verification entries', () => {
+  it('maps binpay identity approval as a verification row', () => {
+    const item = mapPlayerTimelineResult({
+      id: 1714,
+      payment_method: 'verification',
+      amount: '0.00',
+      bonus_amount: '0.00',
+      status: 'completed',
+      type: 'verification',
+      description: 'BinpayYour identity verification',
+      reason: 'binpay_kyc_approved',
+      reason_display: 'Binpay',
+      provider: 'Binpay',
+      verification: {
+        event: 'binpay_kyc_approved',
+        title: 'Binpay',
+        identity_verification_status: 'approved',
+      },
+      payload: {
+        event: 'binpay_kyc_approved',
+        title: 'Binpay',
+        identity_verification_status: 'approved',
+      },
+      created_at: '2026-07-10T10:29:29Z',
+    });
+
+    expect(item.kind).toBe('verification');
+    expect(formatVerificationTimelineTypeLabel(item)).toBe('Identity approved');
+    expect(resolveVerificationTimelineOutcome(item)).toBe('approved');
+    expect(formatPlayerTimelineDetailLabel(item)).toBe('Binpay');
+
+    const amount = resolvePlayerTimelineAmountDisplay(item);
+    expect(amount.primaryText).toBe('Approved');
+    expect(amount.showAsCurrency).toBe(false);
+  });
+
+  it('maps binpay identity rejection', () => {
+    const item = mapPlayerTimelineResult({
+      id: 1715,
+      payment_method: 'verification',
+      amount: '0.00',
+      status: 'completed',
+      type: 'verification',
+      reason: 'binpay_kyc_rejected',
+      reason_display: 'Binpay',
+      provider: 'Binpay',
+      verification: {
+        event: 'binpay_kyc_rejected',
+        identity_verification_status: 'rejected',
+      },
+      created_at: '2026-07-10T11:00:00Z',
+    });
+
+    expect(item.kind).toBe('verification');
+    expect(formatVerificationTimelineTypeLabel(item)).toBe('Identity rejected');
+    expect(resolveVerificationTimelineOutcome(item)).toBe('rejected');
+    expect(resolvePlayerTimelineAmountDisplay(item).primaryText).toBe('Rejected');
   });
 });

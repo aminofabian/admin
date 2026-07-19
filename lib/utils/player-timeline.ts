@@ -15,7 +15,7 @@ const GAME_ACTIVITY_TIMELINE_TYPES = new Set([
   'change_password',
 ]);
 
-export type PlayerTimelineKind = 'transaction' | 'game_activity';
+export type PlayerTimelineKind = 'transaction' | 'game_activity' | 'verification';
 
 /** Spin metadata from `roulette_spins` on player-timeline-history rows. */
 export type RouletteTimelineSpins = {
@@ -28,6 +28,9 @@ export type RouletteTimelineSpins = {
   reward_type?: string;
   position?: number;
 };
+
+/** Outcome for Binpay / identity verification timeline rows. */
+export type VerificationTimelineOutcome = 'approved' | 'rejected' | 'pending' | 'unknown';
 
 export interface PlayerTimelineItem {
   id: string;
@@ -214,6 +217,161 @@ export function isPlayerTimelineGameActivity(type: string | undefined | null): b
   return GAME_ACTIVITY_TIMELINE_TYPES.has(t);
 }
 
+function readNestedIdentityStatus(raw: Record<string, unknown>): string | undefined {
+  for (const key of ['verification', 'payload'] as const) {
+    const nested = raw[key];
+    if (!nested || typeof nested !== 'object') continue;
+    const status = (nested as Record<string, unknown>).identity_verification_status;
+    if (typeof status === 'string' && status.trim()) return status.trim().toLowerCase();
+  }
+  if (typeof raw.identity_verification_status === 'string' && raw.identity_verification_status.trim()) {
+    return raw.identity_verification_status.trim().toLowerCase();
+  }
+  return undefined;
+}
+
+export function isPlayerTimelineVerification(
+  type: string | undefined | null,
+  raw?: Record<string, unknown>,
+  paymentMethod?: string | null,
+  reason?: string | null,
+): boolean {
+  const t = String(type ?? '').trim().toLowerCase();
+  if (t === 'verification') return true;
+  const method = String(paymentMethod ?? raw?.payment_method ?? '')
+    .trim()
+    .toLowerCase();
+  if (method === 'verification') return true;
+  const reasonKey = String(reason ?? raw?.reason ?? '')
+    .trim()
+    .toLowerCase();
+  if (reasonKey.startsWith('binpay_kyc_') || reasonKey.includes('identity_verification')) {
+    return true;
+  }
+  if (raw && readNestedIdentityStatus(raw)) return true;
+  return false;
+}
+
+export function isVerificationTimelineItem(item: PlayerTimelineItem): boolean {
+  return (
+    item.kind === 'verification' ||
+    isPlayerTimelineVerification(item.type, item.raw, item.payment_method, item.reason)
+  );
+}
+
+export function isVerificationTransaction(
+  transaction: Pick<
+    Transaction,
+    'type' | 'payment_method' | 'reason' | 'provider' | 'payment_details'
+  >,
+): boolean {
+  const t = String(transaction.type ?? '').trim().toLowerCase();
+  if (t === 'verification') return true;
+  const method = String(transaction.payment_method ?? '')
+    .trim()
+    .toLowerCase();
+  if (method === 'verification') return true;
+  const reason = String(transaction.reason ?? '')
+    .trim()
+    .toLowerCase();
+  if (reason.startsWith('binpay_kyc_') || reason.includes('identity_verification')) {
+    return true;
+  }
+  const pd = transaction.payment_details;
+  if (pd && typeof pd === 'object') {
+    const nested = pd as Record<string, unknown>;
+    if (readNestedIdentityStatus(nested)) return true;
+    if (nested.verification && typeof nested.verification === 'object') return true;
+  }
+  return false;
+}
+
+export function resolveVerificationTimelineOutcome(
+  item: Pick<PlayerTimelineItem, 'reason' | 'status' | 'raw'>,
+): VerificationTimelineOutcome {
+  const nestedStatus = readNestedIdentityStatus(item.raw);
+  if (nestedStatus === 'approved' || nestedStatus === 'verified' || nestedStatus === 'complete') {
+    return 'approved';
+  }
+  if (
+    nestedStatus === 'rejected' ||
+    nestedStatus === 'failed' ||
+    nestedStatus === 'declined' ||
+    nestedStatus === 'denied'
+  ) {
+    return 'rejected';
+  }
+  if (
+    nestedStatus === 'pending' ||
+    nestedStatus === 'submitted' ||
+    nestedStatus === 'in_review' ||
+    nestedStatus === 'processing'
+  ) {
+    return 'pending';
+  }
+
+  const reason = String(item.reason ?? item.raw.reason ?? '')
+    .trim()
+    .toLowerCase();
+  if (
+    reason.includes('approved') ||
+    reason.includes('_verified') ||
+    reason.endsWith('_approve')
+  ) {
+    return 'approved';
+  }
+  if (
+    reason.includes('rejected') ||
+    reason.includes('declined') ||
+    reason.includes('denied') ||
+    reason.includes('failed')
+  ) {
+    return 'rejected';
+  }
+  if (reason.includes('pending') || reason.includes('submitted') || reason.includes('review')) {
+    return 'pending';
+  }
+
+  const status = String(item.status ?? '')
+    .trim()
+    .toLowerCase();
+  if (status === 'rejected' || status === 'failed') return 'rejected';
+  if (status === 'pending' || status === 'processing') return 'pending';
+  if (status === 'completed' || status === 'approved') return 'approved';
+
+  return 'unknown';
+}
+
+export function formatVerificationTimelineTypeLabel(
+  item: Pick<PlayerTimelineItem, 'reason' | 'status' | 'raw'>,
+): string {
+  switch (resolveVerificationTimelineOutcome(item)) {
+    case 'approved':
+      return 'Identity approved';
+    case 'rejected':
+      return 'Identity rejected';
+    case 'pending':
+      return 'Identity pending';
+    default:
+      return 'Identity verification';
+  }
+}
+
+export function formatVerificationOutcomeLabel(
+  outcome: VerificationTimelineOutcome,
+): string {
+  switch (outcome) {
+    case 'approved':
+      return 'Approved';
+    case 'rejected':
+      return 'Rejected';
+    case 'pending':
+      return 'Pending';
+    default:
+      return 'Verification';
+  }
+}
+
 function normalizeAmount(value: unknown): string {
   if (typeof value === 'number' && !Number.isNaN(value)) {
     return String(value);
@@ -252,9 +410,14 @@ function resolveProviderFromRaw(raw: Record<string, unknown>): string | undefine
 
 export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTimelineItem {
   const type = String(raw.type ?? raw.txn_type ?? '').trim();
+  const paymentMethod =
+    typeof raw.payment_method === 'string' ? raw.payment_method : undefined;
+  const reason = typeof raw.reason === 'string' ? raw.reason : undefined;
   const kind: PlayerTimelineKind = isPlayerTimelineGameActivity(type)
     ? 'game_activity'
-    : 'transaction';
+    : isPlayerTimelineVerification(type, raw, paymentMethod, reason)
+      ? 'verification'
+      : 'transaction';
 
   const createdAt = String(
     raw.created_at ?? raw.created ?? raw.updated_at ?? raw.updated ?? '',
@@ -300,11 +463,10 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
           : undefined,
     game: typeof raw.game === 'string' ? raw.game : undefined,
     game_code: typeof raw.game_code === 'string' ? raw.game_code : undefined,
-    payment_method:
-      typeof raw.payment_method === 'string' ? raw.payment_method : undefined,
+    payment_method: paymentMethod,
     operator: typeof raw.operator === 'string' ? raw.operator : undefined,
     provider: resolveProviderFromRaw(raw),
-    reason: typeof raw.reason === 'string' ? raw.reason : undefined,
+    reason,
     reason_display:
       typeof raw.reason_display === 'string' ? raw.reason_display : undefined,
     roulette_spins,
@@ -407,6 +569,15 @@ export function resolvePlayerTimelineAmountDisplay(
   const amountValue = parseFloat(item.amount ?? '0');
   const hasMoney = !Number.isNaN(amountValue) && amountValue > 0;
 
+  if (isVerificationTimelineItem(item) && !hasMoney) {
+    const outcome = resolveVerificationTimelineOutcome(item);
+    return {
+      primaryText: formatVerificationOutcomeLabel(outcome),
+      secondaryText: undefined,
+      showAsCurrency: false,
+    };
+  }
+
   if (isRouletteTimelineItem(item)) {
     const spins = item.roulette_spins;
     const spinLine =
@@ -470,6 +641,18 @@ function isInternalRouletteGameLabel(value: string | undefined): boolean {
 export function formatPlayerTimelineDetailLabel(item: PlayerTimelineItem): string {
   if (item.kind === 'game_activity') {
     return item.game || item.game_code || '—';
+  }
+
+  if (isVerificationTimelineItem(item)) {
+    const providerDisplay = getProviderDisplayName(item.provider, item.payment_method);
+    if (providerDisplay !== '—' && providerDisplay.toLowerCase() !== 'verification') {
+      return providerDisplay;
+    }
+    const reasonDisplay = String(item.reason_display ?? '').trim();
+    if (reasonDisplay && reasonDisplay.toLowerCase() !== 'verification') {
+      return reasonDisplay;
+    }
+    return 'Binpay';
   }
 
   if (isRouletteTimelineItem(item)) {
@@ -551,6 +734,63 @@ export function getRouletteTransactionDetailEntries(
   return entries;
 }
 
+export function getVerificationTransactionDetailEntries(
+  transaction: Pick<
+    Transaction,
+    | 'provider'
+    | 'payment_method'
+    | 'reason'
+    | 'reason_display'
+    | 'type'
+    | 'payment_details'
+    | 'description'
+  >,
+): [string, string][] {
+  if (!isVerificationTransaction(transaction)) return [];
+
+  const pd =
+    transaction.payment_details && typeof transaction.payment_details === 'object'
+      ? (transaction.payment_details as Record<string, unknown>)
+      : {};
+  const outcome = resolveVerificationTimelineOutcome({
+    reason: transaction.reason ?? undefined,
+    status: '',
+    raw: {
+      reason: transaction.reason,
+      verification: pd.verification,
+      payload: pd.payload ?? pd,
+      identity_verification_status: pd.identity_verification_status,
+    },
+  });
+
+  const entries: [string, string][] = [
+    ['Source', 'Identity verification'],
+    ['Outcome', formatVerificationOutcomeLabel(outcome)],
+  ];
+
+  const provider =
+    getProviderDisplayName(transaction.provider, transaction.payment_method) ||
+    String(transaction.reason_display ?? '').trim() ||
+    'Binpay';
+  if (provider && provider !== '—') {
+    entries.push(['Provider', provider]);
+  }
+
+  const reasonLabel = String(transaction.reason ?? '').trim();
+  if (reasonLabel) {
+    entries.push(['Event', humanizeSnakeCase(reasonLabel)]);
+  }
+
+  const description = String(transaction.description ?? '')
+    .replace(/^Binpay\s*/i, '')
+    .trim();
+  if (description) {
+    entries.push(['Details', description]);
+  }
+
+  return entries;
+}
+
 export function playerTimelineItemToTransactionQueue(
   item: PlayerTimelineItem,
 ): TransactionQueue {
@@ -609,12 +849,32 @@ export function playerTimelineItemToTransaction(item: PlayerTimelineItem): Trans
       ? (raw.payment_details as Record<string, unknown>)
       : null;
 
-  const payment_details: Record<string, unknown> | null = item.roulette_spins
-    ? {
-        ...(existingPaymentDetails ?? {}),
-        roulette_spins: item.roulette_spins,
-      }
-    : existingPaymentDetails;
+  const verificationMeta =
+    (raw.verification && typeof raw.verification === 'object'
+      ? (raw.verification as Record<string, unknown>)
+      : null) ??
+    (raw.payload && typeof raw.payload === 'object'
+      ? (raw.payload as Record<string, unknown>)
+      : null);
+
+  let payment_details: Record<string, unknown> | null = existingPaymentDetails;
+  if (item.roulette_spins) {
+    payment_details = {
+      ...(payment_details ?? {}),
+      roulette_spins: item.roulette_spins,
+    };
+  }
+  if (verificationMeta || item.kind === 'verification') {
+    payment_details = {
+      ...(payment_details ?? {}),
+      ...(verificationMeta ? { verification: verificationMeta, payload: verificationMeta } : {}),
+      identity_verification_status:
+        verificationMeta?.identity_verification_status ??
+        (typeof raw.identity_verification_status === 'string'
+          ? raw.identity_verification_status
+          : undefined),
+    };
+  }
 
   return {
     id: item.id,
@@ -670,6 +930,8 @@ export function playerTimelineItemToTransaction(item: PlayerTimelineItem): Trans
     company_username:
       typeof raw.company_username === 'string' ? raw.company_username : undefined,
     binpay_status: typeof raw.binpay_status === 'string' ? raw.binpay_status : null,
+    binpay_order_id:
+      raw.binpay_order_id != null ? String(raw.binpay_order_id) : null,
     tierlock_status:
       typeof raw.tierlock_status === 'string' ? raw.tierlock_status : null,
     tierlock_order_id:

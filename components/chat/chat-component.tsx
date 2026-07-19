@@ -31,6 +31,7 @@ import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
 } from "@/lib/chat/map-chat-api";
+import { isIdentityVerifiedFromRecord } from "@/lib/players/player-verification";
 import { pickChatroomIdFromRow } from "@/lib/chat/safe-chatroom-id";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
 import {
@@ -1535,6 +1536,17 @@ export function ChatComponent() {
     setIsNotesDrawerOpen(true);
   }, [refreshMessages]);
 
+  const handleIdentityVerifiedResolved = useCallback(
+    (userId: number, isIdentityVerified: boolean) => {
+      setSelectedPlayer((prev) => {
+        if (!prev || prev.user_id !== userId) return prev;
+        if (prev.isIdentityVerified === isIdentityVerified) return prev;
+        return { ...prev, isIdentityVerified };
+      });
+    },
+    [],
+  );
+
   const handlePlayerSelect = useCallback(
     (player: Player, options?: { markAsRead?: boolean }) => {
       const { markAsRead } = options ?? {};
@@ -2419,11 +2431,10 @@ export function ChatComponent() {
           const player = data.player || data;
           if (player && (player.id || player.user_id)) {
             const userId = Number(player.id || player.user_id || 0);
+            const row = player as Record<string, unknown>;
+            const identityVerified = isIdentityVerifiedFromRecord(row);
             const chatUser: Player = {
-              id: pickChatroomIdFromRow(
-                player as Record<string, unknown>,
-                userId,
-              ),
+              id: pickChatroomIdFromRow(row, userId),
               user_id: userId,
               username: player.username || player.full_name || "Unknown",
               fullName: player.full_name || player.name || undefined,
@@ -2440,9 +2451,7 @@ export function ChatComponent() {
                 player.balance !== undefined
                   ? String(player.balance)
                   : undefined,
-              ...pickWinningBalanceFromBackend(
-                player as Record<string, unknown>,
-              ),
+              ...pickWinningBalanceFromBackend(row),
               cashoutLimit:
                 player.cashout_limit !== undefined &&
                 player.cashout_limit !== null
@@ -2458,6 +2467,9 @@ export function ChatComponent() {
               phone: player.phone_number || player.mobile_number || undefined,
               unreadCount: player.unread_messages_count || 0,
               notes: player.notes || undefined,
+              ...(identityVerified === undefined
+                ? {}
+                : { isIdentityVerified: identityVerified }),
             };
 
             // Store in ref immediately so displayedPlayers includes them
@@ -3206,6 +3218,7 @@ export function ChatComponent() {
               setMobileView={setMobileView}
               onOpenNotesDrawer={handleOpenNotesDrawer}
               playerLastSeenAt={playerLastSeenAt}
+              onIdentityVerifiedResolved={handleIdentityVerifiedResolved}
             />
 
             {/* Connection Status Banner */}

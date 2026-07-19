@@ -767,6 +767,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         const v = updatedTransaction[key];
         return v != null && String(v).trim() !== '';
       };
+      const hasWsBinpayOrderId =
+        updatedTransaction.binpay_order_id != null &&
+        String(updatedTransaction.binpay_order_id).trim() !== '';
       const hasWsTapTicketId =
         updatedTransaction.taparcaida_ticket_id != null &&
         String(updatedTransaction.taparcaida_ticket_id).trim() !== '';
@@ -789,6 +792,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
         payment_method: hasWsPaymentMethod ? updatedTransaction.payment_method : existingTransaction.payment_method,
         binpay_status: hasWsProviderStatus('binpay_status') ? updatedTransaction.binpay_status : existingTransaction.binpay_status,
+        binpay_order_id: hasWsBinpayOrderId
+          ? updatedTransaction.binpay_order_id
+          : existingTransaction.binpay_order_id,
         tierlock_status: hasWsProviderStatus('tierlock_status') ? updatedTransaction.tierlock_status : existingTransaction.tierlock_status,
         taparcadia_status: hasWsProviderStatus('taparcadia_status') ? updatedTransaction.taparcadia_status : existingTransaction.taparcadia_status,
         taparcaida_ticket_id: hasWsTapTicketId

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getBinpayVerificationKind,
   getTransactionCardClass,
   getTransactionTextColorClass,
   isAutoMessage,
+  isKycVerificationMessage,
   isPurchaseNotification,
   isPrizeWheelMessage,
+  parseKycMessage,
   parseTransactionMessage,
   transactionTypeToVisualKind,
 } from '../message-helpers';
@@ -143,5 +146,72 @@ describe('transaction visual colors', () => {
     expect(transactionTypeToVisualKind('prize_wheel')).toBe('prize_wheel');
     expect(getTransactionTextColorClass('prize_wheel')).toContain('amber');
     expect(getTransactionCardClass('prize_wheel')).toContain('amber');
+  });
+});
+
+describe('Binpay verification messages', () => {
+  it('shows Identity Verification card only when verification is approved', () => {
+    const msg = {
+      text: 'Binpay\nYour identity verification has been approved. You can now continue with eligible Binpay purchases.',
+      type: 'system' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(true);
+    expect(isAutoMessage(msg)).toBe(false);
+    expect(getBinpayVerificationKind(msg)).toBe('approved');
+    expect(parseKycMessage(msg).bodyText).toBe(
+      'Your identity verification has been approved. You can now continue with eligible purchases.',
+    );
+  });
+
+  it('does not show Identity Verification card for KYC prompts', () => {
+    const msg = {
+      text: 'Complete your KYC verification to proceed with cashout. <a href="https://example.com/kyc">Verify</a>',
+      type: 'message' as const,
+    };
+    expect(getBinpayVerificationKind(msg)).toBe('prompt');
+    expect(isKycVerificationMessage(msg)).toBe(false);
+    expect(parseKycMessage(msg).link).toBe('https://example.com/kyc');
+  });
+
+  it('does not show Identity Verification card for rejected verification copy', () => {
+    const msg = {
+      text: 'Your identity verification was not approved. You can update your profile details and resubmit.',
+      type: 'system' as const,
+    };
+    expect(getBinpayVerificationKind(msg)).toBe('rejected');
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not treat casual mentions of identity verification as a verification card', () => {
+    const msg = {
+      text: 'reload the browser, there you will so complete identity verification option',
+      type: 'message' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not treat casual "was approved" chat as an Identity Verification card', () => {
+    const msg = {
+      text: "wtf thought it was approved now it's rejected??",
+      type: 'message' as const,
+    };
+    expect(getBinpayVerificationKind(msg)).toBe('status');
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not show Identity Verification card when casual text is prefixed with the IV title', () => {
+    const msg = {
+      text: "Identity Verification\nwtf thought it was approved now it's rejected??",
+      type: 'system' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
+  });
+
+  it('does not show Identity Verification card for complete-your-KYC cashout prompts', () => {
+    const msg = {
+      text: 'Complete your KYC to proceed with your Cashout.',
+      type: 'message' as const,
+    };
+    expect(isKycVerificationMessage(msg)).toBe(false);
   });
 });

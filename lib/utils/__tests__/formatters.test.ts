@@ -199,6 +199,24 @@ describe('formatters', () => {
       expect(rows.some(([label]) => label === 'Provider')).toBe(false);
     });
 
+    it('includes Binpay order ID when present on the transaction', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'binpay',
+        binpay_order_id: '74287',
+      });
+      expect(rows.find(([label]) => label === 'Binpay order ID')?.[1]).toBe('74287');
+    });
+
+    it('reads Binpay order ID from payment_details when not on the transaction root', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'binpay',
+        payment_details: { binpay_order_id: '74287', email: 'player@example.com' },
+      });
+      expect(rows.find(([label]) => label === 'Binpay order ID')?.[1]).toBe('74287');
+    });
+
     it('includes Tierlock order ID when present on the transaction', () => {
       const rows = getPaymentDetailsForDisplay({
         payment_method: 'card',

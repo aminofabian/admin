@@ -13,7 +13,10 @@ import {
 } from '@/lib/utils/game-queue-display';
 import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
-import { requiresEntriesOnCompleteFromQueue, isSweepstakesStyleGameFromQueue } from '@/lib/utils/game-entries-on-complete';
+import {
+  requiresEntriesOnCompleteFromQueue,
+  isRiversweepGameFromQueue,
+} from '@/lib/utils/game-entries-on-complete';
 import {
   sanitizeGameActionEntriesInput,
   sanitizeGameActionNumericInput,
@@ -136,9 +139,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
-  const isUsernameOnlyAddUser = useMemo(() => {
+  const isRiversweepAddUser = useMemo(() => {
     if (!queue) return false;
-    return isSweepstakesStyleGameFromQueue(queue, matchedGame);
+    return isRiversweepGameFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
   const isManualMode = useMemo(() => {
@@ -227,7 +230,10 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         
         if (isAddUserType) {
           if (username?.trim()) data.game_username = username.trim();
-          if (password?.trim()) data.game_password = password.trim();
+          // Riversweep complete is username-only — omit game_password
+          if (!isRiversweepAddUser && password?.trim()) {
+            data.game_password = password.trim();
+          }
         } else {
           if (username?.trim()) data.new_username = username.trim();
           if (password?.trim()) data.new_password = password.trim();
@@ -245,7 +251,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           if (sanitizedEntries) data.new_entries = sanitizedEntries;
         }
 
-        if (requiresEntries && !data.new_entries) {
+        // Entries are only collected for recharge/redeem — not add-user completion
+        if (
+          requiresEntries &&
+          (queue.type === 'recharge_game' || queue.type === 'redeem_game') &&
+          !data.new_entries
+        ) {
           throw new Error('New Entries is required for this game.');
         }
       }
@@ -275,7 +286,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       return {
         balance: false,
         entries: false,
-        password: !isUsernameOnlyAddUser,
+        password: !isRiversweepAddUser,
         username: true,
       };
     }
@@ -536,7 +547,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 : queue.type === 'redeem_game'
                 ? 'Redeem Operation - Required Field'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? isUsernameOnlyAddUser
+                ? isRiversweepAddUser
                   ? 'Create Game Account - Required Field'
                   : 'Create Game Account - Required Fields'
                 : 'Complete Operation - Required Fields'}
@@ -547,7 +558,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   ? 'Enter the new game balance and entries after manually completing the operation.'
                   : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? isUsernameOnlyAddUser
+                ? isRiversweepAddUser
                   ? 'Enter the game username that was created.'
                   : 'Enter the game username and password that were created.'
                 : 'Enter the required information to complete this operation.'}

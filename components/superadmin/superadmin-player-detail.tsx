@@ -19,13 +19,28 @@ import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
+import {
+  buildEditableFieldsFromPlayer,
+  buildPlayerUpdateRequest,
+  applyEditableFieldsToPlayer,
+  isPlayerProfileLocked,
+  EMPTY_EDITABLE_PLAYER_FIELDS,
+  getPlayerPersonalInfoCardAddressProps,
+  type EditablePlayerFields,
+} from '@/types/player-edit';
 import {
   USER_ROLES,
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
+  canEditPlayerVerification,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 
 /**
@@ -88,6 +103,9 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editableFields, setEditableFields] = useState<EditablePlayerFields>(EMPTY_EDITABLE_PLAYER_FIELDS);
 
   // Load player data
   useEffect(() => {
@@ -99,6 +117,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
         setSelectedPlayer(player);
+        setEditableFields(buildEditableFieldsFromPlayer(player));
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -421,6 +440,51 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     }
   }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
+  const handleSave = useCallback(async () => {
+    if (!selectedPlayer) return;
+
+    if (editableFields.password.trim()) {
+      if (editableFields.password !== editableFields.confirm_password) {
+        addToast({
+          type: 'error',
+          title: 'Validation error',
+          description: 'Passwords do not match. Please check and try again.',
+        });
+        return;
+      }
+    }
+
+    setIsSaving(true);
+    try {
+      const updateData = buildPlayerUpdateRequest(editableFields, {
+        lockProfileFields: isPlayerProfileLocked(selectedPlayer),
+      });
+
+      const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);
+
+      setSelectedPlayer(applyEditableFieldsToPlayer({ ...selectedPlayer, ...updatedPlayer }, editableFields));
+
+      addToast({
+        type: 'success',
+        title: 'Player updated',
+        description: 'Player details have been updated successfully.',
+      });
+
+      setIsEditDrawerOpen(false);
+      setEditableFields((prev) => ({ ...prev, password: '', confirm_password: '' }));
+    } catch (error) {
+      const { title, message } = extractErrorMessage(error);
+      addToast({
+        type: 'error',
+        title: title || 'Update failed',
+        description: message || 'Failed to update player',
+        duration: 8000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [selectedPlayer, editableFields, addToast]);
+
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -470,15 +534,20 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 {usernameInitial}
               </button>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={handleNavigateToChat}
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
-                    title="Open chat with this player"
-                    aria-label="Open chat"
-                  >
-                    {selectedPlayer.username}
-                  </button>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <button
+                      onClick={handleNavigateToChat}
+                      className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
+                      title="Open chat with this player"
+                      aria-label="Open chat"
+                    >
+                      {selectedPlayer.username}
+                    </button>
+                    {isPlayerIdentityVerified(selectedPlayer) ? (
+                      <IdentityVerifiedTick size="md" />
+                    ) : null}
+                  </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
@@ -572,6 +641,14 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
           </div>
         </div>
 
+        <PlayerProfileAdminBar
+          player={selectedPlayer}
+          canEditVerification={canEditPlayerVerification(USER_ROLES.SUPERADMIN)}
+          canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.SUPERADMIN)}
+          onEdit={() => setIsEditDrawerOpen(true)}
+          onUpdated={setSelectedPlayer}
+        />
+
         {/* Two Column Grid Layout */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-2">
           {/* Column 1: Quick Actions & Personal Information */}
@@ -641,7 +718,9 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
               fullName={selectedPlayer.full_name}
               dob={selectedPlayer.dob}
               state={selectedPlayer.state}
+              {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
               mobileNumber={selectedPlayer.mobile_number}
+              phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
               companyUsername={selectedPlayer.company_username}
             />
 
@@ -887,6 +966,16 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         confirmText={selectedPlayer.is_active ? 'Deactivate' : 'Activate'}
         variant={selectedPlayer.is_active ? 'warning' : 'info'}
         isLoading={isDeactivating}
+      />
+
+      <EditPlayerDetailsDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => setIsEditDrawerOpen(false)}
+        editableFields={editableFields}
+        setEditableFields={setEditableFields}
+        isSaving={isSaving}
+        onSave={handleSave}
+        player={selectedPlayer}
       />
 
       <PlayerGameBalanceModal

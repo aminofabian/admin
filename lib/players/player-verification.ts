@@ -1,0 +1,323 @@
+import type { Player } from '@/types';
+
+const PHONE_VERIFICATION_FLAGS = [
+  'mobile_verified',
+  'is_mobile_verified',
+  'phone_verified',
+  'is_phone_verified',
+] as const;
+
+const IDENTITY_VERIFICATION_FLAGS = [
+  'is_identity_verified',
+  'kyc_verified',
+  'is_kyc_verified',
+  'kyc_complete',
+  'is_kyc_complete',
+] as const;
+
+const IDENTITY_VERIFIED_STATUSES = new Set([
+  'verified',
+  'approved',
+  'manually_approved',
+  'complete',
+  'completed',
+]);
+
+function isTruthyFlag(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'verified';
+  }
+  return false;
+}
+
+function isFalsyFlag(value: unknown): boolean {
+  if (value === false || value === 0) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'unverified';
+  }
+  return false;
+}
+
+function readBooleanFlag(
+  player: Player,
+  flags: readonly (keyof Player)[]
+): boolean | null {
+  for (const flag of flags) {
+    const value = player[flag];
+    if (value === undefined || value === null) continue;
+    if (isTruthyFlag(value)) return true;
+    if (isFalsyFlag(value)) return false;
+  }
+  return null;
+}
+
+function readIdentityStatus(player: Player): string {
+  return (
+    player.identity_verification_status?.trim().toLowerCase() ||
+    player.kyc_status?.identity_status?.trim().toLowerCase() ||
+    ''
+  );
+}
+
+/** Step 2 — phone OTP / mobile verified (admin toggle initial state). */
+export function isPlayerPhoneVerified(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  const flagState = readBooleanFlag(player, PHONE_VERIFICATION_FLAGS);
+  if (flagState === true) return true;
+  if (flagState === false) return false;
+  if (player.kyc_status?.phone_complete === true) return true;
+
+  return false;
+}
+
+/** Step 3 — identity / SSN verification fully approved (admin toggle initial state). */
+export function isPlayerIdentityVerified(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  const flagState = readBooleanFlag(player, IDENTITY_VERIFICATION_FLAGS);
+  if (flagState === true) return true;
+  if (flagState === false) return false;
+
+  const status = readIdentityStatus(player);
+  if (status && IDENTITY_VERIFIED_STATUSES.has(status)) return true;
+
+  return false;
+}
+
+/**
+ * Resolve identity-verified for chat/list API rows.
+ * Returns `undefined` when the payload has no identity fields (caller may enrich later).
+ */
+export function isIdentityVerifiedFromRecord(
+  row: Record<string, unknown> | null | undefined
+): boolean | undefined {
+  if (!row) return undefined;
+
+  const nested =
+    row.player && typeof row.player === 'object' && !Array.isArray(row.player)
+      ? (row.player as Record<string, unknown>)
+      : null;
+  const sources = nested ? [row, nested] : [row];
+
+  let sawIdentityField = false;
+  for (const source of sources) {
+    for (const flag of IDENTITY_VERIFICATION_FLAGS) {
+      if (source[flag] !== undefined && source[flag] !== null) {
+        sawIdentityField = true;
+      }
+    }
+    if (
+      source.identity_verification_status !== undefined &&
+      source.identity_verification_status !== null &&
+      String(source.identity_verification_status).trim() !== ''
+    ) {
+      sawIdentityField = true;
+    }
+    const kyc = source.kyc_status;
+    if (kyc && typeof kyc === 'object' && !Array.isArray(kyc)) {
+      const kycRow = kyc as Record<string, unknown>;
+      if (
+        kycRow.identity_status != null ||
+        kycRow.identity_complete != null ||
+        kycRow.is_kyc_complete != null
+      ) {
+        sawIdentityField = true;
+      }
+    }
+  }
+
+  if (!sawIdentityField) return undefined;
+
+  return isPlayerIdentityVerified(row as unknown as Player);
+}
+
+const IDENTITY_PENDING_STATUSES = new Set(['pending', 'submitted', 'review', 'in_review', 'processing']);
+const IDENTITY_REJECTED_STATUSES = new Set(['rejected', 'failed', 'declined', 'denied']);
+const IDENTITY_NOT_SUBMITTED_STATUSES = new Set(['not_submitted', 'none', 'unverified', '']);
+
+function readExplicitBinpayStatus(player: Player): string {
+  return (
+    player.binpay_verification_status?.trim().toLowerCase() ||
+    player.binpay_kyc_status?.trim().toLowerCase() ||
+    player.binpay_status?.trim().toLowerCase() ||
+    ''
+  );
+}
+
+export type IdentitySubmissionCategory =
+  | 'not_submitted'
+  | 'pending'
+  | 'rejected'
+  | 'verified'
+  | 'unknown';
+
+/** Whether the player has submitted identity KYC or received a provider decision. */
+export function getPlayerIdentitySubmissionCategory(
+  player: Player | null | undefined
+): IdentitySubmissionCategory {
+  if (!player) return 'unknown';
+
+  const explicit = readExplicitBinpayStatus(player);
+  if (explicit) {
+    if (IDENTITY_VERIFIED_STATUSES.has(explicit)) return 'verified';
+    if (IDENTITY_PENDING_STATUSES.has(explicit)) return 'pending';
+    if (IDENTITY_REJECTED_STATUSES.has(explicit)) return 'rejected';
+    if (IDENTITY_NOT_SUBMITTED_STATUSES.has(explicit)) return 'not_submitted';
+    return 'unknown';
+  }
+
+  const status = readIdentityStatus(player);
+  if (status) {
+    if (IDENTITY_VERIFIED_STATUSES.has(status)) return 'verified';
+    if (IDENTITY_PENDING_STATUSES.has(status)) return 'pending';
+    if (IDENTITY_REJECTED_STATUSES.has(status)) return 'rejected';
+    if (IDENTITY_NOT_SUBMITTED_STATUSES.has(status)) return 'not_submitted';
+    return 'unknown';
+  }
+
+  if (player.kyc_status?.identity_complete === true) return 'pending';
+  if (isPlayerIdentityVerified(player)) return 'verified';
+
+  return 'not_submitted';
+}
+
+export function isPlayerIdentityManuallyMarked(player: Player | null | undefined): boolean {
+  if (!player) return false;
+  if (readIdentityStatus(player) === 'manually_approved') return true;
+  return isPlayerIdentityVerified(player) && !isPlayerIdentityVerifiedViaProvider(player);
+}
+
+export function canAdminMarkIdentityVerified(player: Player | null | undefined): boolean {
+  if (!player || isPlayerIdentityVerified(player)) return false;
+
+  const category = getPlayerIdentitySubmissionCategory(player);
+  return category === 'not_submitted' || category === 'rejected';
+}
+
+export function canAdminUnmarkIdentityVerified(player: Player | null | undefined): boolean {
+  return isPlayerIdentityManuallyMarked(player);
+}
+
+export type AdminVerificationAction = 'mark' | 'unmark';
+
+export function getAdminIdentityVerificationAction(
+  player: Player | null | undefined
+): AdminVerificationAction | null {
+  if (canAdminMarkIdentityVerified(player)) return 'mark';
+  if (canAdminUnmarkIdentityVerified(player)) return 'unmark';
+  return null;
+}
+
+export function getAdminVerificationBlockReason(
+  player: Player | null | undefined
+): string | null {
+  if (!player) return 'Player not found.';
+
+  if (isPlayerIdentityVerifiedViaProvider(player)) {
+    return 'Identity was verified through BinPay and cannot be changed manually.';
+  }
+
+  const category = getPlayerIdentitySubmissionCategory(player);
+  if (category === 'pending') {
+    return 'Identity verification is pending review and cannot be changed manually.';
+  }
+  if (category === 'verified' && !isPlayerIdentityManuallyMarked(player)) {
+    return 'Identity was verified through the provider flow and cannot be changed manually.';
+  }
+
+  return null;
+}
+
+/** Providers that represent admin/manual overrides, not BinPay (or other) KYC rails. */
+const MANUAL_IDENTITY_PROVIDERS = new Set(['manual']);
+
+export function isPlayerIdentityVerifiedViaProvider(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  // Explicit admin/manual approval is never provider-verified.
+  if (readIdentityStatus(player) === 'manually_approved') return false;
+
+  const explicitBinpayStatus =
+    player.binpay_verification_status?.trim().toLowerCase() ||
+    player.binpay_kyc_status?.trim().toLowerCase() ||
+    player.binpay_status?.trim().toLowerCase() ||
+    '';
+  if (explicitBinpayStatus) return IDENTITY_VERIFIED_STATUSES.has(explicitBinpayStatus);
+
+  const provider = (
+    player.identity_verification_provider?.trim() ||
+    player.kyc_status?.identity_provider?.trim() ||
+    ''
+  ).toLowerCase();
+  // Prod sets provider to "manual" for admin overrides; staging may leave it null.
+  // Only treat a real KYC rail (e.g. binpay) as provider-verified.
+  if (!provider || MANUAL_IDENTITY_PROVIDERS.has(provider)) return false;
+
+  return isPlayerIdentityVerified(player);
+}
+
+export function getPlayerIdentityStatusLabel(player: Player | null | undefined): string {
+  if (!player) return 'Unknown';
+  if (isPlayerIdentityVerified(player)) {
+    return isPlayerIdentityVerifiedViaProvider(player) ? 'Verified' : 'Marked verified';
+  }
+
+  const status = readIdentityStatus(player);
+  if (status === 'pending' || status === 'submitted' || status === 'review') return 'Pending review';
+  if (status === 'not_submitted' || status === 'none') return 'Not submitted';
+  if (status === 'rejected' || status === 'failed' || status === 'declined') {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+  if (status) return status.charAt(0).toUpperCase() + status.slice(1);
+
+  return 'Not verified';
+}
+
+/** Player has completed all required KYC steps — profile fields should be read-only. */
+export function isPlayerKycComplete(player: Player | null | undefined): boolean {
+  if (!player) return false;
+
+  if (player.is_kyc_complete === true || player.kyc_status?.is_kyc_complete === true) {
+    return true;
+  }
+
+  return isPlayerPhoneVerified(player) && isPlayerIdentityVerified(player);
+}
+
+export type PlayerVerificationPatch = {
+  is_phone_verified?: boolean;
+  is_identity_verified?: boolean;
+  identity_verification_status?: 'approved' | 'not_submitted';
+};
+
+/** Matches PATCH /api/v1/players/{id}/ contract from backend. */
+export function buildPlayerVerificationPatch(
+  phoneVerified: boolean,
+  identityVerified: boolean
+): PlayerVerificationPatch {
+  return {
+    is_phone_verified: phoneVerified,
+    is_identity_verified: identityVerified,
+    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
+  };
+}
+
+export function buildIdentityVerificationPatch(
+  identityVerified: boolean
+): Pick<PlayerVerificationPatch, 'is_identity_verified' | 'identity_verification_status'> {
+  return {
+    is_identity_verified: identityVerified,
+    identity_verification_status: identityVerified ? 'approved' : 'not_submitted',
+  };
+}
+
+export function isIdentityVerificationPersisted(
+  player: Player,
+  expectedVerified: boolean
+): boolean {
+  return isPlayerIdentityVerified(player) === expectedVerified;
+}

@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Player, UpdateUserRequest } from '@/types';
+import type { Player } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input, Select, DateSelect } from '@/components/ui';
+import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
@@ -18,13 +18,28 @@ import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerDetailHeaderActions } from '@/components/dashboard/players/player-detail-header-actions';
+import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
+import {
+  buildEditableFieldsFromPlayer,
+  buildPlayerUpdateRequest,
+  applyEditableFieldsToPlayer,
+  isPlayerProfileLocked,
+  EMPTY_EDITABLE_PLAYER_FIELDS,
+  getPlayerPersonalInfoCardAddressProps,
+  type EditablePlayerFields,
+} from '@/types/player-edit';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
+import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import {
   USER_ROLES,
   canEditPlayerCashoutLimit,
   canEditPlayerRouletteAllowance,
+  canEditPlayerVerification,
+  canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 
@@ -33,16 +48,7 @@ interface StaffPlayerDetailProps {
   playerId: number;
 }
 
-interface EditableFields {
-  email: string;
-  full_name: string;
-  dob: string;
-  state: string;
-  mobile_number: string;
-  password: string;
-  confirm_password: string;
-  is_active: boolean;
-}
+type EditableFields = EditablePlayerFields;
 
 /**
  * Staff Player Detail Component
@@ -83,16 +89,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
     Record<number, boolean>
   >({});
-  const [editableFields, setEditableFields] = useState<EditableFields>({
-    email: '',
-    full_name: '',
-    dob: '',
-    state: '',
-    mobile_number: '',
-    password: '',
-    confirm_password: '',
-    is_active: true,
-  });
+  const [editableFields, setEditableFields] = useState<EditableFields>(EMPTY_EDITABLE_PLAYER_FIELDS);
 
   // Load player data
   useEffect(() => {
@@ -110,16 +107,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
         setSelectedPlayer(player);
-        setEditableFields({
-          email: player.email || '',
-          full_name: player.full_name || '',
-          dob: player.dob || '',
-          state: player.state || '',
-          mobile_number: player.mobile_number || '',
-          password: '',
-          confirm_password: '',
-          is_active: player.is_active ?? true,
-        });
+        setEditableFields(buildEditableFieldsFromPlayer(player));
 
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load player';
@@ -425,36 +413,13 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
     setIsSaving(true);
     try {
-      const updateData: UpdateUserRequest = {
-        email: editableFields.email.trim() || undefined,
-        full_name: editableFields.full_name.trim() || undefined,
-        mobile_number: editableFields.mobile_number.trim() || undefined,
-        dob: editableFields.dob.trim() || undefined,
-        state: editableFields.state.trim() || undefined,
-        is_active: editableFields.is_active,
-        // Only include password if it's not empty
-        ...(editableFields.password.trim()
-          ? {
-            password: editableFields.password.trim(),
-            confirm_password: editableFields.confirm_password.trim(),
-          }
-          : {}
-        ),
-      };
+      const updateData = buildPlayerUpdateRequest(editableFields, {
+        lockProfileFields: isPlayerProfileLocked(selectedPlayer),
+      });
 
-      await playersApi.update(selectedPlayer.id, updateData);
+      const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);
 
-      // Refresh player data
-      const updatedPlayer = {
-        ...selectedPlayer,
-        email: editableFields.email.trim() || selectedPlayer.email,
-        full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
-        mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
-        dob: editableFields.dob.trim() || selectedPlayer.dob,
-        state: editableFields.state.trim() || selectedPlayer.state,
-        is_active: editableFields.is_active,
-      };
-      setSelectedPlayer(updatedPlayer);
+      setSelectedPlayer(applyEditableFieldsToPlayer({ ...selectedPlayer, ...updatedPlayer }, editableFields));
 
       addToast({
         type: 'success',
@@ -531,12 +496,17 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 {usernameInitial}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <span
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
-                    aria-label="Player username"
-                  >
-                    {selectedPlayer.username}
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span
+                      className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
+                      aria-label="Player username"
+                    >
+                      {selectedPlayer.username}
+                    </span>
+                    {isPlayerIdentityVerified(selectedPlayer) ? (
+                      <IdentityVerifiedTick size="md" />
+                    ) : null}
                   </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
@@ -557,52 +527,15 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('previous')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'previous'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
-                <span className="sm:hidden text-xs">◀</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('next')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'next'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
-                <span className="sm:hidden text-xs">▶</span>
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleNavigateToChat}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsEditDrawerOpen(true)}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-              </Button>
-            </div>
+            <PlayerDetailHeaderActions
+              onPrevious={() => handleNavigateToAdjacentPlayer('previous')}
+              onNext={() => handleNavigateToAdjacentPlayer('next')}
+              onChat={handleNavigateToChat}
+              previousDisabled={playerNavDirection !== null}
+              nextDisabled={playerNavDirection !== null}
+              previousLoading={playerNavDirection === 'previous'}
+              nextLoading={playerNavDirection === 'next'}
+            />
           </div>
         </div>
       </div>
@@ -695,6 +628,14 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           </div>
         </div>
 
+        <PlayerProfileAdminBar
+          player={selectedPlayer}
+          canEditVerification={canEditPlayerVerification(USER_ROLES.STAFF)}
+          canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.STAFF)}
+          onEdit={() => setIsEditDrawerOpen(true)}
+          onUpdated={setSelectedPlayer}
+        />
+
         {/* Three Column Grid Layout */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
           {/* Column 1: Quick Actions & Personal Information */}
@@ -764,7 +705,9 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               fullName={selectedPlayer.full_name}
               dob={selectedPlayer.dob}
               state={selectedPlayer.state}
+              {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
               mobileNumber={selectedPlayer.mobile_number}
+              phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
             />
 
             <PlayerRouletteSpinAllowanceSection
@@ -1007,6 +950,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         setEditableFields={setEditableFields}
         isSaving={isSaving}
         onSave={handleSave}
+        player={selectedPlayer}
       />
 
       {/* Delete Game Confirmation Modal */}

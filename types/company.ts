@@ -17,16 +17,20 @@ export interface Company {
   binpay_secret_key?: string | null;
   binpay_deposit_secret_key?: string | null;
   binpay_withdrawal_secret_key?: string | null;
+  binpay_kyc_webhook_secret?: string | null;
   brenzi_api_key?: string | null;
   brenzi_webhook_secret?: string | null;
   taparcaida_vendor_id?: string | null;
   taparcaida_payout_api_key?: string | null;
+  taparcaida_payout_api_secret?: string | null;
   tierlock_merchant_id?: string | null;
   tierlock_merchant_secret?: string | null;
   tierlock_deposit_secret?: string | null;
   tierlock_withdrawal_secret?: string | null;
   tierlock_payout_shared_secret?: string | null;
   tierlock_payout_client_secret?: string | null;
+  meta_pixel_id?: string | null;
+  meta_capi_token?: string | null;
   created: string;
   modified?: string;
 }
@@ -50,16 +54,20 @@ export interface CreateCompanyRequest {
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
   binpay_withdrawal_secret_key?: string;
+  binpay_kyc_webhook_secret?: string;
   brenzi_api_key?: string;
   brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
+  taparcaida_payout_api_secret?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
   tierlock_deposit_secret?: string;
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  meta_pixel_id?: string;
+  meta_capi_token?: string;
   logo?: File;
 }
 
@@ -81,15 +89,19 @@ export interface UpdateCompanyRequest {
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
   binpay_withdrawal_secret_key?: string;
+  binpay_kyc_webhook_secret?: string;
   brenzi_api_key?: string;
   brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
+  taparcaida_payout_api_secret?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
   tierlock_deposit_secret?: string;
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  meta_pixel_id?: string;
+  meta_capi_token?: string;
 }
 

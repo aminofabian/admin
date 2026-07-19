@@ -1,4 +1,9 @@
 import { apiClient } from './client';
+import { API_ENDPOINTS } from '@/lib/constants/api';
+import {
+  buildIdentityVerificationPatch,
+  isIdentityVerificationPersisted,
+} from '@/lib/players/player-verification';
 import { paramsWithClientTimezone } from '@/lib/utils/browser-timezone';
 import type { ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
 
@@ -114,6 +119,30 @@ export const playersApi = {
 
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Player>(`api/admin/players/${id}`, data),
+
+  get: (id: number) => apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id)),
+
+  updateVerification: async (id: number, verified: boolean): Promise<Player> => {
+    const patch = buildIdentityVerificationPatch(verified);
+
+    await apiClient.patch(`api/admin/players/${id}`, patch);
+
+    const refreshed = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
+
+    if (!isIdentityVerificationPersisted(refreshed, verified)) {
+      throw new Error(
+        `Verification was not saved on the server. Expected identity to be ${verified ? 'verified' : 'unverified'}.`
+      );
+    }
+
+    return refreshed;
+  },
+
+  /** Call BinPay KYC status API and refresh player verification fields. */
+  refreshBinpayKyc: async (id: number): Promise<Player> => {
+    await apiClient.post(`api/admin/players/${id}/refresh-binpay-kyc`, {});
+    return apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
+  },
 
   viewDetails: (id: number) => 
     apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(

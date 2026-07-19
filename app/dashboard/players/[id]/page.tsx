@@ -2,11 +2,11 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerVerification, canSyncBinpayKycStatus } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
@@ -14,11 +14,24 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, DateSelect, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
-import type { UpdateUserRequest, ApiError } from '@/types';
+import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
+import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerDetailHeaderActions } from '@/components/dashboard/players/player-detail-header-actions';
+import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
+import {
+  buildEditableFieldsFromPlayer,
+  buildPlayerUpdateRequest,
+  applyEditableFieldsToPlayer,
+  isPlayerProfileLocked,
+  EMPTY_EDITABLE_PLAYER_FIELDS,
+  getPlayerPersonalInfoCardAddressProps,
+  type EditablePlayerFields,
+} from '@/types/player-edit';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
+import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
@@ -176,16 +189,7 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   return { title: errorTitle, message: errorMessage };
 }
 
-interface EditableFields {
-  email: string;
-  full_name: string;
-  dob: string;
-  state: string;
-  mobile_number: string;
-  password: string;
-  confirm_password: string;
-  is_active: boolean;
-}
+type EditableFields = EditablePlayerFields;
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -236,16 +240,7 @@ export default function PlayerDetailPage() {
   const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
     Record<number, boolean>
   >({});
-  const [editableFields, setEditableFields] = useState<EditableFields>({
-    email: '',
-    full_name: '',
-    dob: '',
-    state: '',
-    mobile_number: '',
-    password: '',
-    confirm_password: '',
-    is_active: true,
-  });
+  const [editableFields, setEditableFields] = useState<EditableFields>(EMPTY_EDITABLE_PLAYER_FIELDS);
 
   // Track last agent assignment time to prevent immediate data overwrite
   // Use ref instead of state to avoid triggering re-renders
@@ -416,16 +411,7 @@ export default function PlayerDetailPage() {
 
           return player;
         });
-        setEditableFields({
-          email: player.email || '',
-          full_name: player.full_name || '',
-          dob: player.dob || '',
-          state: player.state || '',
-          mobile_number: player.mobile_number || '',
-          password: '',
-          confirm_password: '',
-          is_active: player.is_active ?? true,
-        });
+        setEditableFields(buildEditableFieldsFromPlayer(player));
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -491,36 +477,13 @@ export default function PlayerDetailPage() {
 
     setIsSaving(true);
     try {
-      const updateData: UpdateUserRequest = {
-        email: editableFields.email.trim() || undefined,
-        full_name: editableFields.full_name.trim() || undefined,
-        mobile_number: editableFields.mobile_number.trim() || undefined,
-        dob: editableFields.dob.trim() || undefined,
-        state: editableFields.state.trim() || undefined,
-        is_active: editableFields.is_active,
-        // Only include password if it's not empty
-        ...(editableFields.password.trim()
-          ? {
-            password: editableFields.password.trim(),
-            confirm_password: editableFields.confirm_password.trim(),
-          }
-          : {}
-        ),
-      };
+      const updateData = buildPlayerUpdateRequest(editableFields, {
+        lockProfileFields: isPlayerProfileLocked(selectedPlayer),
+      });
 
-      await playersApi.update(selectedPlayer.id, updateData);
+      const updatedPlayer = await playersApi.update(selectedPlayer.id, updateData);
 
-      // Refresh player data
-      const updatedPlayer = {
-        ...selectedPlayer,
-        email: editableFields.email.trim() || selectedPlayer.email,
-        full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
-        mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
-        dob: editableFields.dob.trim() || selectedPlayer.dob,
-        state: editableFields.state.trim() || selectedPlayer.state,
-        is_active: editableFields.is_active,
-      };
-      setSelectedPlayer(updatedPlayer);
+      setSelectedPlayer(applyEditableFieldsToPlayer({ ...selectedPlayer, ...updatedPlayer }, editableFields));
 
       addToast({
         type: 'success',
@@ -542,7 +505,7 @@ export default function PlayerDetailPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedPlayer, editableFields, addToast]);
+  }, [selectedPlayer, editableFields, addToast, user?.role]);
 
   const handleAssignAgent = useCallback(async () => {
     console.log('🎯 handleAssignAgent called');
@@ -1090,12 +1053,17 @@ export default function PlayerDetailPage() {
                 {usernameInitial}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <span
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
-                    aria-label="Player username"
-                  >
-                    {selectedPlayer.username}
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span
+                      className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
+                      aria-label="Player username"
+                    >
+                      {selectedPlayer.username}
+                    </span>
+                    {isPlayerIdentityVerified(selectedPlayer) ? (
+                      <IdentityVerifiedTick size="md" />
+                    ) : null}
                   </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
@@ -1116,66 +1084,34 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('previous')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'previous'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
-                <span className="sm:hidden text-xs">◀</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleNavigateToAdjacentPlayer('next')}
-                disabled={playerNavDirection !== null}
-                isLoading={playerNavDirection === 'next'}
-                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
-                <span className="sm:hidden text-xs">▶</span>
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleNavigateToChat}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsEditDrawerOpen(true)}
-                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-              >
-                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-              </Button>
-            </div>
+            <PlayerDetailHeaderActions
+              onPrevious={() => handleNavigateToAdjacentPlayer('previous')}
+              onNext={() => handleNavigateToAdjacentPlayer('next')}
+              onChat={handleNavigateToChat}
+              previousDisabled={playerNavDirection !== null}
+              nextDisabled={playerNavDirection !== null}
+              previousLoading={playerNavDirection === 'previous'}
+              nextLoading={playerNavDirection === 'next'}
+            />
           </div>
         </div>
       </div>
 
       {/* Full Width Content - Mobile App Style */}
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
-        {/* Hero Stats Banner - Ultra Compact on mobile */}
-        <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
+        {/* Hero Stats Banner */}
+        <div className="mb-3 sm:mb-4 md:mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="border-b border-gray-100 bg-gray-50/80 px-3 py-2 dark:border-gray-800 dark:bg-gray-800/40 sm:px-4">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 sm:text-xs">
+              Account overview
+            </h2>
+          </div>
           <div
-            className={`grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 ${
+            className={`grid grid-cols-2 gap-2 p-2 sm:gap-3 sm:p-4 md:gap-4 md:p-5 ${
               showWinningsHero ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
             }`}
           >
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
                   <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1197,7 +1133,7 @@ export default function PlayerDetailPage() {
               }
             />
             {showWinningsHero ? (
-              <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                   <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
                     <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1213,7 +1149,7 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             ) : null}
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
                   <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1233,7 +1169,7 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
                   <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1253,6 +1189,14 @@ export default function PlayerDetailPage() {
             </div>
           </div>
         </div>
+
+        <PlayerProfileAdminBar
+          player={selectedPlayer}
+          canEditVerification={canEditPlayerVerification(user?.role)}
+          canSyncBinpay={canSyncBinpayKycStatus(user?.role)}
+          onEdit={() => setIsEditDrawerOpen(true)}
+          onUpdated={setSelectedPlayer}
+        />
 
         {/* Three Column Grid Layout - Mobile First */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
@@ -1386,7 +1330,9 @@ export default function PlayerDetailPage() {
               fullName={selectedPlayer.full_name}
               dob={selectedPlayer.dob}
               state={selectedPlayer.state}
+              {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
               mobileNumber={selectedPlayer.mobile_number}
+              phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
               created={selectedPlayer.created}
               createdByUsername={selectedPlayer.created_by?.username}
               formatDate={formatDate}
@@ -1682,6 +1628,7 @@ export default function PlayerDetailPage() {
         setEditableFields={setEditableFields}
         isSaving={isSaving}
         onSave={handleSave}
+        player={selectedPlayer}
       />
 
       <ConfirmModal

@@ -50,8 +50,8 @@ const TransactionRow = memo(function TransactionRow({ transaction, onView, showP
 
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount || '0'), [transaction.amount]);
   const amountColorClass = useMemo(
-    () => getTransactionAmountColorClass(transaction.type, transaction.amount),
-    [transaction.type, transaction.amount],
+    () => getTransactionAmountColorClass(transaction.type, transaction.amount, transaction.status),
+    [transaction.type, transaction.amount, transaction.status],
   );
   const bonusColorClass = amountColorClass;
 
@@ -218,8 +218,8 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView, sho
   );
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount || '0'), [transaction.amount]);
   const amountColorClass = useMemo(
-    () => getTransactionAmountColorClass(transaction.type, transaction.amount),
-    [transaction.type, transaction.amount],
+    () => getTransactionAmountColorClass(transaction.type, transaction.amount, transaction.status),
+    [transaction.type, transaction.amount, transaction.status],
   );
 
   const bonusAmount = useMemo(() => {

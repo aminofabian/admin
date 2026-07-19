@@ -56,6 +56,18 @@ export interface SavedPaymentMethod {
   venmo_username?: string | null;
 }
 
+export interface PlayerKycStatus {
+  is_kyc_complete?: boolean;
+  profile_complete?: boolean;
+  phone_complete?: boolean;
+  identity_complete?: boolean;
+  phone_required?: boolean;
+  identity_required?: boolean;
+  identity_status?: string | null;
+  identity_provider?: string | null;
+  manual_status?: string | null;
+}
+
 export interface Player extends BaseUser {
   role: 'player';
   full_name: string;
@@ -70,6 +82,30 @@ export interface Player extends BaseUser {
   mobile_number?: string;
   dob?: string;
   state?: string;
+  address?: string;
+  street?: string;
+  city?: string;
+  zip_code?: string;
+  postal_code?: string;
+  country?: string;
+  mobile_verified?: boolean | null;
+  is_mobile_verified?: boolean | null;
+  phone_verified?: boolean | null;
+  is_phone_verified?: boolean | null;
+  is_identity_verified?: boolean | null;
+  kyc_verified?: boolean | null;
+  is_kyc_verified?: boolean | null;
+  kyc_complete?: boolean | null;
+  is_kyc_complete?: boolean | null;
+  identity_verification_status?: string | null;
+  identity_verification_provider?: string | null;
+  identity_verified_at?: string | null;
+  binpay_verification_status?: string | null;
+  binpay_kyc_status?: string | null;
+  binpay_status?: string | null;
+  kyc_manual_status?: string | null;
+  ssn_last4?: string | null;
+  kyc_status?: PlayerKycStatus | null;
   total_purchases?: number;
   total_cashouts?: number;
   total_transfers?: number;
@@ -109,13 +145,29 @@ export interface UpdateUserRequest {
   is_active?: boolean;
   mobile_number?: string;
   full_name?: string;
+  first_name?: string;
+  last_name?: string;
   password?: string;
   confirm_password?: string;
   email?: string;
   dob?: string;
   state?: string;
+  address?: string;
+  street?: string;
+  city?: string;
+  zip_code?: string;
+  postal_code?: string;
+  country?: string;
   agent_id?: number;
   cashout_limit?: string;
+  mobile_verified?: boolean;
+  is_mobile_verified?: boolean;
+  phone_verified?: boolean;
+  is_phone_verified?: boolean;
+  is_identity_verified?: boolean;
+  kyc_verified?: boolean;
+  is_kyc_verified?: boolean;
+  identity_verification_status?: 'verified' | 'approved' | 'manually_approved' | 'not_submitted' | 'pending' | 'rejected' | string;
 }
 
 export interface CheckPlayerGameBalanceRequest {

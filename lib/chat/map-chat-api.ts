@@ -1,6 +1,17 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
+import { isIdentityVerifiedFromRecord } from '@/lib/players/player-verification';
 import type { ChatUser } from '@/types';
+
+/** Attach identity-verified when the API row includes verification fields. */
+function withIdentityVerified(
+  user: ChatUser,
+  row: Record<string, unknown>,
+): ChatUser {
+  const isIdentityVerified = isIdentityVerifiedFromRecord(row);
+  if (isIdentityVerified === undefined) return user;
+  return { ...user, isIdentityVerified };
+}
 
 /** Totals from admin chat list / online endpoints (`counts` on JSON). */
 export type ChatListServerCounts = {
@@ -437,34 +448,37 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const rawTimestamp = chat.last_message_time || chat.last_message_timestamp;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
-  return {
-    id: directoryId,
-    user_id: userId,
-    username,
-    fullName: player.full_name || player.name || undefined,
-    email: player.email || '',
-    avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-    isOnline: player.is_online || player.isOnline || false,
-    lastMessage: chat.last_message || undefined,
-    lastMessageTime: validTimestamp,
-    balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
-    ...pickWinningBalanceFromBackend(ledgerRow),
-    cashoutLimit: ledgerStringOrUndefined(
-      player.cashout_limit,
-      chat.cashout_limit,
-      chat.player_cashout_limit,
-    ),
-    lockedBalance: ledgerStringOrUndefined(
-      player.locked_balance,
-      chat.locked_balance,
-      chat.player_locked_balance,
-    ),
-    gamesPlayed: player.games_played || player.gamesPlayed || undefined,
-    winRate: player.win_rate || player.winRate || undefined,
-    phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
-    unreadCount: extractUnreadCount(raw) || chat.unreadCount || 0,
-    notes: player.notes || undefined,
-  };
+  return withIdentityVerified(
+    {
+      id: directoryId,
+      user_id: userId,
+      username,
+      fullName: player.full_name || player.name || undefined,
+      email: player.email || '',
+      avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
+      isOnline: player.is_online || player.isOnline || false,
+      lastMessage: chat.last_message || undefined,
+      lastMessageTime: validTimestamp,
+      balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
+      ...pickWinningBalanceFromBackend(ledgerRow),
+      cashoutLimit: ledgerStringOrUndefined(
+        player.cashout_limit,
+        chat.cashout_limit,
+        chat.player_cashout_limit,
+      ),
+      lockedBalance: ledgerStringOrUndefined(
+        player.locked_balance,
+        chat.locked_balance,
+        chat.player_locked_balance,
+      ),
+      gamesPlayed: player.games_played || player.gamesPlayed || undefined,
+      winRate: player.win_rate || player.winRate || undefined,
+      phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
+      unreadCount: extractUnreadCount(raw) || chat.unreadCount || 0,
+      notes: player.notes || undefined,
+    },
+    ledgerRow,
+  );
 }
 
 /**
@@ -490,35 +504,38 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
     row.chatroomId ??
     '';
 
-  return {
-    id: String(directoryId !== '' && directoryId !== undefined && directoryId !== null ? directoryId : ''),
-    user_id: resolvedUserId,
-    username: (row.username as string | undefined) || (row.full_name as string | undefined) || 'Unknown',
-    fullName: (row.full_name as string | undefined) || (row.name as string | undefined) || undefined,
-    email: (row.email as string | undefined) || '',
-    avatar:
-      (row.profile_pic as string | undefined) ||
-      (row.profile_image as string | undefined) ||
-      (row.avatar as string | undefined) ||
-      undefined,
-    isOnline: coercedBooleanOnline(row.is_online) || coercedBooleanOnline(row.isOnline),
-    lastMessage: (row.last_message as string | undefined) || undefined,
-    lastMessageTime: validTimestamp,
-    playerLastSeenAt: validLastSeen,
-    balance: row.balance !== undefined ? String(row.balance) : undefined,
-    ...pickWinningBalanceFromBackend(row),
-    cashoutLimit:
-      row.cashout_limit !== undefined && row.cashout_limit !== null
-        ? String(row.cashout_limit as string | number)
-        : undefined,
-    lockedBalance:
-      row.locked_balance !== undefined && row.locked_balance !== null
-        ? String(row.locked_balance as string | number)
-        : undefined,
-    gamesPlayed: (row.games_played as number | undefined) || (row.gems as number | undefined) || undefined,
-    winRate: (row.win_rate as number | undefined) || undefined,
-    phone: (row.phone_number as string | undefined) || (row.mobile_number as string | undefined) || undefined,
-    unreadCount: extractUnreadCount(row) || 0,
-    notes: (row.notes as string | undefined) || undefined,
-  };
+  return withIdentityVerified(
+    {
+      id: String(directoryId !== '' && directoryId !== undefined && directoryId !== null ? directoryId : ''),
+      user_id: resolvedUserId,
+      username: (row.username as string | undefined) || (row.full_name as string | undefined) || 'Unknown',
+      fullName: (row.full_name as string | undefined) || (row.name as string | undefined) || undefined,
+      email: (row.email as string | undefined) || '',
+      avatar:
+        (row.profile_pic as string | undefined) ||
+        (row.profile_image as string | undefined) ||
+        (row.avatar as string | undefined) ||
+        undefined,
+      isOnline: coercedBooleanOnline(row.is_online) || coercedBooleanOnline(row.isOnline),
+      lastMessage: (row.last_message as string | undefined) || undefined,
+      lastMessageTime: validTimestamp,
+      playerLastSeenAt: validLastSeen,
+      balance: row.balance !== undefined ? String(row.balance) : undefined,
+      ...pickWinningBalanceFromBackend(row),
+      cashoutLimit:
+        row.cashout_limit !== undefined && row.cashout_limit !== null
+          ? String(row.cashout_limit as string | number)
+          : undefined,
+      lockedBalance:
+        row.locked_balance !== undefined && row.locked_balance !== null
+          ? String(row.locked_balance as string | number)
+          : undefined,
+      gamesPlayed: (row.games_played as number | undefined) || (row.gems as number | undefined) || undefined,
+      winRate: (row.win_rate as number | undefined) || undefined,
+      phone: (row.phone_number as string | undefined) || (row.mobile_number as string | undefined) || undefined,
+      unreadCount: extractUnreadCount(row) || 0,
+      notes: (row.notes as string | undefined) || undefined,
+    },
+    row,
+  );
 }
