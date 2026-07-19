@@ -239,7 +239,7 @@ export default function SettingsPage() {
               <li>• Enable or disable the referral program</li>
               <li>• Referrer reward percentage and cap</li>
               <li>• Referred player bonus amount</li>
-              <li>• First deposit eligibility minimum</li>
+              <li>• Custom promo code management</li>
             </ul>
           </div>
           <div>

@@ -132,7 +132,11 @@ export const useReferralPlayerOverrideStore = create<Store>((set, get) => ({
     });
 
     try {
-      const override = await referralPlayerOverridesApi.save(payload);
+      const existingId = existing?.override?.id;
+      const override = await referralPlayerOverridesApi.save(
+        payload,
+        existingId && existingId > 0 ? existingId : undefined,
+      );
       set({
         byPlayerId: {
           ...get().byPlayerId,

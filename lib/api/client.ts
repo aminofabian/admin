@@ -206,7 +206,21 @@ class ApiClient {
       throw errorData;
     }
 
-    return response.json();
+    // 204 / empty 200 bodies are valid for DELETE and some PATCH responses.
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) {
+      return undefined as T;
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return { raw: text } as T;
+    }
   }
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {

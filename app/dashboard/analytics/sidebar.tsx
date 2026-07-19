@@ -261,6 +261,18 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
+    name: 'Referral Settings',
+    icon: <AffiliatesAgentIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/referral',
+  },
+  {
+    name: 'Promo Codes',
+    icon: <AffiliatesAgentIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/referral-promo-codes',
+  },
+  {
     name: 'Players',
     icon: <PlayerIcon />,
     roles: [USER_ROLES.SUPERADMIN],

@@ -14,6 +14,7 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/banners',
+    editable: false,
   },
   {
     id: 'referral-promo-codes',
@@ -25,6 +26,7 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/referral-promo-codes',
+    editable: true,
   },
   {
     id: 'payment',
@@ -36,12 +38,13 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/payment',
+    editable: false,
   },
 ];
 
 /**
- * Manager Settings Section - Read-only
- * Shows settings categories as links to sub-pages
+ * Manager Settings Section
+ * Most settings are read-only; promo codes are editable.
  */
 export default function ManagerSettingsSection() {
   const pathname = usePathname();
@@ -53,7 +56,7 @@ export default function ManagerSettingsSection() {
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          View platform settings and configurations (read-only)
+          View platform settings and manage referral promo codes
         </p>
       </div>
 
@@ -89,13 +92,13 @@ export default function ManagerSettingsSection() {
                 </p>
                 <div className="mt-3">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    Read-only
+                    {category.editable ? 'Editable' : 'Read-only'}
                   </span>
                 </div>
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm text-[#6366f1] dark:text-[#6366f1] group-hover:text-[#5558e3] dark:group-hover:text-[#5558e3]">
-              <span>View Settings</span>
+              <span>{category.editable ? 'Manage' : 'View Settings'}</span>
               <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -106,4 +109,3 @@ export default function ManagerSettingsSection() {
     </div>
   );
 }
-

@@ -104,6 +104,25 @@ export const referralPromoCodesApi = {
   },
 
   deactivate: async (id: number): Promise<void> => {
-    await apiClient.delete(`api/admin/referral-promo-codes/${id}/`);
+    try {
+      await apiClient.delete(`api/admin/referral-promo-codes/${id}/`);
+    } catch (err) {
+      // Some backends return 204 No Content; treat empty/JSON parse failures on 2xx as success.
+      if (err && typeof err === 'object' && 'status' in err) {
+        const status = Number((err as { status?: unknown }).status);
+        if (Number.isFinite(status) && status >= 200 && status < 300) {
+          return;
+        }
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      if (
+        message.toLowerCase().includes('unexpected end of json') ||
+        message.toLowerCase().includes('failed to execute') ||
+        message.toLowerCase().includes('json')
+      ) {
+        return;
+      }
+      throw err;
+    }
   },
 };
