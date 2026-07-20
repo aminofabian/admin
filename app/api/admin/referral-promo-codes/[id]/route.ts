@@ -82,14 +82,32 @@ export async function DELETE(request: NextRequest, context: RouteContextParams) 
     });
 
     const text = await response.text();
-    let data: unknown;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text ? { raw: text } : { status: 'success' };
+
+    // NextResponse.json() cannot use status 204. Normalize successful deletes to 200 JSON.
+    if (response.status === 204 || (response.ok && !text.trim())) {
+      return NextResponse.json({ status: 'success' }, { status: 200 });
     }
 
-    return NextResponse.json(data ?? { status: 'success' }, { status: response.status });
+    if (response.ok) {
+      let data: unknown = { status: 'success' };
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+      }
+      return NextResponse.json(data, { status: 200 });
+    }
+
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : { status: 'error', message: 'Delete failed' };
+    } catch {
+      data = { status: 'error', message: text || 'Delete failed' };
+    }
+
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('❌ Referral-promo-codes proxy (DELETE) error:', error);
     return NextResponse.json(
