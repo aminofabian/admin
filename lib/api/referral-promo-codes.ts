@@ -20,16 +20,35 @@ type ItemEnvelope =
       data?: ReferralPromoCode;
     };
 
-function normalizePromoCode(raw: Record<string, unknown>): ReferralPromoCode {
-  const id =
-    typeof raw.id === 'number'
-      ? raw.id
-      : Number.parseInt(String(raw.id ?? '0'), 10) || 0;
+function coerceId(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
 
+/** Correctly parse booleans — Boolean("false") is true, which is wrong. */
+function coerceBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === '') {
+      return false;
+    }
+  }
+  if (value == null) return fallback;
+  return Boolean(value);
+}
+
+function normalizePromoCode(raw: Record<string, unknown>): ReferralPromoCode {
   return {
-    id,
+    id: coerceId(raw.id),
     code: String(raw.code ?? ''),
-    is_active: Boolean(raw.is_active),
+    is_active: coerceBoolean(raw.is_active, false),
     total_signed_up_players:
       typeof raw.total_signed_up_players === 'number'
         ? raw.total_signed_up_players
@@ -115,24 +134,6 @@ export const referralPromoCodesApi = {
 
   /** Permanently delete a promo code (distinct from deactivate). */
   delete: async (id: number): Promise<void> => {
-    try {
-      await apiClient.delete(`api/admin/referral-promo-codes/${id}/`);
-    } catch (err) {
-      if (err && typeof err === 'object' && 'status' in err) {
-        const status = Number((err as { status?: unknown }).status);
-        if (Number.isFinite(status) && status >= 200 && status < 300) {
-          return;
-        }
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      if (
-        message.toLowerCase().includes('unexpected end of json') ||
-        message.toLowerCase().includes('failed to execute') ||
-        message.toLowerCase().includes('json')
-      ) {
-        return;
-      }
-      throw err;
-    }
+    await apiClient.delete(`api/admin/referral-promo-codes/${id}/`);
   },
 };

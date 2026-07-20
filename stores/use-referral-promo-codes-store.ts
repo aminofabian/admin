@@ -133,15 +133,37 @@ export const useReferralPromoCodesStore = create<Store>((set, get) => ({
     set({ isSaving: true, error: null });
     try {
       await referralPromoCodesApi.delete(id);
+      // Refetch so UI matches backend (hard delete vs soft-delete → inactive).
+      const promoCodes = sortPromoCodes(await referralPromoCodesApi.list());
+      const stillPresent = promoCodes.find((c) => c.id === id);
       set({
-        promoCodes: get().promoCodes.filter((c) => c.id !== id),
+        promoCodes,
         isSaving: false,
         error: null,
       });
+      if (stillPresent) {
+        throw new Error(
+          stillPresent.is_active
+            ? 'Delete did not remove the promo code. Please try again.'
+            : 'Promo code was deactivated instead of deleted. It may have signed-up players, so the backend kept it as inactive.',
+        );
+      }
     } catch (err: unknown) {
-      const message = parseErrorMessage(err, 'Failed to delete promo code');
-      set({ isSaving: false, error: message });
-      throw new Error(message);
+      // Keep list in sync even when delete partially applied (soft-delete).
+      try {
+        const promoCodes = sortPromoCodes(await referralPromoCodesApi.list());
+        set({
+          promoCodes,
+          isSaving: false,
+          error: parseErrorMessage(err, 'Failed to delete promo code'),
+        });
+      } catch {
+        set({
+          isSaving: false,
+          error: parseErrorMessage(err, 'Failed to delete promo code'),
+        });
+      }
+      throw new Error(parseErrorMessage(err, 'Failed to delete promo code'));
     }
   },
 

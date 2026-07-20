@@ -112,10 +112,13 @@ export function ReferralPromoCodesSection() {
         description: label,
       });
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not delete promo code';
+      const wasSoftDeleted = message.toLowerCase().includes('deactivated instead');
+      setPendingDelete(null);
       addToast({
-        type: 'error',
-        title: 'Delete failed',
-        description: err instanceof Error ? err.message : 'Could not delete promo code',
+        type: wasSoftDeleted ? 'warning' : 'error',
+        title: wasSoftDeleted ? 'Deactivated instead of deleted' : 'Delete failed',
+        description: message,
       });
     } finally {
       setActionId(null);
