@@ -21,8 +21,13 @@ type ItemEnvelope =
     };
 
 function normalizePromoCode(raw: Record<string, unknown>): ReferralPromoCode {
+  const id =
+    typeof raw.id === 'number'
+      ? raw.id
+      : Number.parseInt(String(raw.id ?? '0'), 10) || 0;
+
   return {
-    id: typeof raw.id === 'number' ? raw.id : 0,
+    id,
     code: String(raw.code ?? ''),
     is_active: Boolean(raw.is_active),
     total_signed_up_players:
@@ -72,10 +77,10 @@ function extractItem(response: ItemEnvelope | null | undefined): ReferralPromoCo
 /**
  * Admin proxy for custom referral promo codes.
  *
- * GET    /api/admin/referral-promo-codes
+ * GET    /api/admin/referral-promo-codes           → active + inactive
  * POST   /api/admin/referral-promo-codes
- * PATCH  /api/admin/referral-promo-codes/:id/
- * DELETE /api/admin/referral-promo-codes/:id/  (deactivates)
+ * PATCH  /api/admin/referral-promo-codes/:id/      → { is_active: true|false }
+ * DELETE /api/admin/referral-promo-codes/:id/      → permanently delete
  */
 export const referralPromoCodesApi = {
   list: async (): Promise<ReferralPromoCode[]> => {
@@ -103,11 +108,16 @@ export const referralPromoCodesApi = {
     return updated;
   },
 
-  deactivate: async (id: number): Promise<void> => {
+  /** Deactivate or reactivate via PATCH { is_active }. */
+  setActive: async (id: number, isActive: boolean): Promise<ReferralPromoCode> => {
+    return referralPromoCodesApi.update(id, { is_active: isActive });
+  },
+
+  /** Permanently delete a promo code (distinct from deactivate). */
+  delete: async (id: number): Promise<void> => {
     try {
       await apiClient.delete(`api/admin/referral-promo-codes/${id}/`);
     } catch (err) {
-      // Some backends return 204 No Content; treat empty/JSON parse failures on 2xx as success.
       if (err && typeof err === 'object' && 'status' in err) {
         const status = Number((err as { status?: unknown }).status);
         if (Number.isFinite(status) && status >= 200 && status < 300) {

@@ -20,7 +20,8 @@ interface ReferralPromoCodesActions {
     id: number,
     payload: UpdateReferralPromoCodeRequest,
   ) => Promise<ReferralPromoCode>;
-  deactivatePromoCode: (id: number) => Promise<void>;
+  setPromoCodeActive: (id: number, isActive: boolean) => Promise<ReferralPromoCode>;
+  deletePromoCode: (id: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -44,13 +45,20 @@ function parseErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function sortPromoCodes(codes: ReferralPromoCode[]): ReferralPromoCode[] {
+  return [...codes].sort((a, b) => {
+    if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
+    return a.code.localeCompare(b.code);
+  });
+}
+
 export const useReferralPromoCodesStore = create<Store>((set, get) => ({
   ...initialState,
 
   fetchPromoCodes: async () => {
     set({ isLoading: true, error: null });
     try {
-      const promoCodes = await referralPromoCodesApi.list();
+      const promoCodes = sortPromoCodes(await referralPromoCodesApi.list());
       set({ promoCodes, isLoading: false, error: null });
     } catch (err: unknown) {
       set({
@@ -65,7 +73,10 @@ export const useReferralPromoCodesStore = create<Store>((set, get) => ({
     try {
       const created = await referralPromoCodesApi.create(payload);
       set({
-        promoCodes: [created, ...get().promoCodes.filter((c) => c.id !== created.id)],
+        promoCodes: sortPromoCodes([
+          created,
+          ...get().promoCodes.filter((c) => c.id !== created.id),
+        ]),
         isSaving: false,
         error: null,
       });
@@ -82,7 +93,9 @@ export const useReferralPromoCodesStore = create<Store>((set, get) => ({
     try {
       const updated = await referralPromoCodesApi.update(id, payload);
       set({
-        promoCodes: get().promoCodes.map((c) => (c.id === id ? updated : c)),
+        promoCodes: sortPromoCodes(
+          get().promoCodes.map((c) => (c.id === id ? updated : c)),
+        ),
         isSaving: false,
         error: null,
       });
@@ -94,19 +107,39 @@ export const useReferralPromoCodesStore = create<Store>((set, get) => ({
     }
   },
 
-  deactivatePromoCode: async (id) => {
+  setPromoCodeActive: async (id, isActive) => {
     set({ isSaving: true, error: null });
     try {
-      await referralPromoCodesApi.deactivate(id);
+      const updated = await referralPromoCodesApi.setActive(id, isActive);
       set({
-        promoCodes: get().promoCodes.map((c) =>
-          c.id === id ? { ...c, is_active: false } : c,
+        promoCodes: sortPromoCodes(
+          get().promoCodes.map((c) => (c.id === id ? updated : c)),
         ),
         isSaving: false,
         error: null,
       });
+      return updated;
     } catch (err: unknown) {
-      const message = parseErrorMessage(err, 'Failed to deactivate promo code');
+      const message = parseErrorMessage(
+        err,
+        isActive ? 'Failed to reactivate promo code' : 'Failed to deactivate promo code',
+      );
+      set({ isSaving: false, error: message });
+      throw new Error(message);
+    }
+  },
+
+  deletePromoCode: async (id) => {
+    set({ isSaving: true, error: null });
+    try {
+      await referralPromoCodesApi.delete(id);
+      set({
+        promoCodes: get().promoCodes.filter((c) => c.id !== id),
+        isSaving: false,
+        error: null,
+      });
+    } catch (err: unknown) {
+      const message = parseErrorMessage(err, 'Failed to delete promo code');
       set({ isSaving: false, error: message });
       throw new Error(message);
     }

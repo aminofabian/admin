@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useReferralPromoCodesStore } from '@/stores';
 import {
   Badge,
@@ -26,21 +26,20 @@ export function ReferralPromoCodesSection() {
     error,
     fetchPromoCodes,
     createPromoCode,
-    deactivatePromoCode,
+    setPromoCodeActive,
+    deletePromoCode,
   } = useReferralPromoCodesStore();
 
   const [code, setCode] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
-  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
+  const [actionId, setActionId] = useState<number | null>(null);
+  const [actionType, setActionType] = useState<'deactivate' | 'reactivate' | 'delete' | null>(
+    null,
+  );
 
   useEffect(() => {
     void fetchPromoCodes();
   }, [fetchPromoCodes]);
-
-  const activeCodes = useMemo(
-    () => promoCodes.filter((item) => item.is_active),
-    [promoCodes],
-  );
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -65,23 +64,52 @@ export function ReferralPromoCodesSection() {
     }
   };
 
-  const handleDeactivate = async (id: number, label: string) => {
-    setDeactivatingId(id);
+  const handleSetActive = async (id: number, label: string, isActive: boolean) => {
+    setActionId(id);
+    setActionType(isActive ? 'reactivate' : 'deactivate');
     try {
-      await deactivatePromoCode(id);
+      await setPromoCodeActive(id, isActive);
       addToast({
         type: 'success',
-        title: 'Promo code deactivated',
+        title: isActive ? 'Promo code reactivated' : 'Promo code deactivated',
         description: label,
       });
     } catch (err) {
       addToast({
         type: 'error',
-        title: 'Deactivate failed',
-        description: err instanceof Error ? err.message : 'Could not deactivate promo code',
+        title: isActive ? 'Reactivate failed' : 'Deactivate failed',
+        description: err instanceof Error ? err.message : 'Could not update promo code',
       });
     } finally {
-      setDeactivatingId(null);
+      setActionId(null);
+      setActionType(null);
+    }
+  };
+
+  const handleDelete = async (id: number, label: string) => {
+    const confirmed = window.confirm(
+      `Permanently delete promo code "${label}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setActionId(id);
+    setActionType('delete');
+    try {
+      await deletePromoCode(id);
+      addToast({
+        type: 'success',
+        title: 'Promo code deleted',
+        description: label,
+      });
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Could not delete promo code',
+      });
+    } finally {
+      setActionId(null);
+      setActionType(null);
     }
   };
 
@@ -92,7 +120,8 @@ export function ReferralPromoCodesSection() {
           Custom Promo Codes
         </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Generate 5–10 character promo codes for signup. Deleting a code deactivates it.
+          Generate 5–10 character promo codes for signup. Deactivate pauses a code; delete removes
+          it permanently.
         </p>
       </div>
 
@@ -123,7 +152,7 @@ export function ReferralPromoCodesSection() {
             )}
           </div>
           <Button type="submit" disabled={isSaving || !code.trim()}>
-            {isSaving ? 'Creating…' : 'Create code'}
+            {isSaving && actionId == null ? 'Creating…' : 'Create code'}
           </Button>
         </div>
       </form>
@@ -144,11 +173,11 @@ export function ReferralPromoCodesSection() {
           </div>
         ) : null}
 
-        {isLoading && activeCodes.length === 0 ? (
+        {isLoading && promoCodes.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Loading promo codes…</p>
-        ) : activeCodes.length === 0 ? (
+        ) : promoCodes.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            No active promo codes yet.
+            No promo codes yet.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -162,33 +191,61 @@ export function ReferralPromoCodesSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activeCodes.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <span className="font-mono font-semibold tracking-wider">{item.code}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.is_active ? 'success' : 'danger'}>
-                        {item.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="tabular-nums">{item.total_signed_up_players}</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={isSaving || deactivatingId === item.id}
-                        isLoading={deactivatingId === item.id}
-                        onClick={() => void handleDeactivate(item.id, item.code)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {promoCodes.map((item) => {
+                  const isRowBusy = actionId === item.id;
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <span className="font-mono font-semibold tracking-wider">{item.code}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.is_active ? 'success' : 'danger'}>
+                          {item.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="tabular-nums">{item.total_signed_up_players}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {item.is_active ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isSaving}
+                              isLoading={isRowBusy && actionType === 'deactivate'}
+                              onClick={() => void handleSetActive(item.id, item.code, false)}
+                            >
+                              Deactivate
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isSaving}
+                              isLoading={isRowBusy && actionType === 'reactivate'}
+                              onClick={() => void handleSetActive(item.id, item.code, true)}
+                            >
+                              Reactivate
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            disabled={isSaving}
+                            isLoading={isRowBusy && actionType === 'delete'}
+                            onClick={() => void handleDelete(item.id, item.code)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

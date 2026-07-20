@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest, context: RouteContextParams) 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to deactivate referral promo code',
+        message: error instanceof Error ? error.message : 'Failed to delete referral promo code',
       },
       { status: 500 },
     );
