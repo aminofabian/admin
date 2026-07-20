@@ -5,6 +5,7 @@ import { useReferralPromoCodesStore } from '@/stores';
 import {
   Badge,
   Button,
+  ConfirmModal,
   Input,
   Table,
   TableBody,
@@ -16,6 +17,11 @@ import {
 } from '@/components/ui';
 
 const CODE_PATTERN = /^[A-Za-z0-9]{5,10}$/;
+
+type PendingDelete = {
+  id: number;
+  code: string;
+};
 
 export function ReferralPromoCodesSection() {
   const { addToast } = useToast();
@@ -36,6 +42,7 @@ export function ReferralPromoCodesSection() {
   const [actionType, setActionType] = useState<'deactivate' | 'reactivate' | 'delete' | null>(
     null,
   );
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   useEffect(() => {
     void fetchPromoCodes();
@@ -86,16 +93,19 @@ export function ReferralPromoCodesSection() {
     }
   };
 
-  const handleDelete = async (id: number, label: string) => {
-    const confirmed = window.confirm(
-      `Permanently delete promo code "${label}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
+  const handleDeleteRequest = (id: number, label: string) => {
+    setPendingDelete({ id, code: label });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!pendingDelete) return;
+
+    const { id, code: label } = pendingDelete;
     setActionId(id);
     setActionType('delete');
     try {
       await deletePromoCode(id);
+      setPendingDelete(null);
       addToast({
         type: 'success',
         title: 'Promo code deleted',
@@ -237,7 +247,7 @@ export function ReferralPromoCodesSection() {
                             size="sm"
                             disabled={isSaving}
                             isLoading={isRowBusy && actionType === 'delete'}
-                            onClick={() => void handleDelete(item.id, item.code)}
+                            onClick={() => handleDeleteRequest(item.id, item.code)}
                           >
                             Delete
                           </Button>
@@ -251,6 +261,25 @@ export function ReferralPromoCodesSection() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={pendingDelete != null}
+        onClose={() => {
+          if (actionType === 'delete') return;
+          setPendingDelete(null);
+        }}
+        onConfirm={() => void handleDeleteConfirm()}
+        title="Delete promo code"
+        description={
+          pendingDelete
+            ? `Permanently delete promo code "${pendingDelete.code}"? This cannot be undone.`
+            : ''
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={actionType === 'delete'}
+      />
     </div>
   );
 }
