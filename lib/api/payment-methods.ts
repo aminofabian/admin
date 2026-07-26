@@ -1,7 +1,6 @@
 import { apiClient } from './client';
 import type {
   PaymentMethod,
-  PaymentMethodsListResponse,
   PaymentMethodsListResponseRaw,
   UpdatePaymentMethodRequest,
   CashoutPaymentMethod,

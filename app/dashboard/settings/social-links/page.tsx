@@ -324,12 +324,14 @@ export default function SocialLinksPage() {
     setIsDrawerOpen(true);
   };
 
-  const toggleHandlers = {
+  const toggleHandlers: ToggleHandlers = {
     onEdit: openEdit,
-    onToggleDashboard: (id: number, checked: boolean) =>
-      updateChatLink(id, { is_enabled_for_dashboard: checked }),
-    onToggleLandingPage: (id: number, checked: boolean) =>
-      updateChatLink(id, { is_enabled_for_landing_page: checked }),
+    onToggleDashboard: async (id, checked) => {
+      await updateChatLink(id, { is_enabled_for_dashboard: checked });
+    },
+    onToggleLandingPage: async (id, checked) => {
+      await updateChatLink(id, { is_enabled_for_landing_page: checked });
+    },
   };
 
   const handleSave = async (id: number, data: UpdateChatLinkRequest) => {
