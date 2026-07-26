@@ -49,6 +49,7 @@ function normalizePromoCode(raw: Record<string, unknown>): ReferralPromoCode {
     id: coerceId(raw.id),
     code: String(raw.code ?? ''),
     is_active: coerceBoolean(raw.is_active, false),
+    signup_bonus_amount: String(raw.signup_bonus_amount ?? '0'),
     total_signed_up_players:
       typeof raw.total_signed_up_players === 'number'
         ? raw.total_signed_up_players

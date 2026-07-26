@@ -111,6 +111,7 @@ export interface ReferralPromoCode {
   id: number;
   code: string;
   is_active: boolean;
+  signup_bonus_amount: string;
   total_signed_up_players: number;
   created?: string;
   modified?: string;
@@ -118,11 +119,13 @@ export interface ReferralPromoCode {
 
 export interface CreateReferralPromoCodeRequest {
   code: string;
+  signup_bonus_amount?: number;
 }
 
 export interface UpdateReferralPromoCodeRequest {
   code?: string;
   is_active?: boolean;
+  signup_bonus_amount?: number;
 }
 
 // Game Settings Types
