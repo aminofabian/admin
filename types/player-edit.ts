@@ -109,6 +109,15 @@ export function buildPlayerUpdateRequest(
   options?: { lockProfileFields?: boolean }
 ): UpdateUserRequest {
   const updateData: UpdateUserRequest = {};
+  const passwordUpdate = fields.password.trim()
+    ? {
+        password: fields.password.trim(),
+        confirm_password: fields.confirm_password.trim(),
+      }
+    : {};
+
+  // Password reset stays available after KYC; only profile details are locked.
+  Object.assign(updateData, passwordUpdate);
 
   if (!options?.lockProfileFields) {
     Object.assign(updateData, {
@@ -123,12 +132,6 @@ export function buildPlayerUpdateRequest(
       state: fields.state.trim() || undefined,
       country: fields.country.trim() || undefined,
       is_active: fields.is_active,
-      ...(fields.password.trim()
-        ? {
-            password: fields.password.trim(),
-            confirm_password: fields.confirm_password.trim(),
-          }
-        : {}),
     });
   }
 

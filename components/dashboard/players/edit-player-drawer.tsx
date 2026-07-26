@@ -95,7 +95,9 @@ export function EditPlayerDetailsDrawer({
 
   const profileLocked = isPlayerProfileLocked(player);
   const profileFieldDisabled = isSaving || profileLocked;
-  const canSaveChanges = !profileLocked;
+  const passwordFieldDisabled = isSaving;
+  const hasPasswordChange = Boolean(editableFields.password.trim());
+  const canSaveChanges = !profileLocked || hasPasswordChange;
 
   return (
     <div className="fixed inset-0 z-[60] overflow-hidden">
@@ -152,7 +154,7 @@ export function EditPlayerDetailsDrawer({
                 <div>
                   <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Profile locked after KYC verification</p>
                   <p className="mt-0.5 text-xs leading-snug text-amber-800/80 dark:text-amber-200/80">
-                    Identity, address, and access fields cannot be changed once KYC is complete.
+                    Identity, address, and account status cannot be changed once KYC is complete. Password reset is still available.
                   </p>
                 </div>
               </div>
@@ -323,7 +325,7 @@ export function EditPlayerDetailsDrawer({
                     value={editableFields.password}
                     onChange={(e) => setEditableFields(prev => ({ ...prev, password: e.target.value }))}
                     className={inputClass}
-                    disabled={profileFieldDisabled}
+                    disabled={passwordFieldDisabled}
                     placeholder="Leave blank to keep current"
                     autoComplete="new-password"
                   />
@@ -342,7 +344,7 @@ export function EditPlayerDetailsDrawer({
                           ? 'border-red-500 dark:border-red-400'
                           : ''
                       }`}
-                      disabled={profileFieldDisabled}
+                      disabled={passwordFieldDisabled}
                       placeholder="Repeat password"
                       autoComplete="new-password"
                     />
@@ -360,7 +362,9 @@ export function EditPlayerDetailsDrawer({
           {/* Drawer Footer */}
           <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
             <p className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">
-              {profileLocked ? 'Profile is read-only after KYC verification.' : 'Changes apply after saving.'}
+              {profileLocked
+                ? 'Profile details are read-only after KYC. Password can still be reset.'
+                : 'Changes apply after saving.'}
             </p>
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <Button
