@@ -8,7 +8,6 @@ import { useReferralSettingsStore } from '@/stores';
 import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
-import { formatCurrency } from '@/lib/utils/formatters';
 import { ReferralPromoCodesSection } from '@/components/dashboard/settings/referral-promo-codes-section';
 
 type FormFieldKey =
@@ -16,39 +15,60 @@ type FormFieldKey =
   | 'referrer_bonus_cap'
   | 'referred_player_bonus_amount';
 
-type ReferralSettingField = {
-  key: FormFieldKey;
-  title: string;
-  description: string;
-  suffix: '%' | '$';
-};
-
-const REFERRAL_FIELDS: ReferralSettingField[] = [
-  {
-    key: 'referrer_bonus_percentage',
-    title: 'Referrer bonus',
-    description: '% of first deposit paid to the referrer',
-    suffix: '%',
-  },
-  {
-    key: 'referrer_bonus_cap',
-    title: 'Referrer cap',
-    description: 'Max bonus per successful referral',
-    suffix: '$',
-  },
-  {
-    key: 'referred_player_bonus_amount',
-    title: 'New player bonus',
-    description: 'Flat bonus for the referred player',
-    suffix: '$',
-  },
-];
-
 const parseNumericField = (value: string) => {
   if (value === '' || value === '.') return 0;
   const parsed = Number.parseFloat(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
+
+function FieldRow({
+  id,
+  label,
+  hint,
+  suffix,
+  value,
+  disabled,
+  onChange,
+  onBlur,
+}: {
+  id: FormFieldKey;
+  label: string;
+  hint?: string;
+  suffix: '%' | '$';
+  value: string;
+  disabled?: boolean;
+  onChange: (raw: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_7.5rem] items-center gap-4 py-3">
+      <div className="min-w-0">
+        <label htmlFor={id} className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </label>
+        {hint ? (
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+        ) : null}
+      </div>
+      <div className="relative">
+        <Input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          className="pr-7 text-right tabular-nums"
+          placeholder="0"
+          disabled={disabled}
+        />
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function ReferralSettingsPage() {
   const router = useRouter();
@@ -80,20 +100,17 @@ export default function ReferralSettingsPage() {
   }, [user?.role, router]);
 
   useEffect(() => {
-    if (canEdit) {
-      fetchReferralSettings();
-    }
+    if (canEdit) fetchReferralSettings();
   }, [canEdit, fetchReferralSettings]);
 
   useEffect(() => {
-    if (referralSettings) {
-      setFormData({
-        is_enabled: Boolean(referralSettings.is_enabled),
-        referrer_bonus_percentage: referralSettings.referrer_bonus_percentage,
-        referrer_bonus_cap: referralSettings.referrer_bonus_cap,
-        referred_player_bonus_amount: referralSettings.referred_player_bonus_amount,
-      });
-    }
+    if (!referralSettings) return;
+    setFormData({
+      is_enabled: Boolean(referralSettings.is_enabled),
+      referrer_bonus_percentage: referralSettings.referrer_bonus_percentage,
+      referrer_bonus_cap: referralSettings.referrer_bonus_cap,
+      referred_player_bonus_amount: referralSettings.referred_player_bonus_amount,
+    });
   }, [referralSettings]);
 
   const numericFormData = useMemo(
@@ -108,49 +125,44 @@ export default function ReferralSettingsPage() {
 
   const handleFieldChange = (key: FormFieldKey, raw: string) => {
     if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
-      setFormData((previous) => ({ ...previous, [key]: raw }));
+      setFormData((prev) => ({ ...prev, [key]: raw }));
     }
   };
 
   const handleFieldBlur = (key: FormFieldKey) => {
     const value = formData[key];
     if (value === '' || value === '.') {
-      setFormData((previous) => ({ ...previous, [key]: '0' }));
+      setFormData((prev) => ({ ...prev, [key]: '0' }));
       return;
     }
     const parsed = Number.parseFloat(value);
     if (!Number.isNaN(parsed)) {
-      setFormData((previous) => ({ ...previous, [key]: String(parsed) }));
+      setFormData((prev) => ({ ...prev, [key]: String(parsed) }));
     }
-  };
-
-  const validateForm = () => {
-    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount } =
-      numericFormData;
-
-    if (referrer_bonus_percentage < 0 || referrer_bonus_percentage > 100) {
-      addToast({ type: 'error', title: 'Referrer bonus percentage must be between 0 and 100' });
-      return false;
-    }
-    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0) {
-      addToast({ type: 'error', title: 'Amounts must be 0 or greater' });
-      return false;
-    }
-    return true;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validateForm()) return;
+    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount } =
+      numericFormData;
+
+    if (referrer_bonus_percentage < 0 || referrer_bonus_percentage > 100) {
+      addToast({ type: 'error', title: 'Referrer bonus must be between 0 and 100%' });
+      return;
+    }
+    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0) {
+      addToast({ type: 'error', title: 'Amounts must be 0 or greater' });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await patchReferralSettings(numericFormData);
-      addToast({ type: 'success', title: 'Referral settings saved' });
+      addToast({ type: 'success', title: 'Saved' });
     } catch (err) {
       addToast({
         type: 'error',
-        title: 'Update failed',
+        title: 'Could not save',
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -158,18 +170,8 @@ export default function ReferralSettingsPage() {
     }
   };
 
-  if (isAuthLoading) {
-    return <LoadingState />;
-  }
-
-  if (!canEdit) {
-    return null;
-  }
-
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
+  if (isAuthLoading || isLoading) return <LoadingState />;
+  if (!canEdit) return null;
   if (error && !referralSettings) {
     return <ErrorState message={error} onRetry={fetchReferralSettings} />;
   }
@@ -177,125 +179,107 @@ export default function ReferralSettingsPage() {
   const fieldsDisabled = isSubmitting || !formData.is_enabled;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-          Referral
-        </h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Player referral rewards and signup promo codes.
+    <div className="space-y-8 pb-12">
+      <header>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Referral</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Configure referral rewards and signup promo codes.
         </p>
       </header>
 
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Program settings
-          </h2>
+      {/* 1 — Rewards */}
+      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Rewards</h2>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Defaults for player-to-player referrals.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Referral program
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formData.is_enabled
-                    ? 'Rewards are active for eligible players'
-                    : 'Rewards are paused'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {formData.is_enabled ? 'On' : 'Off'}
-                </span>
-                <Switch
-                  checked={formData.is_enabled}
-                  onChange={(checked) =>
-                    setFormData((previous) => ({ ...previous, is_enabled: checked }))
-                  }
-                  disabled={isSubmitting}
-                  tone="emerald"
-                />
-              </div>
-            </div>
-
-            <div
-              className={`grid gap-4 p-5 sm:grid-cols-3 ${fieldsDisabled ? 'opacity-55' : ''}`}
-            >
-              {REFERRAL_FIELDS.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <label
-                    htmlFor={field.key}
-                    className="block text-sm font-medium text-gray-900 dark:text-gray-100"
-                  >
-                    {field.title}
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id={field.key}
-                      type="text"
-                      inputMode="decimal"
-                      value={formData[field.key]}
-                      onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                      onBlur={() => handleFieldBlur(field.key)}
-                      className="pr-8"
-                      placeholder="0.00"
-                      disabled={fieldsDisabled}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">
-                      {field.suffix}
-                    </span>
-                  </div>
-                  <p className="text-xs leading-snug text-gray-500 dark:text-gray-400">
-                    {field.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700 dark:bg-gray-900/40">
-              <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-                {formData.is_enabled ? (
-                  <>
-                    Referrer earns{' '}
-                    <span className="font-medium text-gray-800 dark:text-gray-200">
-                      {numericFormData.referrer_bonus_percentage}%
-                    </span>{' '}
-                    (up to {formatCurrency(numericFormData.referrer_bonus_cap)}) on first deposit ·
-                    New player gets {formatCurrency(numericFormData.referred_player_bonus_amount)}
-                  </>
-                ) : (
-                  'Enable the program to apply these rewards.'
-                )}
+          <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Status</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formData.is_enabled ? 'Program is on' : 'Program is off'}
               </p>
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={fetchReferralSettings}
-                  disabled={isSubmitting}
-                >
-                  Refresh
-                </Button>
-                <Button type="submit" size="sm" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
             </div>
+            <Switch
+              checked={formData.is_enabled}
+              onChange={(checked) => setFormData((prev) => ({ ...prev, is_enabled: checked }))}
+              disabled={isSubmitting}
+              tone="emerald"
+            />
+          </div>
+
+          <div
+            className={`divide-y divide-gray-100 px-5 dark:divide-gray-700/80 ${
+              fieldsDisabled ? 'pointer-events-none opacity-40' : ''
+            }`}
+          >
+            <div className="pt-2">
+              <p className="pt-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                Referrer
+              </p>
+              <FieldRow
+                id="referrer_bonus_percentage"
+                label="Bonus"
+                hint="Share of first deposit"
+                suffix="%"
+                value={formData.referrer_bonus_percentage}
+                disabled={fieldsDisabled}
+                onChange={(raw) => handleFieldChange('referrer_bonus_percentage', raw)}
+                onBlur={() => handleFieldBlur('referrer_bonus_percentage')}
+              />
+              <FieldRow
+                id="referrer_bonus_cap"
+                label="Cap"
+                hint="Maximum per referral"
+                suffix="$"
+                value={formData.referrer_bonus_cap}
+                disabled={fieldsDisabled}
+                onChange={(raw) => handleFieldChange('referrer_bonus_cap', raw)}
+                onBlur={() => handleFieldBlur('referrer_bonus_cap')}
+              />
+            </div>
+
+            <div className="pb-1 pt-2">
+              <p className="pt-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                New player
+              </p>
+              <FieldRow
+                id="referred_player_bonus_amount"
+                label="Signup bonus"
+                hint="Flat amount when eligible"
+                suffix="$"
+                value={formData.referred_player_bonus_amount}
+                disabled={fieldsDisabled}
+                onChange={(raw) => handleFieldChange('referred_player_bonus_amount', raw)}
+                onBlur={() => handleFieldBlur('referred_player_bonus_amount')}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end border-t border-gray-200 px-5 py-3 dark:border-gray-700">
+            <Button type="submit" size="sm" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving…' : 'Save rewards'}
+            </Button>
           </div>
         </form>
       </section>
 
+      {/* 2 — Promo codes */}
       {canManagePromoCodes ? (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Promo codes
-          </h2>
-          <ReferralPromoCodesSection />
+        <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Promo codes</h2>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Custom codes with their own signup bonus.
+            </p>
+          </div>
+          <div className="px-5 py-4">
+            <ReferralPromoCodesSection embedded />
+          </div>
         </section>
       ) : null}
     </div>

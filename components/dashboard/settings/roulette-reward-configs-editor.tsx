@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouletteRewardConfigsStore } from '@/stores';
-import { Button, Input, Select, useToast, Badge, Drawer, Modal } from '@/components/ui';
+import { Button, Input, Select, useToast, Drawer, Modal } from '@/components/ui';
 import type {
   RouletteRewardSlot,
   RouletteRewardType,
@@ -621,246 +621,274 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
 
   if (isLoading && !loaded) {
     return (
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          Loading prize wheel configuration…
-        </div>
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading slots…</p>
       </section>
     );
   }
 
   return (
     <>
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
-        {/* Header */}
-        <header className="border-b border-border px-5 py-4 sm:px-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold text-foreground sm:text-base">Wheel composer</h2>
-                <Badge variant={usingDefault ? 'default' : 'info'}>
-                  {usingDefault ? 'Platform default' : 'Custom'}
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                Configure each slot on the wheel. Chances must total 100% and slot count must be{' '}
-                {minRewards}–{maxRewards}.
-              </p>
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-3.5 dark:border-gray-700">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+              <span
+                className={`tabular-nums ${
+                  chanceIs100
+                    ? 'font-medium text-gray-900 dark:text-gray-100'
+                    : 'font-medium text-amber-600 dark:text-amber-400'
+                }`}
+              >
+                {totalChanceRounded}% total
+                {!chanceIs100 ? ' (need 100%)' : ''}
+              </span>
+              <span aria-hidden>·</span>
+              <span
+                className={
+                  slotCountIsValid
+                    ? undefined
+                    : 'text-amber-600 dark:text-amber-400'
+                }
+              >
+                {rewards.length}/{maxRewards} slots
+                {!slotCountIsValid ? ` · need ${minRewards}–${maxRewards}` : ''}
+              </span>
+              <span aria-hidden>·</span>
+              <span>{usingDefault ? 'Platform default' : 'Custom'}</span>
             </div>
-
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => setIsBundleDrawerOpen(true)}
-              disabled={!canEdit}
-            >
-              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 0L4 7m8 4v10" />
-              </svg>
-              Bundles
-            </Button>
-          </div>
-
-          {/* Progress bar for total chance */}
-          <div className="mt-3 space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Total chance</span>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`font-medium tabular-nums ${
-                    chanceIs100 ? 'text-foreground' : 'text-amber-600 dark:text-amber-400'
-                  }`}
-                >
-                  {totalChanceRounded}%{!chanceIs100 && ' / 100%'}
-                </span>
-                <span className="hidden text-muted-foreground sm:inline">·</span>
-                <span
-                  className={`hidden text-xs sm:inline ${
-                    slotCountIsValid ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400'
-                  }`}
-                >
-                  {rewards.length}/{maxRewards} slots
-                </span>
-              </div>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-1 w-48 max-w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   chanceIs100
-                    ? 'bg-primary'
+                    ? 'bg-emerald-500'
                     : totalChanceRounded > 100
                       ? 'bg-red-500'
-                      : 'bg-amber-500 dark:bg-amber-400'
+                      : 'bg-amber-500'
                 }`}
                 style={{ width: `${chanceFill}%` }}
               />
             </div>
           </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsBundleDrawerOpen(true)}
+            disabled={!canEdit}
+          >
+            Bundles
+          </Button>
         </header>
 
-        {/* Errors */}
         {(error || formError) && (
-          <div className="border-b border-border px-5 py-3 sm:px-6">
+          <div className="space-y-1 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
             {error ? (
-              <div className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-300 sm:text-sm">
-                <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
-                <span>{error}</span>
-              </div>
+              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
             ) : null}
             {formError ? (
-              <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 sm:text-sm">
-                <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{formError}</span>
-              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-400">{formError}</p>
             ) : null}
           </div>
         )}
 
-        {/* Slots - Mobile cards */}
-        <div className="px-3 py-3 sm:hidden">
-          <div className="space-y-2">
-            {rewards.map((slot, index) => (
-              <SlotCard
-                key={index}
-                slot={slot}
-                index={index}
-                total={rewards.length}
-                canEdit={canEdit}
-                isSaving={isSaving}
-                minRewards={minRewards}
-                onChangeType={(v) => changeRewardType(index, v)}
-                onUpdate={(patch) => updateSlot(index, patch)}
-                onMove={(dir) => moveRow(index, dir)}
-                onRemove={() => removeRow(index)}
-              />
-            ))}
-          </div>
+        {/* Mobile cards */}
+        <div className="space-y-2 px-3 py-3 sm:hidden">
+          {rewards.map((slot, index) => (
+            <SlotCard
+              key={index}
+              slot={slot}
+              index={index}
+              total={rewards.length}
+              canEdit={canEdit}
+              isSaving={isSaving}
+              minRewards={minRewards}
+              onChangeType={(v) => changeRewardType(index, v)}
+              onUpdate={(patch) => updateSlot(index, patch)}
+              onMove={(dir) => moveRow(index, dir)}
+              onRemove={() => removeRow(index)}
+            />
+          ))}
         </div>
 
-        {/* Slots - Desktop table */}
-        <div className="hidden px-5 py-3 sm:block sm:px-6">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-separate border-spacing-y-1 text-sm">
-              <thead className="text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 w-12">#</th>
-                  <th className="px-3 py-2 w-44">Reward type</th>
-                  <th className="px-3 py-2">Prize label</th>
-                  <th className="px-3 py-2 w-28">Quantity</th>
-                  <th className="px-3 py-2 w-24">Chance</th>
-                  <th className="px-3 py-2 w-28 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rewards.map((slot, index) => {
-                  const reward = normalizeRewardType(String(slot.reward_type));
-                  const isMainBalance = reward === 'main_balance';
-                  const isRespin = reward === 'respin';
-                  const qtyEnabled = isMainBalance || isRespin;
-                  const canRemove = canEdit && !isSaving && rewards.length > minRewards;
+        {/* Desktop table */}
+        <div className="hidden px-5 py-2 sm:block">
+          <table className="w-full table-fixed border-collapse text-sm">
+            <colgroup>
+              <col className="w-[4%]" />
+              <col className="w-[22%]" />
+              <col className="w-[30%]" />
+              <col className="w-[14%]" />
+              <col className="w-[14%]" />
+              <col className="w-[16%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="py-2.5 pr-2 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  #
+                </th>
+                <th className="px-2 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  Type
+                </th>
+                <th className="px-2 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  Prize
+                </th>
+                <th className="px-2 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  Qty
+                </th>
+                <th className="px-2 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  Chance
+                </th>
+                <th className="py-2.5 pl-2 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rewards.map((slot, index) => {
+                const reward = normalizeRewardType(String(slot.reward_type));
+                const isMainBalance = reward === 'main_balance';
+                const isRespin = reward === 'respin';
+                const qtyEnabled = isMainBalance || isRespin;
+                const canRemove = canEdit && !isSaving && rewards.length > minRewards;
 
-                  return (
-                    <tr
-                      key={index}
-                      className="align-middle"
-                    >
-                      <td className="rounded-l-md border-y border-l border-border bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
-                        {String(index + 1).padStart(2, '0')}
-                      </td>
-                      <td className="border-y border-border bg-muted/30 px-3 py-2">
-                        <Select
-                          value={normalizeRewardType(String(slot.reward_type))}
-                          onChange={(v) => changeRewardType(index, v)}
-                          options={REWARD_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                          disabled={!canEdit || isSaving}
-                        />
-                      </td>
-                      <td className="border-y border-border bg-muted/30 px-3 py-2">
-                        <Input
-                          value={slot.prize}
-                          onChange={(e) => updateSlot(index, { prize: e.target.value })}
-                          placeholder="e.g. $11 or 1 Respin"
-                          disabled={!canEdit || isSaving}
-                        />
-                      </td>
-                      <td className="border-y border-border bg-muted/30 px-3 py-2">
-                        <Input
-                          type="number"
-                          step={isMainBalance ? '0.01' : '1'}
-                          min={isMainBalance ? '0' : '1'}
-                          value={slotQuantityDisplay(slot, reward)}
-                          onChange={(e) =>
-                            updateSlot(index, applyQuantityChange(slot, reward, e.target.value))
+                return (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-100 align-middle last:border-0 dark:border-gray-700/80"
+                  >
+                    <td className="py-2.5 pr-2 font-mono text-xs tabular-nums text-gray-400">
+                      {String(index + 1).padStart(2, '0')}
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <Select
+                        value={normalizeRewardType(String(slot.reward_type))}
+                        onChange={(v) => changeRewardType(index, v)}
+                        options={REWARD_TYPE_OPTIONS.map((o) => ({
+                          value: o.value,
+                          label: o.label,
+                        }))}
+                        disabled={!canEdit || isSaving}
+                      />
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <Input
+                        value={slot.prize}
+                        onChange={(e) => updateSlot(index, { prize: e.target.value })}
+                        placeholder="e.g. $11 or 1 Respin"
+                        disabled={!canEdit || isSaving}
+                      />
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <Input
+                        type="number"
+                        step={isMainBalance ? '0.01' : '1'}
+                        min={isMainBalance ? '0' : '1'}
+                        value={slotQuantityDisplay(slot, reward)}
+                        onChange={(e) =>
+                          updateSlot(index, applyQuantityChange(slot, reward, e.target.value))
+                        }
+                        disabled={!canEdit || isSaving || !qtyEnabled}
+                        placeholder={qtyEnabled ? (isMainBalance ? '0.00' : '1') : '—'}
+                        className="tabular-nums"
+                      />
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <Input
+                        value={slot.backend_chance}
+                        onChange={(e) =>
+                          updateSlot(index, { backend_chance: e.target.value })
+                        }
+                        placeholder="12%"
+                        disabled={!canEdit || isSaving}
+                        className="tabular-nums"
+                      />
+                    </td>
+                    <td className="py-2.5 pl-2">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <IconButton
+                          onClick={() => moveRow(index, -1)}
+                          disabled={!canEdit || isSaving || index === 0}
+                          label="Move up"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 15l7-7 7 7"
+                            />
+                          </svg>
+                        </IconButton>
+                        <IconButton
+                          onClick={() => moveRow(index, 1)}
+                          disabled={
+                            !canEdit || isSaving || index === rewards.length - 1
                           }
-                          disabled={!canEdit || isSaving || !qtyEnabled}
-                          placeholder={qtyEnabled ? (isMainBalance ? '0.00' : '1') : '—'}
-                        />
-                      </td>
-                      <td className="border-y border-border bg-muted/30 px-3 py-2">
-                        <Input
-                          value={slot.backend_chance}
-                          onChange={(e) => updateSlot(index, { backend_chance: e.target.value })}
-                          placeholder="12%"
-                          disabled={!canEdit || isSaving}
-                        />
-                      </td>
-                      <td className="rounded-r-md border-y border-r border-border bg-muted/30 px-3 py-2">
-                        <div className="flex items-center justify-end gap-0.5">
-                          <IconButton
-                            onClick={() => moveRow(index, -1)}
-                            disabled={!canEdit || isSaving || index === 0}
-                            label="Move up"
+                          label="Move down"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
                           >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                            </svg>
-                          </IconButton>
-                          <IconButton
-                            onClick={() => moveRow(index, 1)}
-                            disabled={!canEdit || isSaving || index === rewards.length - 1}
-                            label="Move down"
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </IconButton>
+                        <IconButton
+                          onClick={() => removeRow(index)}
+                          disabled={!canRemove}
+                          label={
+                            canRemove
+                              ? 'Remove slot'
+                              : `Minimum ${minRewards} slots required`
+                          }
+                          danger
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
                           >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </IconButton>
-                          <IconButton
-                            onClick={() => removeRow(index)}
-                            disabled={!canRemove}
-                            label={
-                              canRemove ? 'Remove slot' : `Minimum ${minRewards} slots required`
-                            }
-                            danger
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
-                            </svg>
-                          </IconButton>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {/* Empty state hint */}
         {rewards.length === 0 && (
-          <div className="px-5 py-8 text-center sm:px-6">
-            <p className="text-sm text-muted-foreground">No slots yet. Apply a bundle to get started fast, or add slots manually.</p>
+          <div className="px-5 py-8 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No slots yet. Open Bundles or add a slot.
+            </p>
           </div>
         )}
 
-        {/* Sticky footer toolbar */}
-        <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card/95 px-5 py-3 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-t border-gray-200 px-5 py-3 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
               type="button"
@@ -869,9 +897,6 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
               onClick={addRow}
               disabled={!canEdit || isSaving || rewards.length >= maxRewards}
             >
-              <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
               Add slot
             </Button>
             <Button
