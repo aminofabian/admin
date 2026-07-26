@@ -23,15 +23,15 @@ export default function ReferralPromoCodesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Referral Promo Codes
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+          Promo codes
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Create and manage custom promo codes used during player signup.
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Custom signup codes with per-code bonuses.
         </p>
-      </div>
+      </header>
 
       <ReferralPromoCodesSection />
     </div>

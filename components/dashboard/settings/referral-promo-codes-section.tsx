@@ -72,11 +72,11 @@ export function ReferralPromoCodesSection() {
     const bonus = parseBonusAmount(signupBonusAmount);
 
     if (!CODE_PATTERN.test(trimmed)) {
-      setFormError('Promo code must be 5–10 alphanumeric characters');
+      setFormError('Use 5–10 letters or numbers');
       return;
     }
     if (bonus == null) {
-      setFormError('Signup bonus must be 0 or greater');
+      setFormError('Bonus must be 0 or greater');
       return;
     }
 
@@ -88,7 +88,7 @@ export function ReferralPromoCodesSection() {
       addToast({
         type: 'success',
         title: 'Promo code created',
-        description: `${trimmed} · bonus ${formatCurrency(bonus)}`,
+        description: `${trimmed} · ${formatCurrency(bonus)} signup bonus`,
       });
     } catch (err) {
       addToast({
@@ -192,44 +192,41 @@ export function ReferralPromoCodesSection() {
     }
   };
 
+  const activeCount = promoCodes.filter((c) => c.is_active).length;
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-      <div className="border-b border-gray-200 p-6 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Custom Promo Codes
-        </h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Generate 5–10 character promo codes with a per-code signup bonus. Deactivate pauses a
-          code; delete removes it permanently.
-        </p>
-      </div>
+      <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-end sm:justify-between dark:border-gray-700">
+        <div>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            Custom codes
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            5–10 character codes with a per-code signup bonus.
+            {promoCodes.length > 0 ? (
+              <>
+                {' '}
+                {activeCount} active · {promoCodes.length} total
+              </>
+            ) : null}
+          </p>
+        </div>
 
-      <form onSubmit={(e) => void handleCreate(e)} className="border-b border-gray-200 p-6 dark:border-gray-700">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-          <div className="flex-1">
-            <label
-              htmlFor="promo-code"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              New promo code
-            </label>
-            <Input
-              id="promo-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="VIP2026"
-              maxLength={10}
-              disabled={isSaving}
-              className="font-mono uppercase tracking-wider"
-            />
-          </div>
-          <div className="w-full lg:w-44">
-            <label
-              htmlFor="signup-bonus-amount"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Signup bonus ($)
-            </label>
+        <form
+          onSubmit={(e) => void handleCreate(e)}
+          className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
+        >
+          <Input
+            id="promo-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="Code"
+            maxLength={10}
+            disabled={isSaving}
+            aria-label="New promo code"
+            className="font-mono uppercase tracking-wider sm:w-36"
+          />
+          <div className="relative sm:w-28">
             <Input
               id="signup-bonus-amount"
               type="text"
@@ -248,31 +245,33 @@ export function ReferralPromoCodesSection() {
               }}
               placeholder="0.00"
               disabled={isSaving}
+              aria-label="Signup bonus amount"
+              className="pr-7"
             />
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+              $
+            </span>
           </div>
-          <Button type="submit" disabled={isSaving || !code.trim()}>
-            {isSaving && actionId == null ? 'Creating…' : 'Create code'}
+          <Button type="submit" size="sm" disabled={isSaving || !code.trim()}>
+            {isSaving && actionId == null ? 'Creating…' : 'Add'}
           </Button>
-        </div>
-        {formError ? (
-          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{formError}</p>
-        ) : (
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Code: 5–10 letters or numbers. Signup bonus is applied by the backend when a player
-            registers with this code.
-          </p>
-        )}
-      </form>
+        </form>
+      </div>
 
-      <div className="p-6">
+      {formError ? (
+        <p className="border-b border-red-100 bg-red-50 px-5 py-2 text-xs text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+          {formError}
+        </p>
+      ) : null}
+
+      <div className="px-5 py-4">
         {error && !isLoading ? (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
-            {error}
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+            <span>{error}</span>
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              className="ml-3"
               onClick={() => void fetchPromoCodes()}
             >
               Retry
@@ -281,10 +280,12 @@ export function ReferralPromoCodesSection() {
         ) : null}
 
         {isLoading && promoCodes.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading promo codes…</p>
+          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Loading promo codes…
+          </p>
         ) : promoCodes.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No promo codes yet.
+          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            No promo codes yet. Create one above.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -294,7 +295,7 @@ export function ReferralPromoCodesSection() {
                   <TableHead>Code</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Signup bonus</TableHead>
-                  <TableHead>Signed-up players</TableHead>
+                  <TableHead className="text-right">Players</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -305,7 +306,9 @@ export function ReferralPromoCodesSection() {
                   return (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <span className="font-mono font-semibold tracking-wider">{item.code}</span>
+                        <span className="font-mono text-sm font-semibold tracking-wider">
+                          {item.code}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.is_active ? 'success' : 'danger'}>
@@ -314,7 +317,7 @@ export function ReferralPromoCodesSection() {
                       </TableCell>
                       <TableCell>
                         {isEditing ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <Input
                               type="text"
                               inputMode="decimal"
@@ -327,7 +330,7 @@ export function ReferralPromoCodesSection() {
                                   );
                                 }
                               }}
-                              className="w-28"
+                              className="w-24"
                               disabled={isSaving}
                             />
                             <Button
@@ -352,7 +355,7 @@ export function ReferralPromoCodesSection() {
                         ) : (
                           <button
                             type="button"
-                            className="tabular-nums text-sm text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                            className="tabular-nums text-sm text-gray-700 underline-offset-2 hover:text-blue-600 hover:underline dark:text-gray-300 dark:hover:text-blue-400"
                             onClick={() => handleEditBonus(item)}
                             title="Edit signup bonus"
                           >
@@ -360,11 +363,13 @@ export function ReferralPromoCodesSection() {
                           </button>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <span className="tabular-nums">{item.total_signed_up_players}</span>
+                      <TableCell className="text-right">
+                        <span className="tabular-nums text-sm">
+                          {item.total_signed_up_players}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
                           {item.is_active ? (
                             <Button
                               type="button"

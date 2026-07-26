@@ -26,20 +26,20 @@ type ReferralSettingField = {
 const REFERRAL_FIELDS: ReferralSettingField[] = [
   {
     key: 'referrer_bonus_percentage',
-    title: 'Referrer bonus percentage',
-    description: 'Percentage of the referred player’s first deposit paid to the referrer.',
+    title: 'Referrer bonus',
+    description: '% of first deposit paid to the referrer',
     suffix: '%',
   },
   {
     key: 'referrer_bonus_cap',
-    title: 'Referrer bonus cap',
-    description: 'Maximum bonus a referrer can earn per successful referral.',
+    title: 'Referrer cap',
+    description: 'Max bonus per successful referral',
     suffix: '$',
   },
   {
     key: 'referred_player_bonus_amount',
-    title: 'Referred player bonus',
-    description: 'Flat bonus for the new player when eligibility is met.',
+    title: 'New player bonus',
+    description: 'Flat bonus for the referred player',
     suffix: '$',
   },
 ];
@@ -177,93 +177,127 @@ export default function ReferralSettingsPage() {
   const fieldsDisabled = isSubmitting || !formData.is_enabled;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Referral</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Configure player referral rewards and custom promo codes.
+    <div className="mx-auto max-w-5xl space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+          Referral
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Player referral rewards and signup promo codes.
         </p>
-      </div>
+      </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex flex-col gap-4 border-b border-gray-200 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Enable referral program
-              </h2>
-              <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">
-                When disabled, referral rewards are not active for players.
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {formData.is_enabled ? 'Enabled' : 'Disabled'}
-              </span>
-              <Switch
-                checked={formData.is_enabled}
-                onChange={(checked) => setFormData((previous) => ({ ...previous, is_enabled: checked }))}
-                disabled={isSubmitting}
-                tone="emerald"
-              />
-            </div>
-          </div>
-
-          {REFERRAL_FIELDS.map((field, index) => (
-            <div
-              key={field.key}
-              className={`flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between ${
-                index < REFERRAL_FIELDS.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
-              } ${fieldsDisabled ? 'opacity-60' : ''}`}
-            >
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{field.title}</h2>
-                <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">{field.description}</p>
-              </div>
-              <div className="relative w-full shrink-0 sm:w-36">
-                <Input
-                  id={field.key}
-                  type="text"
-                  inputMode="decimal"
-                  value={formData[field.key]}
-                  onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                  onBlur={() => handleFieldBlur(field.key)}
-                  className="pr-8"
-                  placeholder="0.00"
-                  disabled={fieldsDisabled}
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">
-                  {field.suffix}
-                </span>
-              </div>
-            </div>
-          ))}
-
-          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {formData.is_enabled
-                ? `Referrer: earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) on a referred player’s first deposit. `
-                : 'Referral program is disabled. '}
-              Referred player: {formatCurrency(numericFormData.referred_player_bonus_amount)} bonus.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving…' : 'Save changes'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={fetchReferralSettings}
-                disabled={isSubmitting}
-              >
-                Refresh
-              </Button>
-            </div>
-          </div>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Program settings
+          </h2>
         </div>
-      </form>
 
-      {canManagePromoCodes ? <ReferralPromoCodesSection /> : null}
+        <form onSubmit={handleSubmit}>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Referral program
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {formData.is_enabled
+                    ? 'Rewards are active for eligible players'
+                    : 'Rewards are paused'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {formData.is_enabled ? 'On' : 'Off'}
+                </span>
+                <Switch
+                  checked={formData.is_enabled}
+                  onChange={(checked) =>
+                    setFormData((previous) => ({ ...previous, is_enabled: checked }))
+                  }
+                  disabled={isSubmitting}
+                  tone="emerald"
+                />
+              </div>
+            </div>
+
+            <div
+              className={`grid gap-4 p-5 sm:grid-cols-3 ${fieldsDisabled ? 'opacity-55' : ''}`}
+            >
+              {REFERRAL_FIELDS.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <label
+                    htmlFor={field.key}
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100"
+                  >
+                    {field.title}
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id={field.key}
+                      type="text"
+                      inputMode="decimal"
+                      value={formData[field.key]}
+                      onChange={(event) => handleFieldChange(field.key, event.target.value)}
+                      onBlur={() => handleFieldBlur(field.key)}
+                      className="pr-8"
+                      placeholder="0.00"
+                      disabled={fieldsDisabled}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">
+                      {field.suffix}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-snug text-gray-500 dark:text-gray-400">
+                    {field.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700 dark:bg-gray-900/40">
+              <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                {formData.is_enabled ? (
+                  <>
+                    Referrer earns{' '}
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      {numericFormData.referrer_bonus_percentage}%
+                    </span>{' '}
+                    (up to {formatCurrency(numericFormData.referrer_bonus_cap)}) on first deposit ·
+                    New player gets {formatCurrency(numericFormData.referred_player_bonus_amount)}
+                  </>
+                ) : (
+                  'Enable the program to apply these rewards.'
+                )}
+              </p>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={fetchReferralSettings}
+                  disabled={isSubmitting}
+                >
+                  Refresh
+                </Button>
+                <Button type="submit" size="sm" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      {canManagePromoCodes ? (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Promo codes
+          </h2>
+          <ReferralPromoCodesSection />
+        </section>
+      ) : null}
     </div>
   );
 }
