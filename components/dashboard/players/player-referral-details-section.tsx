@@ -1,6 +1,7 @@
 'use client';
 
 import type { Player } from '@/types';
+import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 export interface PlayerReferralDetailsSectionProps {
@@ -9,6 +10,7 @@ export interface PlayerReferralDetailsSectionProps {
 
 export function PlayerReferralDetailsSection({ player }: PlayerReferralDetailsSectionProps) {
   const details = player.referral_details;
+  const referredBy = getPlayerReferredByDisplay(player);
   const referralCode = details?.referral_code?.trim() || '—';
   const referralLink = details?.referral_link?.trim() || '';
   const totalRewards = details?.total_referral_rewards_earned;
@@ -33,6 +35,15 @@ export function PlayerReferralDetailsSection({ player }: PlayerReferralDetailsSe
       </div>
 
       <div className="space-y-2.5 rounded-md border border-gray-100 bg-gray-50/50 px-2.5 py-2.5 dark:border-gray-800 dark:bg-gray-800/30">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Referred by
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100 break-all">
+            {referredBy}
+          </p>
+        </div>
+
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Referral code
