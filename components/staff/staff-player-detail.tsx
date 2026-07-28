@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
-import { formatDate, formatCurrency } from '@/lib/utils/formatters';
+import { formatDate } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
@@ -16,7 +16,6 @@ import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
 import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
-import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerDetailHeaderActions } from '@/components/dashboard/players/player-detail-header-actions';
 import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
@@ -29,10 +28,12 @@ import {
   getPlayerPersonalInfoCardAddressProps,
   type EditablePlayerFields,
 } from '@/types/player-edit';
-import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerAccountOverview } from '@/components/dashboard/players/player-account-overview';
+import { PlayerQuickActionsBar } from '@/components/dashboard/players/player-quick-actions-bar';
+import { PlayerTransactionSummarySection } from '@/components/dashboard/players/player-transaction-summary-section';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
 import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
@@ -68,6 +69,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
@@ -111,6 +113,24 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
         setSelectedPlayer(player);
         setEditableFields(buildEditableFieldsFromPlayer(player));
+
+        setIsLoadingDetails(true);
+        try {
+          const details = await playersApi.viewDetails(player.id);
+          setSelectedPlayer((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              total_purchases: details.total_purchases,
+              total_cashouts: details.total_cashouts,
+              total_transfers: details.total_transfers,
+            };
+          });
+        } catch {
+          // keep page usable without summary totals
+        } finally {
+          setIsLoadingDetails(false);
+        }
 
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load player';
@@ -462,9 +482,12 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const usernameInitial = selectedPlayer.username
     ? selectedPlayer.username.charAt(0).toUpperCase()
     : '?';
+  const agentLabel =
+    selectedPlayer.agent_username ||
+    (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
+      ? selectedPlayer.agent.username
+      : null);
 
-  const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
-  const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -474,7 +497,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           <div className="flex items-center gap-2 py-2 sm:py-2.5 md:py-3 lg:py-4">
             <button
               onClick={handleBack}
-              className="p-1.5 -ml-1.5 sm:p-2 sm:-ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 rounded-lg touch-manipulation"
+              className="p-1.5 -ml-1.5 sm:p-2 sm:-ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 touch-manipulation"
               aria-label="Back"
             >
               <svg
@@ -493,7 +516,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
               <div
-                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base"
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center bg-gray-800 text-white font-bold dark:bg-gray-700 text-xs sm:text-sm md:text-base"
                 aria-label="Player avatar"
               >
                 {usernameInitial}
@@ -511,7 +534,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                       <IdentityVerifiedTick size="md" />
                     ) : null}
                   </span>
-                  <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
+                  <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0">
                     #{selectedPlayer.id}
                   </span>
                 </div>
@@ -545,91 +568,18 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
       {/* Content */}
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
-        {/* Hero Stats Banner */}
-        <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
-          <div
-            className={`grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 ${
-              showWinningsHero ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
-            }`}
-          >
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Balance</p>
-                  <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
-                </div>
-              </div>
-            </div>
-            <PlayerCashoutLimitHeroCard
-              playerId={selectedPlayer.id}
-              cashoutLimit={selectedPlayer.cashout_limit}
-              canEdit={canEditPlayerCashoutLimit(USER_ROLES.STAFF)}
-              onUpdated={(cashout_limit) =>
-                setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
-              }
-            />
-            {showWinningsHero ? (
-              <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                  <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                    <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winnings</p>
-                    <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">
-                      {formatCurrency(selectedPlayer.winning_balance ?? 0)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Status</p>
-                  <div className="mt-0.5">
-                    <Badge
-                      variant={selectedPlayer.is_active ? 'success' : 'danger'}
-                      className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm px-1 sm:px-1.5 md:px-2 lg:px-3 py-0.5 sm:py-0.5 md:py-1"
-                    >
-                      {selectedPlayer.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
-                  <p className="mt-0.5 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {selectedPlayer.agent_username ||
-                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
-                        ? selectedPlayer.agent.username
-                        : 'Not assigned')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PlayerAccountOverview
+          playerId={selectedPlayer.id}
+          balance={selectedPlayer.balance}
+          cashoutLimit={selectedPlayer.cashout_limit}
+          winningBalance={selectedPlayer.winning_balance}
+          isActive={selectedPlayer.is_active}
+          agentLabel={agentLabel}
+          canEditCashoutLimit={canEditPlayerCashoutLimit(USER_ROLES.STAFF)}
+          onCashoutLimitUpdated={(cashout_limit) =>
+            setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
+          }
+        />
 
         <PlayerProfileAdminBar
           player={selectedPlayer}
@@ -640,68 +590,19 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         />
 
         {/* Three Column Grid Layout */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {/* Column 1: Quick Actions & Personal Information */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-1 lg:order-1">
-            {/* Quick Actions Card */}
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-3 sm:mb-4 flex items-center gap-2">
-                <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md rounded">
-                  <svg className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-                <Button
-                  onClick={handleViewTransactions}
-                  variant="primary"
-                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-center leading-tight">Transactions</span>
-                </Button>
-                <Button
-                  onClick={handleViewGameActivities}
-                  variant="primary"
-                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-center leading-tight">Activities</span>
-                </Button>
-                <Button
-                  onClick={handleViewTimeline}
-                  variant="primary"
-                  className="group col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px] sm:col-span-1"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-center leading-tight">Timeline</span>
-                </Button>
-                <Button
-                  onClick={() => setIsSavedPaymentMethodsOpen(true)}
-                  variant="secondary"
-                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation sm:col-span-3"
-                >
-                  <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                  </svg>
-                  <span>Saved Payment Methods</span>
-                  {selectedPlayer.has_saved_payment_methods && (
-                    <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] px-1 text-[9px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
-                      {selectedPlayer.saved_payment_methods?.length ?? 0}
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </section>
+          <div className="space-y-3">
+            <PlayerQuickActionsBar
+              onViewTransactions={handleViewTransactions}
+              onViewActivities={handleViewGameActivities}
+              onViewTimeline={handleViewTimeline}
+              onOpenPaymentMethods={() => setIsSavedPaymentMethodsOpen(true)}
+              hasSavedPaymentMethods={!!selectedPlayer.has_saved_payment_methods}
+              savedPaymentMethodsCount={selectedPlayer.saved_payment_methods?.length ?? 0}
+            />
+
+            
 
             <PlayerPersonalInformationCard
               email={selectedPlayer.email}
@@ -713,68 +614,22 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
             />
 
-            <PlayerRouletteSpinAllowanceSection
-              playerId={selectedPlayer.id}
-              playerUsername={selectedPlayer.username}
-              canEdit={canEditPlayerRouletteAllowance(USER_ROLES.STAFF)}
+            <PlayerTransactionSummarySection
+              totalPurchases={selectedPlayer.total_purchases}
+              totalCashouts={selectedPlayer.total_cashouts}
+              totalTransfers={selectedPlayer.total_transfers}
+              isLoading={isLoadingDetails}
+              onOpenAnalytics={() => setIsTransactionAnalyticsModalOpen(true)}
             />
-
-            <PlayerReferralOverrideSection
-              playerId={selectedPlayer.id}
-              playerUsername={selectedPlayer.username}
-              canEdit={canEditPlayerReferralOverride(USER_ROLES.STAFF)}
-            />
-
-            <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>
 
-          {/* Column 2: Transaction Summary */}
-          <div className="order-2 lg:order-2 space-y-3 sm:space-y-4 md:space-y-6">
-            <section className="rounded-lg border border-purple-200/90 bg-gradient-to-br from-[#f3f0fb] via-purple-50 to-violet-50 p-2.5 shadow-sm sm:p-3 dark:border-purple-800/70 dark:from-purple-950/35 dark:via-purple-950/25 dark:to-violet-950/30">
-              <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
-                <svg
-                  className="h-3.5 w-3.5 shrink-0 text-purple-600 dark:text-purple-400"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <rect x="4" y="14" width="4" height="6" rx="1" />
-                  <rect x="10" y="8" width="4" height="12" rx="1" />
-                  <rect x="16" y="4" width="4" height="16" rx="1" />
-                </svg>
-                <h2 className="text-xs font-bold tracking-tight text-purple-900 dark:text-purple-100 sm:text-sm">
-                  Transaction Summary
-                </h2>
-              </div>
-              <div className="rounded-md border border-purple-100/90 bg-white p-2 shadow-sm dark:border-purple-900/50 dark:bg-gray-950/80 sm:p-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsTransactionAnalyticsModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#6b73e3] px-2.5 py-1.5 text-[11px] font-bold leading-tight text-white shadow-sm transition-colors hover:bg-[#5c64d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b73e3] focus-visible:ring-offset-1 dark:bg-[#7b83f0] dark:hover:bg-[#6b73e3] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
-                >
-                  <svg
-                    className="h-3 w-3 shrink-0 text-white sm:h-3.5 sm:w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 13l3-3 2 2 5-5" />
-                  </svg>
-                  Open Player Transaction Analytics
-                </button>
-              </div>
-            </section>
-          </div>
-
-          {/* Column 3: Player Games */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-3 lg:order-3">
+          {/* Player Games */}
+          <div className="space-y-3">
             {/* Player Games Card */}
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="mb-4 sm:mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                     </svg>
@@ -809,7 +664,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   {games.map((game) => (
                     <div
                       key={game.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -844,7 +699,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                             trigger={
                               <button
                                 type="button"
-                                className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                className="flex items-center justify-center p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                                 aria-label="More actions"
                               >
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -954,6 +809,21 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
       )}
 
       {/* Edit Player Details Drawer */}
+
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <PlayerRouletteSpinAllowanceSection
+            playerId={selectedPlayer.id}
+            playerUsername={selectedPlayer.username}
+            canEdit={canEditPlayerRouletteAllowance(USER_ROLES.STAFF)}
+          />
+          <PlayerReferralOverrideSection
+            playerId={selectedPlayer.id}
+            playerUsername={selectedPlayer.username}
+            canEdit={canEditPlayerReferralOverride(USER_ROLES.STAFF)}
+          />
+          <PlayerReferralDetailsSection player={selectedPlayer} />
+        </div>
+
       <EditPlayerDetailsDrawer
         isOpen={isEditDrawerOpen}
         onClose={() => setIsEditDrawerOpen(false)}
@@ -1071,7 +941,7 @@ function EditGameDrawerContent({
         <h2 className="text-lg font-bold text-foreground">Edit Game</h2>
         <button
           onClick={onClose}
-          className="p-1 hover:bg-muted rounded-lg transition-colors"
+          className="p-1 hover:bg-muted transition-colors"
           disabled={isSubmitting}
         >
           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1084,7 +954,7 @@ function EditGameDrawerContent({
       <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
         <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Game Info */}
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20">
             <div className="flex items-start gap-2">
               <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

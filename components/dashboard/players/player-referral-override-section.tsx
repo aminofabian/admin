@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useReferralPlayerOverrideStore } from '@/stores';
 import { Button, Input, useToast } from '@/components/ui';
+import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
 
 export interface PlayerReferralOverrideSectionProps {
   playerId: number;
@@ -78,50 +79,41 @@ export function PlayerReferralOverrideSection({
   };
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-3">
-      <div className="mb-1.5 flex items-center gap-1.5 sm:mb-2 sm:gap-2">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 sm:h-7 sm:w-7">
-          <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </div>
-        <h2 className="flex-1 text-xs font-semibold text-gray-900 dark:text-gray-100 sm:text-sm">
-          Referral Override
-        </h2>
+    <PlayerDetailPanel
+      title="Referral override"
+      actions={
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:text-[10px] ${
+          className={`border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
             override
-              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+              ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300'
+              : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
           }`}
         >
           {override ? 'Player override' : 'Company default'}
         </span>
-      </div>
-
+      }
+    >
       {isLoading && !override ? (
-        <div className="rounded-md border border-gray-100 bg-gray-50/50 px-3 py-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
-          Loading referral override…
-        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Loading referral override…</p>
       ) : canEdit ? (
-        <div className="space-y-3 rounded-md border border-gray-100 bg-white p-2.5 dark:border-gray-800 dark:bg-gray-900">
+        <div className="space-y-3">
           {formError ? (
-            <div className="rounded border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+            <div className="border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
               {formError}
             </div>
           ) : null}
           {error ? (
-            <div className="rounded border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+            <div className="border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
               {error}
             </div>
           ) : null}
 
-          <p className="text-[10px] text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Overrides company referral rewards for this player only.
           </p>
 
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
               Referrer bonus percentage (%)
             </label>
             <Input
@@ -137,7 +129,7 @@ export function PlayerReferralOverrideSection({
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
               Referred player bonus ($)
             </label>
             <Input
@@ -158,7 +150,7 @@ export function PlayerReferralOverrideSection({
           </div>
         </div>
       ) : (
-        <div className="space-y-2 rounded-md border border-gray-100 bg-gray-50/50 px-2.5 py-2 text-[11px] text-gray-600 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-300">
+        <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
           {override ? (
             <>
               <p>Referrer bonus: {override.referrer_bonus_percentage}%</p>
@@ -169,6 +161,6 @@ export function PlayerReferralOverrideSection({
           )}
         </div>
       )}
-    </section>
+    </PlayerDetailPanel>
   );
 }

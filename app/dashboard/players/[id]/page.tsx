@@ -10,11 +10,11 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
-import { formatDate, formatCurrency } from '@/lib/utils/formatters';
+import { formatDate } from '@/lib/utils/formatters';
 import { playersApi, agentsApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
+import { Button, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
 import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -29,10 +29,14 @@ import {
   getPlayerPersonalInfoCardAddressProps,
   type EditablePlayerFields,
 } from '@/types/player-edit';
-import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerAccountOverview } from '@/components/dashboard/players/player-account-overview';
+import { PlayerQuickActionsBar } from '@/components/dashboard/players/player-quick-actions-bar';
+import { PlayerTransactionSummarySection } from '@/components/dashboard/players/player-transaction-summary-section';
+import { PlayerAgentAssignmentSection } from '@/components/dashboard/players/player-agent-assignment-section';
+import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
 import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
@@ -44,7 +48,6 @@ import { AddGameDrawer } from '@/components/chat/modals';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
 import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
-import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 
 /**
  * Extracts and formats error messages from API errors
@@ -1019,8 +1022,11 @@ export default function PlayerDetailPage() {
     ? selectedPlayer.username.charAt(0).toUpperCase()
     : '?';
 
-  const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
-  const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
+  const agentLabel =
+    selectedPlayer.agent_username ||
+    (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
+      ? selectedPlayer.agent.username
+      : null);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -1049,7 +1055,7 @@ export default function PlayerDetailPage() {
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
               <div
-                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base"
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 shrink-0 items-center justify-center bg-gray-800 text-white text-xs font-bold sm:text-sm md:text-base dark:bg-gray-700"
                 aria-label="Player avatar"
               >
                 {usernameInitial}
@@ -1067,7 +1073,7 @@ export default function PlayerDetailPage() {
                       <IdentityVerifiedTick size="md" />
                     ) : null}
                   </span>
-                  <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
+                  <span className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0">
                     #{selectedPlayer.id}
                   </span>
                 </div>
@@ -1101,96 +1107,18 @@ export default function PlayerDetailPage() {
 
       {/* Full Width Content - Mobile App Style */}
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
-        {/* Hero Stats Banner */}
-        <div className="mb-3 sm:mb-4 md:mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <div className="border-b border-gray-100 bg-gray-50/80 px-3 py-2 dark:border-gray-800 dark:bg-gray-800/40 sm:px-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 sm:text-xs">
-              Account overview
-            </h2>
-          </div>
-          <div
-            className={`grid grid-cols-2 gap-2 p-2 sm:gap-3 sm:p-4 md:gap-4 md:p-5 ${
-              showWinningsHero ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
-            }`}
-          >
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Balance</p>
-                  <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
-                </div>
-              </div>
-            </div>
-            <PlayerCashoutLimitHeroCard
-              playerId={selectedPlayer.id}
-              cashoutLimit={selectedPlayer.cashout_limit}
-              canEdit={canEditPlayerCashoutLimit(user?.role)}
-              onUpdated={(cashout_limit) =>
-                setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
-              }
-            />
-            {showWinningsHero ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
-                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                  <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                    <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winnings</p>
-                    <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">
-                      {formatCurrency(selectedPlayer.winning_balance ?? 0)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Status</p>
-                  <div className="mt-0.5">
-                    <Badge
-                      variant={selectedPlayer.is_active ? 'success' : 'danger'}
-                      className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm px-1 sm:px-1.5 md:px-2 lg:px-3 py-0.5 sm:py-0.5 md:py-1"
-                    >
-                      {selectedPlayer.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/80 sm:p-3 md:p-4">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
-                  <p className="mt-0.5 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {selectedPlayer.agent_username ||
-                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
-                        ? selectedPlayer.agent.username
-                        : 'Not assigned')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PlayerAccountOverview
+          playerId={selectedPlayer.id}
+          balance={selectedPlayer.balance}
+          cashoutLimit={selectedPlayer.cashout_limit}
+          winningBalance={selectedPlayer.winning_balance}
+          isActive={selectedPlayer.is_active}
+          agentLabel={agentLabel}
+          canEditCashoutLimit={canEditPlayerCashoutLimit(user?.role)}
+          onCashoutLimitUpdated={(cashout_limit) =>
+            setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
+          }
+        />
 
         <PlayerProfileAdminBar
           player={selectedPlayer}
@@ -1200,393 +1128,173 @@ export default function PlayerDetailPage() {
           onUpdated={setSelectedPlayer}
         />
 
-        {/* Three Column Grid Layout - Mobile First */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
-          {/* Column 1: Quick Actions, Personal Information & Account Details - Show first on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-1 lg:order-1">
-            {/* Quick Actions Card - Mobile App Style */}
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-3 sm:mb-4 flex items-center gap-2">
-                <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md rounded">
-                  <svg className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-                <Button
-                  onClick={handleViewTransactions}
-                  variant="primary"
-                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-center leading-tight">Transactions</span>
-                </Button>
-                <Button
-                  onClick={handleViewGameActivities}
-                  variant="primary"
-                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-center leading-tight">Activities</span>
-                </Button>
-                <Button
-                  onClick={handleViewTimeline}
-                  variant="primary"
-                  className="group col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px] sm:col-span-1"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-center leading-tight">Timeline</span>
-                </Button>
-                <Button
-                  onClick={() => setIsSavedPaymentMethodsOpen(true)}
-                  variant="secondary"
-                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation sm:col-span-3"
-                >
-                  <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                  </svg>
-                  <span className="text-center leading-tight">Saved Payment Methods</span>
-                  {selectedPlayer.has_saved_payment_methods && (
-                    <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] px-1 text-[9px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
-                      {selectedPlayer.saved_payment_methods?.length ?? 0}
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </section>
+        {/* Desktop: 2-col work area, then full-width settings row */}
+        <div className="space-y-3">
+          <PlayerQuickActionsBar
+            onViewTransactions={handleViewTransactions}
+            onViewActivities={handleViewGameActivities}
+            onViewTimeline={handleViewTimeline}
+            onOpenPaymentMethods={() => setIsSavedPaymentMethodsOpen(true)}
+            hasSavedPaymentMethods={!!selectedPlayer.has_saved_payment_methods}
+            savedPaymentMethodsCount={selectedPlayer.saved_payment_methods?.length ?? 0}
+          />
 
-            {/* Agent Assignment Card - Show below Quick Actions on mobile - Hidden for staff */}
-            {user?.role !== USER_ROLES.STAFF && (
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg lg:hidden">
-              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
-              </div>
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex-1">
-                    <Select
-                      value={selectedAgentId}
-                      onChange={(value: string) => setSelectedAgentId(value)}
-                      options={agentOptions}
-                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                      isLoading={isLoadingAgents}
-                      disabled={isLoadingAgents}
-                      className="w-full"
-                    />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="space-y-3">
+              <PlayerPersonalInformationCard
+                email={selectedPlayer.email}
+                fullName={selectedPlayer.full_name}
+                dob={selectedPlayer.dob}
+                state={selectedPlayer.state}
+                {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
+                mobileNumber={selectedPlayer.mobile_number}
+                phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
+                created={selectedPlayer.created}
+                createdByUsername={selectedPlayer.created_by?.username}
+                formatDate={formatDate}
+              />
+
+              {user?.role !== USER_ROLES.STAFF && (
+                <PlayerAgentAssignmentSection
+                  selectedAgentId={selectedAgentId}
+                  agentOptions={agentOptions}
+                  isLoadingAgents={isLoadingAgents}
+                  isAssigningAgent={isAssigningAgent}
+                  isRemovingAgent={isRemovingAgent}
+                  currentAgentUsername={selectedPlayer.agent_username}
+                  onSelectAgent={setSelectedAgentId}
+                  onAssign={handleAssignAgent}
+                  onRemove={() => setShowRemoveAgentModal(true)}
+                />
+              )}
+
+              <PlayerTransactionSummarySection
+                totalPurchases={selectedPlayer.total_purchases}
+                totalCashouts={selectedPlayer.total_cashouts}
+                totalTransfers={selectedPlayer.total_transfers}
+                isLoading={isLoadingDetails}
+                onOpenAnalytics={() => setIsTransactionAnalyticsModalOpen(true)}
+              />
+            </div>
+
+            <div className="min-w-0">
+              <PlayerDetailPanel
+                title="Player games"
+                actions={
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={handleOpenAddGame}
+                    className="px-3 py-1.5 text-xs font-semibold"
+                  >
+                    Add game
+                  </Button>
+                }
+              >
+                {games.length > 0 ? (
+                  <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    {games.length} {games.length === 1 ? 'game' : 'games'}
+                  </p>
+                ) : null}
+
+                {isLoadingGames ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-20 animate-pulse bg-gray-100 dark:bg-gray-800" />
+                    ))}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAssignAgent();
-                      }}
-                      isLoading={isAssigningAgent}
-                      disabled={!selectedAgentId || isLoadingAgents}
-                      variant="primary"
-                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-                    >
-                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Assign
-                    </Button>
-                    {selectedPlayer.agent_username && (
-                      <Button
-                        type="button"
-                        onClick={() => setShowRemoveAgentModal(true)}
-                        isLoading={isRemovingAgent}
-                        disabled={isRemovingAgent}
-                        variant="danger"
-                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                ) : games.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
+                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                      Click &quot;Add game&quot; to get started
+                    </p>
+                  </div>
+                ) : (
+                  <div className="max-h-[min(70vh,720px)] space-y-2 overflow-y-auto">
+                    {games.map((game: PlayerGame) => (
+                      <div
+                        key={game.id}
+                        className="border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
                       >
-                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-            )}
-
-            <PlayerPersonalInformationCard
-              email={selectedPlayer.email}
-              fullName={selectedPlayer.full_name}
-              dob={selectedPlayer.dob}
-              state={selectedPlayer.state}
-              {...getPlayerPersonalInfoCardAddressProps(selectedPlayer)}
-              mobileNumber={selectedPlayer.mobile_number}
-              phoneVerified={isPlayerPhoneVerified(selectedPlayer)}
-              created={selectedPlayer.created}
-              createdByUsername={selectedPlayer.created_by?.username}
-              formatDate={formatDate}
-            />
-
-            <PlayerRouletteSpinAllowanceSection
-              playerId={selectedPlayer.id}
-              playerUsername={selectedPlayer.username}
-              canEdit={canEditPlayerRouletteAllowance(user?.role)}
-            />
-
-            <PlayerReferralOverrideSection
-              playerId={selectedPlayer.id}
-              playerUsername={selectedPlayer.username}
-              canEdit={canEditPlayerReferralOverride(user?.role)}
-            />
-
-            <PlayerReferralDetailsSection player={selectedPlayer} />
-          </div>
-
-          {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
-            {/* Agent Assignment Card - Desktop only - Hidden for staff */}
-            {user?.role !== USER_ROLES.STAFF && (
-            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex-1">
-                    <Select
-                      value={selectedAgentId}
-                      onChange={(value: string) => setSelectedAgentId(value)}
-                      options={agentOptions}
-                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                      isLoading={isLoadingAgents}
-                      disabled={isLoadingAgents}
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAssignAgent();
-                      }}
-                      isLoading={isAssigningAgent}
-                      disabled={!selectedAgentId || isLoadingAgents}
-                      variant="primary"
-                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                    >
-                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Assign
-                    </Button>
-                    {selectedPlayer.agent_username && (
-                      <Button
-                        type="button"
-                        onClick={() => setShowRemoveAgentModal(true)}
-                        isLoading={isRemovingAgent}
-                        disabled={isRemovingAgent}
-                        variant="danger"
-                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-            )}
-
-            {/* Transaction Summary Card */}
-            <section className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 border border-purple-200 dark:border-purple-800/50 shadow-sm">
-              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">Transaction Summary</h2>
-                </div>
-                {isLoadingDetails && (
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
-              </div>
-              <div className="rounded-lg border border-purple-200/50 bg-white/60 p-3 backdrop-blur-sm dark:border-purple-700/50 dark:bg-white/10 sm:p-4">
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => setIsTransactionAnalyticsModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition-all hover:shadow-md"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 13l3-3 2 2 5-5" />
-                  </svg>
-                  Open Player Transaction Analytics
-                </Button>
-              </div>
-            </section>
-          </div>
-
-          {/* Column 3: Player Games - Show third on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-3 lg:order-3">
-            {/* Player Games Card */}
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-4 sm:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
-                    {games.length > 0 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleOpenAddGame}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-95"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Game
-                </Button>
-              </div>
-
-              {isLoadingGames ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-                  ))}
-                </div>
-              ) : games.length === 0 ? (
-                <div className="py-12 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                    <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
-                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click &quot;Add Game&quot; to get started</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                  {games.map((game: PlayerGame) => (
-                    <div
-                      key={game.id}
-                      className="group border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 dark:hover:border-gray-600"
-                    >
-                      {/* Top Section: Title, Username, and Status */}
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="mb-1 truncate text-base font-semibold text-gray-900 dark:text-gray-100">
-                            {game.game__title}
-                          </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400"> {game.username}</p>
-                          <PlayerGamePasswordReveal
-                            game={game}
-                            isVisible={!!visiblePlayerGamePasswordIds[game.id]}
-                            onToggleVisibility={() =>
-                              setVisiblePlayerGamePasswordIds((prev) => ({
-                                ...prev,
-                                [game.id]: !prev[game.id],
-                              }))
-                            }
-                          />
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {game.game__title}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{game.username}</p>
+                            <PlayerGamePasswordReveal
+                              game={game}
+                              isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                              onToggleVisibility={() =>
+                                setVisiblePlayerGamePasswordIds((prev) => ({
+                                  ...prev,
+                                  [game.id]: !prev[game.id],
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <div
+                              className={`h-2 w-2 ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}
+                            />
+                            <span
+                              className={`border px-1.5 py-0.5 text-[11px] font-medium capitalize ${
+                                game.status === 'active'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200'
+                                  : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200'
+                              }`}
+                            >
+                              {game.status}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                          <Badge
-                            variant={game.status === 'active' ? 'success' : 'danger'}
-                            className="text-xs"
+
+                        <div className="flex items-center justify-between gap-3 border-t border-gray-200 pt-2 dark:border-gray-700">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={async () => {
+                              setSelectedGameForBalance(game);
+                              setBalanceError(null);
+                              setBalanceData(null);
+                              setIsBalanceModalOpen(true);
+
+                              if (!selectedPlayer) return;
+
+                              try {
+                                setIsCheckingBalance(true);
+                                const response = await playersApi.checkGameBalance({
+                                  game_id: game.game__id,
+                                  player_id: selectedPlayer.id,
+                                });
+                                setBalanceData(response);
+                              } catch (err) {
+                                const message =
+                                  err instanceof Error ? err.message : 'Failed to check game balance';
+                                setBalanceError(message);
+                              } finally {
+                                setIsCheckingBalance(false);
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs font-semibold"
                           >
-                            {game.status}
-                          </Badge>
-                        </div>
-                      </div>
+                            Balance
+                          </Button>
 
-                      {/* Divider */}
-                      <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
-
-                      {/* Bottom Section: Balance and Actions */}
-                      <div className="flex items-center justify-between gap-3">
-                        {/* Balance Button */}
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={async () => {
-                            setSelectedGameForBalance(game);
-                            setBalanceError(null);
-                            setBalanceData(null);
-                            setIsBalanceModalOpen(true);
-
-                            if (!selectedPlayer) return;
-
-                            try {
-                              setIsCheckingBalance(true);
-                              const response = await playersApi.checkGameBalance({
-                                game_id: game.game__id,
-                                player_id: selectedPlayer.id,
-                              });
-                              setBalanceData(response);
-                            } catch (err) {
-                              const message = err instanceof Error ? err.message : 'Failed to check game balance';
-                              setBalanceError(message);
-                            } finally {
-                              setIsCheckingBalance(false);
-                            }
-                          }}
-                          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-md active:scale-95"
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Balance
-                        </Button>
-
-                        {/* Three-dot Menu */}
-                        <div className="shrink-0 ml-auto">
                           <DropdownMenu
                             trigger={
                               <button
                                 type="button"
-                                className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                className="flex items-center justify-center p-1.5 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                                 aria-label="More actions"
                               >
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                  />
                                 </svg>
                               </button>
                             }
@@ -1605,28 +1313,36 @@ export default function PlayerDetailPage() {
                               }}
                               className="flex items-center gap-2"
                             >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
                               Edit Game
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => setGameToDelete(game)}
                               className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
                               Delete Game
                             </DropdownMenuItem>
                           </DropdownMenu>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                    ))}
+                  </div>
+                )}
+              </PlayerDetailPanel>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(user?.role)}
+            />
+            <PlayerReferralOverrideSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerReferralOverride(user?.role)}
+            />
+            <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>
         </div>
       </div>

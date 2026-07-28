@@ -24,7 +24,7 @@ export function PlayerDetailHeaderActions({
   return (
     <div className="flex items-center gap-2 shrink-0">
       <div
-        className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-800/50"
+        className="flex items-center overflow-hidden border border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-800/50"
         role="group"
         aria-label="Player navigation"
       >

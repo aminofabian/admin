@@ -7,6 +7,7 @@ import { Button, Input, Switch, useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import type { PlayerRouletteSpinAllowance } from '@/lib/api/roulette-player-spin-allowances';
 import { PlayerRouletteSpinStatusDisplay } from '@/components/dashboard/players/player-roulette-spin-status-display';
+import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
 import type { PlayerRouletteSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
 
 export interface PlayerRouletteSpinAllowanceSectionProps {
@@ -99,35 +100,24 @@ export function PlayerRouletteSpinAllowanceSection({
   };
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-3">
-      <div className="mb-1.5 flex items-center gap-1.5 sm:mb-2 sm:gap-2">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 sm:h-7 sm:w-7">
-          <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="9" />
-            <path strokeLinecap="round" d="M12 3v2M12 19v2M3 12h2M19 12h2" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </div>
-        <h2 className="flex-1 text-xs font-semibold text-gray-900 dark:text-gray-100 sm:text-sm">
-          Prize Wheel Spins
-        </h2>
+    <PlayerDetailPanel
+      title="Prize wheel spins"
+      actions={
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:text-[10px] ${
+          className={`border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
             sourceInfo.tone === 'override'
-              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+              ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300'
               : sourceInfo.tone === 'inherited'
-                ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200'
+                ? 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200'
           }`}
         >
           {sourceInfo.label}
         </span>
-      </div>
-
+      }
+    >
       {isLoading && !allowance && !spinInfo ? (
-        <div className="rounded-md border border-gray-100 bg-gray-50/50 px-3 py-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
-          Loading spin allowance…
-        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Loading spin allowance…</p>
       ) : (
         <div className="space-y-3">
           <PlayerRouletteSpinStatusDisplay
@@ -138,36 +128,32 @@ export function PlayerRouletteSpinAllowanceSection({
           />
 
           {canEdit ? (
-            <div className="space-y-3 rounded-md border border-gray-100 bg-white p-2.5 dark:border-gray-800 dark:bg-gray-900">
+            <div className="space-y-3 border-t border-gray-100 pt-3 dark:border-gray-800">
               {formError ? (
-                <div className="rounded border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+                <div className="border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
                   {formError}
                 </div>
               ) : null}
               {error ? (
-                <div className="rounded border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+                <div className="border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
                   {error}
                 </div>
               ) : null}
 
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-gray-900 dark:text-gray-100">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
                     Enable per-player override
                   </p>
-                  <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                  <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                     Overrides the company default for this player.
                   </p>
                 </div>
-                <Switch
-                  checked={isEnabled}
-                  onChange={setIsEnabled}
-                  disabled={isSaving}
-                />
+                <Switch checked={isEnabled} onChange={setIsEnabled} disabled={isSaving} />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
                   Free spins per day
                 </label>
                 <Input
@@ -179,19 +165,14 @@ export function PlayerRouletteSpinAllowanceSection({
                   placeholder="e.g. 7"
                   disabled={isSaving || !isEnabled}
                 />
-                <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                   Maximum free spins earned per day for this player (credited after first deposit).
                   Set to 0 with override enabled to block daily spins.
                 </p>
               </div>
 
               <div className="flex justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  isLoading={isSaving}
-                  onClick={() => void handleSave()}
-                >
+                <Button type="button" size="sm" isLoading={isSaving} onClick={() => void handleSave()}>
                   Save override
                 </Button>
               </div>
@@ -199,7 +180,7 @@ export function PlayerRouletteSpinAllowanceSection({
           ) : null}
 
           {allowance?.updated_at ? (
-            <div className="rounded-md border border-gray-100 bg-gray-50/50 px-2.5 py-1.5 text-[10px] text-gray-500 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
+            <div className="border-t border-gray-100 pt-2 text-[11px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
               {allowance.set_by_username ? (
                 <p>
                   Last updated by{' '}
@@ -213,6 +194,6 @@ export function PlayerRouletteSpinAllowanceSection({
           ) : null}
         </div>
       )}
-    </section>
+    </PlayerDetailPanel>
   );
 }

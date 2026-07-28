@@ -23,11 +23,11 @@ export function PlayerRouletteSpinStatusDisplay({
   if (variant === 'inline') {
     return (
       <div
-        className={`mt-4 space-y-2 rounded-xl bg-indigo-500/[0.07] px-3 py-2.5 ring-1 ring-indigo-500/15 md:mt-2 md:rounded-md md:px-2 md:py-1.5 ${className}`}
+        className={`mt-4 space-y-2 bg-indigo-500/[0.07] px-3 py-2.5 ring-1 ring-indigo-500/15 md:mt-2 md:px-2 md:py-1.5 ${className}`}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/15 md:h-5 md:w-5 md:rounded">
+            <span className="flex h-7 w-7 items-center justify-center bg-indigo-500/15 md:h-5 md:w-5">
               <svg
                 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 md:h-3 md:w-3"
                 fill="none"
@@ -65,7 +65,7 @@ export function PlayerRouletteSpinStatusDisplay({
 
   return (
     <div
-      className={`rounded-md border border-indigo-100 bg-indigo-50/60 p-2.5 dark:border-indigo-900/40 dark:bg-indigo-950/20 ${className}`}
+      className={`border border-indigo-100 bg-indigo-50/60 p-2.5 dark:border-indigo-900/40 dark:bg-indigo-950/20 ${className}`}
     >
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-[10px] font-medium uppercase tracking-wider text-indigo-800/80 dark:text-indigo-200/80">
