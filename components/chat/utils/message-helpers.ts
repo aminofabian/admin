@@ -221,6 +221,10 @@ export const isPurchaseNotification = (message: {
     /sign[\s-]?up bonus[\s\S]{0,240}\bbalance\s*:/i,
     /sign[\s-]?up bonus[\s\S]{0,240}\bcredits?\s*:/i,
     /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
+    /earned a referral bonus/i,
+    /referral bonus[\s\S]{0,240}\bbalance\s*:/i,
+    /referral bonus[\s\S]{0,240}\bcredits?\s*:/i,
+    /made a first deposit of\s*\$[\d,]+\.?\d*[\s\S]{0,160}referral bonus/i,
     // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
     /successfully cashed out/i,
     /cashed out via/i,
@@ -661,6 +665,14 @@ export const parseTransactionMessage = (
 
   // Rule 1: Always check for specific automated transaction keywords first
   if (cleanText.includes("credited by admin")) {
+    result.type = "credit_added";
+  } else if (
+    cleanText.includes("earned a referral bonus") ||
+    /referral bonus[\s\S]{0,240}\bbalance\s*:/.test(cleanText) ||
+    /made a first deposit of\s*\$[\d,]+\.?\d*[\s\S]{0,160}referral bonus/.test(
+      cleanText,
+    )
+  ) {
     result.type = "credit_added";
   } else if (
     cleanText.includes("successfully cashed out") ||

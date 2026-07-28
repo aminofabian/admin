@@ -62,6 +62,26 @@ describe('isPurchaseNotification', () => {
     expect(isPurchaseNotification(msg)).toBe(true);
     expect(isAutoMessage(msg)).toBe(false);
   });
+
+  it('should treat ledger-style referral bonus as a transaction card', () => {
+    const msg = {
+      text: '<b>test reff2</b> made a first deposit of <b>$300.00</b>. You earned a referral bonus of <b>$100.00</b>. Balance: <b>$113.00</b>',
+      type: 'message' as const,
+      sender: 'admin' as const,
+    };
+    expect(isPurchaseNotification(msg)).toBe(true);
+    expect(parseTransactionMessage(msg.text).type).toBe('credit_added');
+  });
+
+  it('should not treat casual referral chat as a transaction card', () => {
+    expect(
+      isPurchaseNotification({
+        text: 'what is my referral bonus amount?',
+        type: 'message',
+        sender: 'player',
+      }),
+    ).toBe(false);
+  });
 });
 
 describe('isPrizeWheelMessage', () => {
