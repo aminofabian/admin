@@ -36,7 +36,7 @@ describe('buildPlayerUpdateRequest', () => {
     });
   });
 
-  it('allows password reset when profile fields are locked after KYC', () => {
+  it('allows password reset and account status when profile fields are locked after KYC', () => {
     const result = buildPlayerUpdateRequest(
       {
         ...EMPTY_EDITABLE_PLAYER_FIELDS,
@@ -53,19 +53,23 @@ describe('buildPlayerUpdateRequest', () => {
     expect(result).toEqual({
       password: 'NewPass123!',
       confirm_password: 'NewPass123!',
+      is_active: false,
     });
   });
 
-  it('returns empty payload when locked and no password change', () => {
+  it('includes account status when locked and no password change', () => {
     const result = buildPlayerUpdateRequest(
       {
         ...EMPTY_EDITABLE_PLAYER_FIELDS,
         email: 'locked@example.com',
         first_name: 'Locked',
+        is_active: false,
       },
       { lockProfileFields: true }
     );
 
-    expect(result).toEqual({});
+    expect(result).toEqual({
+      is_active: false,
+    });
   });
 });

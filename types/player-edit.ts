@@ -116,8 +116,9 @@ export function buildPlayerUpdateRequest(
       }
     : {};
 
-  // Password reset stays available after KYC; only profile details are locked.
+  // Password reset and account status stay available after KYC; identity/address stay locked.
   Object.assign(updateData, passwordUpdate);
+  updateData.is_active = fields.is_active;
 
   if (!options?.lockProfileFields) {
     Object.assign(updateData, {
@@ -131,7 +132,6 @@ export function buildPlayerUpdateRequest(
       zip_code: fields.zip_code.trim() || undefined,
       state: fields.state.trim() || undefined,
       country: fields.country.trim() || undefined,
-      is_active: fields.is_active,
     });
   }
 
