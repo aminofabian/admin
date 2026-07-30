@@ -306,6 +306,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/history/roulette-rewards', icon: <HistoryGameActivityIcon /> },
+      { name: 'Meta CAPI', href: '/dashboard/history/meta-capi-events', icon: <HistoryTransactionIcon /> },
     ],
   },
   // Admin/Other roles menu items
@@ -358,6 +359,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/history/roulette-rewards', icon: <HistoryGameActivityIcon /> },
+      { name: 'Meta CAPI', href: '/dashboard/history/meta-capi-events', icon: <HistoryTransactionIcon /> },
     ],
   },
   {

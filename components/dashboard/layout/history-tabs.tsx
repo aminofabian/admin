@@ -7,6 +7,7 @@ const TABS = [
   { href: '/dashboard/history/transactions', label: 'Transactions' },
   { href: '/dashboard/history/game-activities', label: 'Game Activities' },
   { href: '/dashboard/history/roulette-rewards', label: 'Prize Wheel' },
+  { href: '/dashboard/history/meta-capi-events', label: 'Meta CAPI' },
 ];
 
 export function HistoryTabs() {
