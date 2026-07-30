@@ -458,6 +458,8 @@ const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const
 
 const TAP_TICKET_ID_KEYS = ['taparcaida_ticket_id', 'taparcadia_ticket_id', 'tapTicketId'] as const;
 
+const BRENZI_REFERENCE_KEYS = ['brenzi_reference', 'brenziReference'] as const;
+
 function getBinpayOrderIdEntry(
   transaction: Pick<Transaction, 'binpay_order_id' | 'payment_details'>
 ): [string, string] | null {
@@ -521,6 +523,27 @@ function getTapTicketIdEntry(
   return null;
 }
 
+function getBrenziReferenceEntry(
+  transaction: Pick<Transaction, 'brenzi_reference' | 'payment_details'>
+): [string, string] | null {
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  let val: unknown = null;
+  for (const key of BRENZI_REFERENCE_KEYS) {
+    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+    if (val != null && String(val).trim() !== '') break;
+  }
+
+  const str = formatDetailValue(val);
+  if (str !== '—' && String(str).trim() !== '') {
+    return ['Brenzi reference', str];
+  }
+  return null;
+}
+
 function getProviderStatusEntries(
   transaction: Pick<Transaction, 'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'>
 ): [string, string][] {
@@ -557,6 +580,7 @@ export function getPaymentDetailsForDisplay(
     | 'tierlock_order_id'
     | 'taparcadia_status'
     | 'taparcaida_ticket_id'
+    | 'brenzi_reference'
     | 'user_username'
   >
 ): [string, string][] {
@@ -674,6 +698,14 @@ export function getPaymentDetailsForDisplay(
   if (tapTicketEntry) {
     const alreadyHasTapTicket = entries.some(([label]) => label.toLowerCase() === 'tap ticket id');
     if (!alreadyHasTapTicket) entries.push(tapTicketEntry);
+  }
+
+  const brenziReferenceEntry = getBrenziReferenceEntry(transaction);
+  if (brenziReferenceEntry) {
+    const alreadyHasBrenziReference = entries.some(
+      ([label]) => label.toLowerCase() === 'brenzi reference'
+    );
+    if (!alreadyHasBrenziReference) entries.push(brenziReferenceEntry);
   }
 
   const providerStatusEntries = getProviderStatusEntries(transaction);

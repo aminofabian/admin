@@ -243,6 +243,29 @@ describe('formatters', () => {
       });
       expect(rows.find(([label]) => label === 'Tap ticket ID')?.[1]).toBe('58709');
     });
+
+    it('includes Brenzi reference when present on the transaction', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'stripe',
+        brenzi_reference: '4E0BFBF340C1',
+      });
+      expect(rows.find(([label]) => label === 'Brenzi reference')?.[1]).toBe('4E0BFBF340C1');
+    });
+
+    it('reads Brenzi reference from payment_details when not on the transaction root', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'stripe',
+        payment_details: {
+          provider: 'stripe',
+          payment_method: 'card',
+          brenzi_order_id: 'C319B4CFA339',
+          brenzi_reference: '4E0BFBF340C1',
+        },
+      });
+      expect(rows.find(([label]) => label === 'Brenzi reference')?.[1]).toBe('4E0BFBF340C1');
+    });
   });
 
   describe('getProviderDisplayName', () => {
