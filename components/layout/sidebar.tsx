@@ -240,6 +240,12 @@ const GameActivityAnalyticsIcon = () => (
   </svg>
 );
 
+const EmailTemplateIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+);
+
 const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Dashboard',
@@ -291,6 +297,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     icon: <AffiliatesAgentIcon />,
     roles: [USER_ROLES.SUPERADMIN],
     href: '/dashboard/settings/referral-promo-codes',
+  },
+  {
+    name: 'Email Templates',
+    icon: <EmailTemplateIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/email-templates',
   },
   {
     name: 'Players',
@@ -407,6 +419,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
+      { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplateIcon /> },
     ],
   },
   {
@@ -429,6 +442,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
+      { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplateIcon /> },
     ],
   },
   // {

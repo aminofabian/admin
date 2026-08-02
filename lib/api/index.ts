@@ -27,4 +27,5 @@ export * from './roulette-player-spin-allowances';
 export * from './roulette-player-spin-balances';
 export * from './roulette-reward-configs';
 export * from './verification-settings';
+export * from './email-templates';
 
