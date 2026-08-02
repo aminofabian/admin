@@ -122,8 +122,6 @@ export function PlayersFilters({
         'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
     const labelClasses =
         'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
-    const checkboxClasses =
-        'w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary/30 dark:bg-slate-950 dark:border-slate-600';
     const sectionHeadingClasses =
         'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
 
@@ -272,41 +270,17 @@ export function PlayersFilters({
                                 />
                             </div>
                             <div>
-                                <span className={labelClasses}>First deposit</span>
-                                <div className="flex flex-col gap-2 pt-0.5">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={filters.first_deposit_done === 'true'}
-                                            onChange={(e) =>
-                                                onFilterChange(
-                                                    'first_deposit_done',
-                                                    e.target.checked ? 'true' : 'all',
-                                                )
-                                            }
-                                            className={checkboxClasses}
-                                        />
-                                        <span className="text-sm text-foreground dark:text-slate-100">
-                                            First deposit done
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={filters.first_deposit_done === 'false'}
-                                            onChange={(e) =>
-                                                onFilterChange(
-                                                    'first_deposit_done',
-                                                    e.target.checked ? 'false' : 'all',
-                                                )
-                                            }
-                                            className={checkboxClasses}
-                                        />
-                                        <span className="text-sm text-foreground dark:text-slate-100">
-                                            No first deposit yet
-                                        </span>
-                                    </label>
-                                </div>
+                                <label className={labelClasses}>First deposit</label>
+                                <Select
+                                    value={filters.first_deposit_done}
+                                    onChange={(v) => onFilterChange('first_deposit_done', v)}
+                                    options={[
+                                        { value: 'all', label: 'All' },
+                                        { value: 'true', label: 'Deposit' },
+                                        { value: 'false', label: 'No deposit' },
+                                    ]}
+                                    placeholder="All"
+                                />
                             </div>
                         </div>
                     </section>
