@@ -25,7 +25,21 @@ import {
   ErrorState,
 } from '@/components/features';
 import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
-import { IDENTITY_VERIFICATION_STATUS_OPTIONS, US_STATES } from '@/components/dashboard/players/players-filters';
+import {
+  countActiveFilters,
+  DATE_SECTION_ICON,
+  FILTERS_SECTION_ICON,
+  FilterField,
+  FILTER_SECTION_HEADING_CLASSES,
+  FULL_NAME_ICON,
+  IconInput,
+  IDENTITY_VERIFICATION_STATUS_OPTIONS,
+  LINK_ICON,
+  MAIL_ICON,
+  SEARCH_SECTION_ICON,
+  USER_ICON,
+  US_STATES,
+} from '@/components/dashboard/players/players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
@@ -73,11 +87,11 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
     return (
       <div className="space-y-3 sm:space-y-4 md:space-y-6">
         {/* Header Skeleton */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+        <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-[#eff3ff] to-indigo-100/70 shadow-sm dark:border-slate-700/60 dark:from-indigo-950/40 dark:via-indigo-950/30 dark:to-slate-900/50">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-3 sm:p-4 md:p-5 lg:p-6">
+            <Skeleton className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl shrink-0" />
             <div className="flex flex-col shrink-0">
-              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 mb-2" />
+              <Skeleton className="h-7 sm:h-8 w-32 mb-2" />
               <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex-1 min-w-0" />
@@ -85,7 +99,7 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
         </div>
 
         {/* Filters Skeleton */}
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {[...Array(7)].map((_, i) => (
@@ -611,21 +625,32 @@ function PlayersHeader({
   totalCount: number;
 }): ReactElement {
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-      <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-[#eff3ff] to-indigo-100/70 shadow-sm dark:border-slate-700/60 dark:from-indigo-950/40 dark:via-indigo-950/30 dark:to-slate-900/50">
+      {/* Decorative gradient blobs */}
+      <div className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full bg-indigo-200/40 blur-3xl dark:bg-indigo-500/10" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-purple-200/30 blur-3xl dark:bg-purple-500/10" aria-hidden />
+
+      <div className="relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 md:p-5 lg:p-6">
+        {/* Icon tile */}
+        <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md ring-1 ring-inset ring-white/20 shrink-0">
+          <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </div>
+
+        {/* Title and count */}
         <div className="flex flex-col shrink-0">
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Players
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-            {totalCount.toLocaleString()} {totalCount === 1 ? 'player' : 'players'}
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <span className="inline-flex items-center rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-200/60 dark:bg-slate-800/80 dark:text-indigo-300 dark:ring-slate-700">
+              {totalCount.toLocaleString()}
+            </span>
+            {totalCount === 1 ? 'player' : 'players'}
           </p>
         </div>
+
         <div className="flex-1 min-w-0" />
       </div>
     </div>
@@ -690,27 +715,42 @@ function SuperAdminPlayersFiltersWrapper({
     ];
   }, [companies]);
 
-  const inputClasses =
-    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
-  const labelClasses =
-    'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
-  const sectionHeadingClasses =
-    'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
+  const activeCount =
+    countActiveFilters(filters) + ((filters.company && filters.company !== 'all') ? 1 : 0);
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900/50">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-slate-700/80">
-        <h3 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
-          <svg className="w-5 h-5 text-muted-foreground dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filters
-        </h3>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-b border-border/80 dark:border-slate-700/80">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/10 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground leading-tight">
+              Filters
+              {activeCount > 0 && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary align-middle dark:bg-indigo-500/10 dark:text-indigo-400">
+                  {activeCount}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-muted-foreground dark:text-slate-400 truncate">
+              {activeCount > 0
+                ? `${activeCount} active filter${activeCount === 1 ? '' : 's'} applied`
+                : 'Narrow down your player list'}
+            </p>
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="sm"
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
+          aria-expanded={isOpen}
+          className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
         >
           {isOpen ? (
             <>
@@ -731,15 +771,18 @@ function SuperAdminPlayersFiltersWrapper({
       </div>
 
       {isOpen && (
-        <div className="p-4 text-foreground space-y-6">
+        <div className="p-4 sm:p-5 text-foreground space-y-6 animate-fade-in">
+          {/* Search */}
           <section>
-            <h4 className={sectionHeadingClasses}>
-              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
-              Search
+            <h4 className={FILTER_SECTION_HEADING_CLASSES}>
+              <span className="h-3.5 w-1 rounded-full bg-gradient-to-b from-primary to-primary/40" aria-hidden />
+              <span className="inline-flex items-center gap-1.5">
+                {SEARCH_SECTION_ICON}
+                Search
+              </span>
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div>
-                <label className={labelClasses}>Company</label>
+              <FilterField label="Company">
                 <Select
                   value={filters.company || 'all'}
                   onChange={(v) => onFilterChange('company', v)}
@@ -748,58 +791,50 @@ function SuperAdminPlayersFiltersWrapper({
                   isLoading={isLoadingCompanies}
                   disabled={isLoadingCompanies}
                 />
-              </div>
-              <div>
-                <label className={labelClasses}>Username</label>
-                <input
-                  type="text"
-                  value={filters.username}
-                  onChange={(e) => onFilterChange('username', e.target.value)}
-                  placeholder="Enter username..."
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className={labelClasses}>Full name</label>
-                <input
-                  type="text"
-                  value={filters.full_name}
-                  onChange={(e) => onFilterChange('full_name', e.target.value)}
-                  placeholder="Enter full name..."
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className={labelClasses}>Email</label>
-                <input
-                  type="email"
-                  value={filters.email}
-                  onChange={(e) => onFilterChange('email', e.target.value)}
-                  placeholder="Filter by email"
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className={labelClasses}>Referred by</label>
-                <input
-                  type="text"
-                  value={filters.referred_by}
-                  onChange={(e) => onFilterChange('referred_by', e.target.value)}
-                  placeholder="Enter referrer username..."
-                  className={inputClasses}
-                />
-              </div>
+              </FilterField>
+              <IconInput
+                label="Username"
+                icon={USER_ICON}
+                value={filters.username}
+                onChange={(v) => onFilterChange('username', v)}
+                placeholder="Enter username..."
+              />
+              <IconInput
+                label="Full name"
+                icon={FULL_NAME_ICON}
+                value={filters.full_name}
+                onChange={(v) => onFilterChange('full_name', v)}
+                placeholder="Enter full name..."
+              />
+              <IconInput
+                label="Email"
+                icon={MAIL_ICON}
+                type="email"
+                value={filters.email}
+                onChange={(v) => onFilterChange('email', v)}
+                placeholder="Filter by email"
+              />
+              <IconInput
+                label="Referred by"
+                icon={LINK_ICON}
+                value={filters.referred_by}
+                onChange={(v) => onFilterChange('referred_by', v)}
+                placeholder="Enter referrer username..."
+              />
             </div>
           </section>
 
+          {/* Filters */}
           <section>
-            <h4 className={sectionHeadingClasses}>
-              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
-              Filters
+            <h4 className={FILTER_SECTION_HEADING_CLASSES}>
+              <span className="h-3.5 w-1 rounded-full bg-gradient-to-b from-primary to-primary/40" aria-hidden />
+              <span className="inline-flex items-center gap-1.5">
+                {FILTERS_SECTION_ICON}
+                Filters
+              </span>
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className={labelClasses}>Status</label>
+              <FilterField label="Status">
                 <Select
                   value={filters.status}
                   onChange={(v) => onFilterChange('status', v)}
@@ -810,9 +845,8 @@ function SuperAdminPlayersFiltersWrapper({
                   ]}
                   placeholder="All Statuses"
                 />
-              </div>
-              <div>
-                <label className={labelClasses}>State</label>
+              </FilterField>
+              <FilterField label="State">
                 <Select
                   value={filters.state}
                   onChange={(v) => onFilterChange('state', v)}
@@ -822,18 +856,16 @@ function SuperAdminPlayersFiltersWrapper({
                   ]}
                   placeholder="All States"
                 />
-              </div>
-              <div>
-                <label className={labelClasses}>Identity verification</label>
+              </FilterField>
+              <FilterField label="Identity verification">
                 <Select
                   value={filters.identity_verification_status}
                   onChange={(v) => onFilterChange('identity_verification_status', v)}
                   options={[...IDENTITY_VERIFICATION_STATUS_OPTIONS]}
                   placeholder="All Verification Statuses"
                 />
-              </div>
-              <div>
-                <label className={labelClasses}>First deposit</label>
+              </FilterField>
+              <FilterField label="First deposit">
                 <Select
                   value={filters.first_deposit_done}
                   onChange={(v) => onFilterChange('first_deposit_done', v)}
@@ -844,36 +876,50 @@ function SuperAdminPlayersFiltersWrapper({
                   ]}
                   placeholder="All"
                 />
-              </div>
+              </FilterField>
             </div>
           </section>
 
+          {/* Date range */}
           <section>
-            <h4 className={sectionHeadingClasses}>
-              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
-              Date range
+            <h4 className={FILTER_SECTION_HEADING_CLASSES}>
+              <span className="h-3.5 w-1 rounded-full bg-gradient-to-b from-primary to-primary/40" aria-hidden />
+              <span className="inline-flex items-center gap-1.5">
+                {DATE_SECTION_ICON}
+                Date range
+              </span>
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DateSelect
                 label="From date"
+                labelVariant="field"
                 value={filters.date_from}
                 onChange={(v) => onFilterChange('date_from', v)}
               />
               <DateSelect
                 label="To date"
+                labelVariant="field"
                 value={filters.date_to}
                 onChange={(v) => onFilterChange('date_to', v)}
               />
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border dark:border-slate-700/80">
-            <Button variant="ghost" size="sm" onClick={onClear} type="button" disabled={isLoading} className="text-muted-foreground hover:text-foreground disabled:opacity-50">
-              Clear
-            </Button>
-            <Button size="sm" onClick={onApply} type="button" isLoading={isLoading} disabled={isLoading} className="min-w-[100px] disabled:opacity-50">
-              {isLoading ? 'Applying…' : 'Apply'}
-            </Button>
+          {/* Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border dark:border-slate-700/80">
+            <p className="text-xs text-muted-foreground dark:text-slate-500">
+              {activeCount === 0
+                ? 'No filters applied'
+                : `${activeCount} filter${activeCount === 1 ? '' : 's'} active`}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" type="button" onClick={onClear} disabled={isLoading} className="text-muted-foreground hover:text-foreground disabled:opacity-50">
+                Reset
+              </Button>
+              <Button size="sm" type="button" onClick={onApply} isLoading={isLoading} disabled={isLoading} className="min-w-[120px] shadow-sm disabled:opacity-50">
+                Apply filters
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -902,8 +948,12 @@ function SuperAdminPlayersTableSection({
   const shouldShowEmpty = data !== null && data.results.length === 0;
   const showPagination = !!data && data.count > pageSize;
 
+  const totalCount = data?.count ?? 0;
+  const start = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalCount);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       {shouldShowEmpty ? (
         <div className="py-12">
           <EmptyState
@@ -921,15 +971,30 @@ function SuperAdminPlayersTableSection({
             players={data?.results ?? []}
             onOpenChat={onOpenChat}
           />
-          {showPagination && (
-            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
-              <Pagination
-                currentPage={page}
-                totalPages={Math.ceil((data?.count ?? 0) / pageSize)}
-                onPageChange={onPageChange}
-                hasNext={Boolean(data?.next)}
-                hasPrevious={Boolean(data?.previous)}
-              />
+          {totalCount > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+                Showing{' '}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {start.toLocaleString()}–{end.toLocaleString()}
+                </span>{' '}
+                of{' '}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {totalCount.toLocaleString()}
+                </span>{' '}
+                players
+              </p>
+              {showPagination && (
+                <div className="order-1 sm:order-2">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={Math.ceil(totalCount / pageSize)}
+                    onPageChange={onPageChange}
+                    hasNext={Boolean(data?.next)}
+                    hasPrevious={Boolean(data?.previous)}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>
@@ -969,8 +1034,8 @@ function SuperAdminPlayersTable({
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Referred By</TableHead>
-              <TableHead>Balance</TableHead>
-              <TableHead>Cashout limit</TableHead>
+              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="text-right">Cashout limit</TableHead>
               <TableHead>BinPay</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
@@ -1130,7 +1195,9 @@ function SuperAdminPlayersTableRow({
         </Link>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">{player.email}</div>
+        <div className="max-w-[220px] truncate text-sm text-gray-700 dark:text-gray-300" title={player.email}>
+          {player.email}
+        </div>
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -1138,16 +1205,16 @@ function SuperAdminPlayersTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="max-w-[160px] truncate text-sm text-gray-700 dark:text-gray-300" title={getPlayerReferredByDisplay(player)}>
           {getPlayerReferredByDisplay(player)}
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+      <TableCell className="text-right">
+        <div className="text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
           {formatCurrency(player.balance)}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="text-right">
         <div className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
           {player.cashout_limit != null && String(player.cashout_limit).trim() !== ''
             ? formatCurrency(player.cashout_limit)

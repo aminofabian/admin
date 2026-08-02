@@ -36,6 +36,11 @@ export interface DateSelectProps {
   error?: string;
   disabled?: boolean;
   label?: string;
+  /**
+   * 'default' renders the calendar icon + uppercase label (compact toolbars).
+   * 'field' renders a plain sentence-case label, matching standard form fields.
+   */
+  labelVariant?: 'default' | 'field';
 }
 
 export function DateSelect({
@@ -44,10 +49,13 @@ export function DateSelect({
   error,
   disabled = false,
   label = 'Date',
+  labelVariant = 'default',
 }: DateSelectProps) {
   const parsed = parseDate(value);
   const [openPicker, setOpenPicker] = useState<'month' | 'day' | 'year' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const isFieldLabel = labelVariant === 'field';
 
   const [local, setLocal] = useState({ month: parsed.month, day: parsed.day, year: parsed.year });
 
@@ -111,26 +119,31 @@ export function DateSelect({
   const fieldContentClass = 'flex-1 min-w-0 truncate text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-gray-400';
 
   return (
-    <div ref={containerRef} className="space-y-3">
-      {/* Header with calendar icon */}
-      <div className="flex items-center gap-2">
-        <svg
-          className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        <span className="text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+    <div ref={containerRef} className={isFieldLabel ? '' : 'space-y-3'}>
+      {isFieldLabel ? (
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400">
           {label}
-        </span>
-      </div>
+        </label>
+      ) : (
+        <div className="flex items-center gap-2">
+          <svg
+            className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+            {label}
+          </span>
+        </div>
+      )}
 
       {/* Three horizontal fields + full-width dropdown row */}
       <div className="relative grid grid-cols-3 gap-2">
@@ -283,7 +296,7 @@ export function DateSelect({
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className={`text-sm text-red-600 dark:text-red-400 ${isFieldLabel ? 'mt-2' : ''}`}>{error}</p>
       )}
     </div>
   );

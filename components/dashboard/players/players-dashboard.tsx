@@ -95,11 +95,11 @@ export default function PlayersDashboard(): ReactElement {
     return (
       <div className="space-y-3 sm:space-y-4 md:space-y-6">
         {/* Header Skeleton */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+        <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-[#eff3ff] to-indigo-100/70 shadow-sm dark:border-slate-700/60 dark:from-indigo-950/40 dark:via-indigo-950/30 dark:to-slate-900/50">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-3 sm:p-4 md:p-5 lg:p-6">
+            <Skeleton className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl shrink-0" />
             <div className="flex flex-col shrink-0">
-              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 mb-2" />
+              <Skeleton className="h-7 sm:h-8 w-32 mb-2" />
               <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex-1 min-w-0" />
@@ -108,7 +108,7 @@ export default function PlayersDashboard(): ReactElement {
         </div>
 
         {/* Filters Skeleton */}
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {[...Array(6)].map((_, i) => (
@@ -881,30 +881,36 @@ function PlayersHeader({
   showAddButton?: boolean;
 }): ReactElement {
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-      {/* Single compact row - everything in one line */}
-      <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-        {/* Icon */}
-        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-[#eff3ff] to-indigo-100/70 shadow-sm dark:border-slate-700/60 dark:from-indigo-950/40 dark:via-indigo-950/30 dark:to-slate-900/50">
+      {/* Decorative gradient blobs */}
+      <div className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full bg-indigo-200/40 blur-3xl dark:bg-indigo-500/10" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-purple-200/30 blur-3xl dark:bg-purple-500/10" aria-hidden />
+
+      <div className="relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 md:p-5 lg:p-6">
+        {/* Icon tile */}
+        <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md ring-1 ring-inset ring-white/20 shrink-0">
+          <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </div>
 
-        {/* Title and Count */}
+        {/* Title and count */}
         <div className="flex flex-col shrink-0">
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Players
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-            {totalCount.toLocaleString()} {totalCount === 1 ? 'player' : 'players'}
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <span className="inline-flex items-center rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-200/60 dark:bg-slate-800/80 dark:text-indigo-300 dark:ring-slate-700">
+              {totalCount.toLocaleString()}
+            </span>
+            {totalCount === 1 ? 'player' : 'players'}
           </p>
         </div>
 
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
 
-        {/* Add button - compact - Only show if allowed */}
+        {/* Add button - Only show if allowed */}
         {showAddButton && (
         <Button
           variant="primary"
@@ -1037,8 +1043,12 @@ function PlayersTableSection({
   const shouldShowEmpty = data !== null && data.results.length === 0;
   const showPagination = !!data && data.count > pageSize;
 
+  const totalCount = data?.count ?? 0;
+  const start = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalCount);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       {shouldShowEmpty ? (
         <div className="py-12">
           <EmptyState
@@ -1057,15 +1067,30 @@ function PlayersTableSection({
             onOpenChat={onOpenChat}
             onViewPlayer={onViewPlayer}
           />
-          {showPagination && (
-            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
-              <Pagination
-                currentPage={page}
-                totalPages={Math.ceil((data?.count ?? 0) / pageSize)}
-                onPageChange={onPageChange}
-                hasNext={Boolean(data?.next)}
-                hasPrevious={Boolean(data?.previous)}
-              />
+          {totalCount > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+                Showing{' '}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {start.toLocaleString()}–{end.toLocaleString()}
+                </span>{' '}
+                of{' '}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {totalCount.toLocaleString()}
+                </span>{' '}
+                players
+              </p>
+              {showPagination && (
+                <div className="order-1 sm:order-2">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={Math.ceil(totalCount / pageSize)}
+                    onPageChange={onPageChange}
+                    hasNext={Boolean(data?.next)}
+                    hasPrevious={Boolean(data?.previous)}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>
@@ -1107,8 +1132,8 @@ function PlayersTable({
               <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Referred By</TableHead>
-              <TableHead>Balance</TableHead>
-              <TableHead>Cashout limit</TableHead>
+              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="text-right">Cashout limit</TableHead>
               <TableHead>BinPay</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
@@ -1324,19 +1349,21 @@ function PlayersTableRow({
         {playerLink}
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">{player.email}</div>
+        <div className="max-w-[220px] truncate text-sm text-gray-700 dark:text-gray-300" title={player.email}>
+          {player.email}
+        </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="max-w-[160px] truncate text-sm text-gray-700 dark:text-gray-300" title={getPlayerReferredByDisplay(player)}>
           {getPlayerReferredByDisplay(player)}
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+      <TableCell className="text-right">
+        <div className="text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
           {formatCurrency(player.balance)}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="text-right">
         <div className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
           {player.cashout_limit != null && String(player.cashout_limit).trim() !== ''
             ? formatCurrency(player.cashout_limit)
