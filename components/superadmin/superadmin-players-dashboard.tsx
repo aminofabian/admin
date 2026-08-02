@@ -453,6 +453,11 @@ function useSuperAdminPlayersData({
         params.identity_verification_status = filters.identity_verification_status.trim();
       }
 
+      // Add first deposit done filter if provided
+      if (filters.first_deposit_done !== 'all') {
+        params.first_deposit_done = filters.first_deposit_done === 'true';
+      }
+
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
     } catch (error) {
@@ -472,6 +477,7 @@ function useSuperAdminPlayersData({
     filters.status,
     filters.state,
     filters.identity_verification_status,
+    filters.first_deposit_done,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -514,6 +520,7 @@ function useSuperAdminPlayerFilters(
     status: 'all',
     state: 'all',
     identity_verification_status: 'all',
+    first_deposit_done: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<SuperAdminFilterState>({
@@ -528,6 +535,7 @@ function useSuperAdminPlayerFilters(
     status: 'all',
     state: 'all',
     identity_verification_status: 'all',
+    first_deposit_done: 'all',
   });
 
   const setFilter = useCallback((key: keyof SuperAdminFilterState, value: string) => {
@@ -552,6 +560,7 @@ function useSuperAdminPlayerFilters(
       status: 'all',
       state: 'all',
       identity_verification_status: 'all',
+      first_deposit_done: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -570,7 +579,8 @@ function useSuperAdminPlayerFilters(
       (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
       (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all') ||
       (appliedFilters.identity_verification_status.trim() !== '' &&
-        appliedFilters.identity_verification_status !== 'all')
+        appliedFilters.identity_verification_status !== 'all') ||
+      appliedFilters.first_deposit_done !== 'all'
     );
   }, [appliedFilters]);
 
@@ -662,7 +672,8 @@ function SuperAdminPlayersFiltersWrapper({
       (filters.status.trim() !== '' && filters.status !== 'all') ||
       (filters.state.trim() !== '' && filters.state !== 'all') ||
       (filters.identity_verification_status.trim() !== '' &&
-        filters.identity_verification_status !== 'all');
+        filters.identity_verification_status !== 'all') ||
+      filters.first_deposit_done !== 'all';
 
     if (hasActiveFilters) {
       setIsOpen(true);
@@ -683,6 +694,8 @@ function SuperAdminPlayersFiltersWrapper({
     'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
   const labelClasses =
     'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
+  const checkboxClasses =
+    'w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary/30 dark:bg-slate-950 dark:border-slate-600';
   const sectionHeadingClasses =
     'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
 
@@ -820,6 +833,43 @@ function SuperAdminPlayersFiltersWrapper({
                   options={[...IDENTITY_VERIFICATION_STATUS_OPTIONS]}
                   placeholder="All Verification Statuses"
                 />
+              </div>
+              <div>
+                <span className={labelClasses}>First deposit</span>
+                <div className="flex flex-col gap-2 pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.first_deposit_done === 'true'}
+                      onChange={(e) =>
+                        onFilterChange(
+                          'first_deposit_done',
+                          e.target.checked ? 'true' : 'all',
+                        )
+                      }
+                      className={checkboxClasses}
+                    />
+                    <span className="text-sm text-foreground dark:text-slate-100">
+                      First deposit done
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.first_deposit_done === 'false'}
+                      onChange={(e) =>
+                        onFilterChange(
+                          'first_deposit_done',
+                          e.target.checked ? 'false' : 'all',
+                        )
+                      }
+                      className={checkboxClasses}
+                    />
+                    <span className="text-sm text-foreground dark:text-slate-100">
+                      No first deposit yet
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
           </section>

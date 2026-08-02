@@ -484,6 +484,11 @@ function usePlayersData({
         params.identity_verification_status = filters.identity_verification_status.trim();
       }
 
+      // Add first deposit done filter if provided
+      if (filters.first_deposit_done !== 'all') {
+        params.first_deposit_done = filters.first_deposit_done === 'true';
+      }
+
       // Log the final params to verify date format
       console.log('🔍 Sending API request with params:', params);
 
@@ -505,6 +510,7 @@ function usePlayersData({
     filters.status,
     filters.state,
     filters.identity_verification_status,
+    filters.first_deposit_done,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -546,6 +552,7 @@ function usePlayerFilters(
     status: 'all',
     state: 'all',
     identity_verification_status: 'all',
+    first_deposit_done: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
@@ -559,6 +566,7 @@ function usePlayerFilters(
     status: 'all',
     state: 'all',
     identity_verification_status: 'all',
+    first_deposit_done: 'all',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -583,6 +591,7 @@ function usePlayerFilters(
       status: 'all',
       state: 'all',
       identity_verification_status: 'all',
+      first_deposit_done: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -600,7 +609,8 @@ function usePlayerFilters(
       (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
       (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all') ||
       (appliedFilters.identity_verification_status.trim() !== '' &&
-        appliedFilters.identity_verification_status !== 'all')
+        appliedFilters.identity_verification_status !== 'all') ||
+      appliedFilters.first_deposit_done !== 'all'
     );
   }, [appliedFilters]);
 
@@ -951,7 +961,8 @@ function PlayersFiltersWrapper({
       (filters.status.trim() !== '' && filters.status !== 'all') ||
       (filters.state.trim() !== '' && filters.state !== 'all') ||
       (filters.identity_verification_status.trim() !== '' &&
-        filters.identity_verification_status !== 'all');
+        filters.identity_verification_status !== 'all') ||
+      filters.first_deposit_done !== 'all';
 
     if (hasActiveFilters) {
       setIsOpen(true);
