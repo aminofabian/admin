@@ -79,9 +79,21 @@ export function canEditRouletteRewards(role: UserRole | undefined): boolean {
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
-/** Company/superadmin and managers may customize per-company email templates; staff/agents may not. */
+/**
+ * Who may manage event email templates and marketing email broadcasts.
+ * Allowed: superadmin, company, manager, staff. Denied: agent, player.
+ */
 export function canManageEmailTemplates(role: UserRole | undefined): boolean {
   if (!role) return false;
-  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+  return (
+    role === USER_ROLES.MANAGER ||
+    role === USER_ROLES.STAFF ||
+    ADMIN_ROLES.includes(role)
+  );
+}
+
+/** Alias for broadcast / campaign screens (same roles as templates). */
+export function canManageEmailBroadcasts(role: UserRole | undefined): boolean {
+  return canManageEmailTemplates(role);
 }
 

@@ -1,104 +1,73 @@
 import {
-  EMAIL_TEMPLATE_DEFAULTS,
-  getEmailTemplateMeta,
-  getEmailTemplateVariables,
-  mergeEmailTemplates,
+  EMAIL_TEMPLATE_ACTIONS,
+  emailPlaceholderToken,
+  getEmailTemplateLabel,
   renderEmailPreview,
+  resolveEmailTemplateVariables,
 } from '../email-templates';
-import type { EmailTemplate } from '@/types';
 
-describe('EMAIL_TEMPLATE_DEFAULTS', () => {
-  it('covers every requested event plus the campaign template', () => {
-    const types = EMAIL_TEMPLATE_DEFAULTS.map((t) => t.template_type);
-    expect(types).toEqual([
+describe('EMAIL_TEMPLATE_ACTIONS', () => {
+  it('covers every handoff event action', () => {
+    expect(EMAIL_TEMPLATE_ACTIONS).toEqual([
       'signup_otp',
+      'password_reset',
       'account_created',
-      'kyc_approved',
+      'kyc_verified',
       'kyc_rejected',
-      'forgot_password',
       'purchase_success',
       'cashout_success',
       'referral_joined',
-      'campaign_promo',
+      'game_signup',
+      'cashout_request',
     ]);
-  });
-
-  it('every template has a subject and a body', () => {
-    for (const template of EMAIL_TEMPLATE_DEFAULTS) {
-      expect(template.subject.length).toBeGreaterThan(0);
-      expect(template.body.length).toBeGreaterThan(0);
-    }
   });
 });
 
-describe('getEmailTemplateVariables', () => {
-  it('returns defined variables for a known type', () => {
-    const variables = getEmailTemplateVariables('signup_otp');
-    expect(variables.map((v) => v.key)).toEqual([
-      'first_name',
-      'company_name',
-      'otp_code',
-      'support_email',
-    ]);
+describe('getEmailTemplateLabel', () => {
+  it('returns known labels', () => {
+    expect(getEmailTemplateLabel('kyc_verified')).toBe('KYC Verification Completed');
+    expect(getEmailTemplateLabel('password_reset')).toBe('Password Reset');
   });
 
-  it('returns an empty list for unknown types', () => {
-    expect(getEmailTemplateVariables('unknown_type')).toEqual([]);
+  it('falls back to the action key for unknown types', () => {
+    expect(getEmailTemplateLabel('custom_action')).toBe('custom_action');
   });
 });
 
-describe('mergeEmailTemplates', () => {
-  it('keeps backend customization when a row exists', () => {
-    const row: EmailTemplate = {
-      id: 7,
-      template_type: 'signup_otp',
-      name: 'Sign-up OTP',
-      category: 'event',
-      subject: 'Custom subject',
-      body: '<p>Custom body</p>',
-      is_active: false,
-      is_customized: true,
-    };
-
-    const merged = mergeEmailTemplates([row]);
-    const otp = merged.find((t) => t.template_type === 'signup_otp');
-
-    expect(otp).toMatchObject({
-      id: 7,
-      subject: 'Custom subject',
-      body: '<p>Custom body</p>',
-      is_active: false,
-      is_customized: true,
-    });
-    expect(merged).toHaveLength(EMAIL_TEMPLATE_DEFAULTS.length);
+describe('resolveEmailTemplateVariables', () => {
+  it('returns defined variables for known keys', () => {
+    const variables = resolveEmailTemplateVariables(['username', 'otp', 'email_support']);
+    expect(variables.map((v) => v.key)).toEqual(['username', 'otp', 'email_support']);
+    expect(variables[0].sample).toBe('alex_player');
   });
 
-  it('falls back to defaults for missing templates with id null', () => {
-    const merged = mergeEmailTemplates([]);
-    const otp = merged.find((t) => t.template_type === 'signup_otp');
-
-    expect(otp).toMatchObject({
-      id: null,
-      subject: getEmailTemplateMeta('signup_otp')?.subject,
-      is_active: true,
-      is_customized: false,
-    });
-    expect(merged).toHaveLength(EMAIL_TEMPLATE_DEFAULTS.length);
+  it('creates a generic chip for unknown keys', () => {
+    const variables = resolveEmailTemplateVariables(['mystery_token']);
+    expect(variables).toEqual([{ key: 'mystery_token', label: 'mystery_token', sample: '[mystery_token]' }]);
   });
 });
 
 describe('renderEmailPreview', () => {
-  it('replaces placeholders with sample values', () => {
-    const html = '<p>Hi {{first_name}}, your code is {{otp_code}}.</p>';
-    const rendered = renderEmailPreview(html, getEmailTemplateVariables('signup_otp'));
+  it('replaces spaced and compact placeholders with sample values', () => {
+    const html = '<p>Hi {{ username }}, code {{otp}}.</p>';
+    const rendered = renderEmailPreview(
+      html,
+      resolveEmailTemplateVariables(['username', 'otp']),
+    );
 
-    expect(rendered).toContain('Hi Alex, your code is 482913.');
-    expect(rendered).not.toContain('{{first_name}}');
-    expect(rendered).not.toContain('{{otp_code}}');
+    expect(rendered).toContain('Hi alex_player, code 482913.');
+    expect(rendered).not.toContain('{{ username }}');
+    expect(rendered).not.toContain('{{otp}}');
   });
 
   it('leaves unknown placeholders untouched', () => {
-    const rendered = renderEmailPreview('{{unknown}}', []);
-    expect(rendered).toBe('{{unknown}}');
+    const rendered = renderEmailPreview('{{ unknown }}', []);
+    expect(rendered).toBe('{{ unknown }}');
+  });
+});
+
+describe('emailPlaceholderToken', () => {
+  it('formats Django-style tokens', () => {
+    expect(emailPlaceholderToken('username')).toBe('{{ username }}');
   });
 });

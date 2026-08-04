@@ -1,58 +1,69 @@
 /**
- * Email template types.
- *
- * Templates are per-company: the backend seeds a default set when a company is
- * created, and admins can customize the subject/body (or disable) each one.
- * The admin dashboard merges backend rows with frontend defaults so every
- * template always appears in the UI, even before it has been persisted.
+ * Dynamic event email templates (per-project).
+ * Backend auto-creates defaults on list; admins PATCH by action key.
  */
 
-export const EMAIL_TEMPLATE_CATEGORIES = {
-  EVENT: 'event',
-  CAMPAIGN: 'campaign',
-} as const;
-
-export type EmailTemplateCategory =
-  (typeof EMAIL_TEMPLATE_CATEGORIES)[keyof typeof EMAIL_TEMPLATE_CATEGORIES];
-
-export type EmailTemplateType =
+export type EmailTemplateAction =
   | 'signup_otp'
+  | 'password_reset'
   | 'account_created'
-  | 'kyc_approved'
+  | 'kyc_verified'
   | 'kyc_rejected'
-  | 'forgot_password'
   | 'purchase_success'
   | 'cashout_success'
   | 'referral_joined'
-  | 'campaign_promo';
+  | 'game_signup'
+  | 'cashout_request';
 
-export interface EmailTemplate {
-  /** Backend row id; null when the template only exists as a frontend default. */
-  id: number | null;
-  template_type: EmailTemplateType;
-  name: string;
-  category: EmailTemplateCategory;
-  /** Short human description shown in the admin UI (merged from defaults). */
-  description?: string;
+export interface EmailTemplateDefaults {
   subject: string;
-  body: string;
-  is_active: boolean;
-  /** True once the company has saved a custom subject/body for this template. */
-  is_customized: boolean;
-  created?: string;
-  modified?: string;
+  header: string;
+  body_message: string;
+  banner: string;
 }
 
-export interface CreateEmailTemplateRequest {
-  template_type: EmailTemplateType;
+export interface EmailTemplate {
+  id: number;
+  action: EmailTemplateAction | string;
+  action_label: string;
   subject: string;
-  body: string;
-  is_active?: boolean;
+  header: string;
+  body_message: string;
+  banner: string;
+  is_enabled: boolean;
+  required_placeholders: string[];
+  defaults?: EmailTemplateDefaults;
+  created_by?: number | null;
+  modified_at?: string | null;
+}
+
+export interface EmailTemplateActionMeta {
+  action: string;
+  label: string;
+}
+
+export interface EmailTemplatesListResponse {
+  owner_id?: number;
+  owner_username?: string;
+  actions?: EmailTemplateActionMeta[];
+  results: EmailTemplate[];
+}
+
+export interface EmailTemplateDetailResponse {
+  template: EmailTemplate;
 }
 
 export interface UpdateEmailTemplateRequest {
   subject?: string;
-  body?: string;
-  is_active?: boolean;
-  is_customized?: boolean;
+  header?: string;
+  body_message?: string;
+  banner?: string;
+  is_enabled?: boolean;
+  whitelabel_admin_uuid?: string;
+}
+
+export interface UpdateEmailTemplateResponse {
+  success: boolean;
+  message: string;
+  template: EmailTemplate;
 }

@@ -33,4 +33,6 @@ export * from './auth-diagnostic';
 export * from '../dashboard/data-sections/action-modal/activity-details-modal';
 export * from './edit-profile-drawer';
 export * from './email-template-editor-drawer';
+export * from './email-broadcast-compose-drawer';
+export * from './project-scope-picker';
 

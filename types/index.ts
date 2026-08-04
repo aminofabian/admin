@@ -11,4 +11,5 @@ export * from './affiliate';
 export * from './settings';
 export * from './chat';
 export * from './email-template';
+export * from './email-broadcast';
 
