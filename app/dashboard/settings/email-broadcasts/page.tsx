@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canManageEmailBroadcasts } from '@/lib/constants/roles';
+import { canManageEmailBroadcasts } from '@/lib/constants/roles';
 import { emailBroadcastsApi } from '@/lib/api';
 import { emailBroadcastStatusTone } from '@/lib/constants/email-broadcasts';
 import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
 import { Badge, Button, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import { EmailBroadcastComposeDrawer } from '@/components/features/email-broadcast-compose-drawer';
-import { ProjectScopePicker } from '@/components/features/project-scope-picker';
 import type { CreateEmailBroadcastRequest, EmailBroadcast } from '@/types';
 
 function formatWhen(value: string | null | undefined): string {
@@ -30,30 +29,20 @@ export default function EmailBroadcastsSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [scopeUuid, setScopeUuid] = useState('');
 
   const canEdit = canManageEmailBroadcasts(user?.role);
-  const isSuperadmin = user?.role === USER_ROLES.SUPERADMIN;
 
   useEffect(() => {
-    if (user?.role === USER_ROLES.AGENT || (user && !canManageEmailBroadcasts(user.role))) {
+    if (user && !canManageEmailBroadcasts(user.role)) {
       router.push('/dashboard/settings');
     }
   }, [user, router]);
 
   const effectiveUuid = resolveEmailScopeUuid({
     role: user?.role,
-    explicitUuid: isSuperadmin ? scopeUuid : undefined,
   });
 
   const loadBroadcasts = useCallback(async () => {
-    if (isSuperadmin && !scopeUuid.trim()) {
-      setBroadcasts([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
     try {
@@ -70,7 +59,7 @@ export default function EmailBroadcastsSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveUuid, isSuperadmin, scopeUuid]);
+  }, [effectiveUuid]);
 
   useEffect(() => {
     if (canEdit) {
@@ -81,18 +70,12 @@ export default function EmailBroadcastsSettingsPage() {
   const handleCreate = async (data: CreateEmailBroadcastRequest) => {
     setIsSaving(true);
     try {
-      const payload: CreateEmailBroadcastRequest = {
-        ...data,
-        ...(isSuperadmin && scopeUuid.trim() && !data.whitelabel_admin_uuid
-          ? { whitelabel_admin_uuid: scopeUuid.trim() }
-          : {}),
-      };
-      const result = await emailBroadcastsApi.create(payload);
+      const result = await emailBroadcastsApi.create(data);
       setBroadcasts((prev) => [result.broadcast, ...prev.filter((row) => row.id !== result.broadcast.id)]);
       setIsComposeOpen(false);
       addToast({
         type: 'success',
-        title: payload.scheduled_at ? 'Campaign scheduled' : 'Campaign queued',
+        title: data.scheduled_at ? 'Campaign scheduled' : 'Campaign queued',
         description: result.message || result.broadcast.subject,
       });
     } catch (err) {
@@ -113,21 +96,6 @@ export default function EmailBroadcastsSettingsPage() {
 
   if (isAuthLoading) return <LoadingState />;
   if (!canEdit) return null;
-
-  if (isSuperadmin && !scopeUuid.trim()) {
-    return (
-      <div className="space-y-6 pb-12">
-        <header>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Email campaigns</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Compose, schedule, and review marketing email broadcasts.
-          </p>
-        </header>
-        <ProjectScopePicker value={scopeUuid} onChange={setScopeUuid} required />
-      </div>
-    );
-  }
-
   if (isLoading) return <LoadingState />;
   if (error && broadcasts.length === 0) {
     return <ErrorState message={error} onRetry={loadBroadcasts} />;
@@ -152,10 +120,6 @@ export default function EmailBroadcastsSettingsPage() {
           </Button>
         </div>
       </header>
-
-      {isSuperadmin ? (
-        <ProjectScopePicker value={scopeUuid} onChange={setScopeUuid} required />
-      ) : null}
 
       <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
@@ -248,8 +212,7 @@ export default function EmailBroadcastsSettingsPage() {
       <EmailBroadcastComposeDrawer
         isOpen={isComposeOpen}
         isSaving={isSaving}
-        isSuperadmin={isSuperadmin}
-        defaultScopeUuid={scopeUuid}
+        isSuperadmin={false}
         onClose={() => setIsComposeOpen(false)}
         onSubmit={handleCreate}
       />

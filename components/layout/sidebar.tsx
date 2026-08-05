@@ -311,12 +311,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/email-templates',
   },
   {
-    name: 'Email Campaigns',
-    icon: <EmailCampaignsIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/email-broadcasts',
-  },
-  {
     name: 'Players',
     icon: <PlayerIcon />,
     roles: [USER_ROLES.SUPERADMIN],

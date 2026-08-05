@@ -129,7 +129,7 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/email-broadcasts',
-    permissions: ['company', 'superadmin', 'manager', 'staff'],
+    permissions: ['company', 'manager', 'staff'],
   },
 ];
 
