@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canManageEmailTemplates } from '@/lib/constants/roles';
+import { canManageEmailTemplates } from '@/lib/constants/roles';
 import { emailTemplatesApi } from '@/lib/api';
 import {
   displayEmailTemplateLabel,
@@ -13,7 +13,6 @@ import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
 import { Button, Switch, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import { EmailTemplateEditorDrawer } from '@/components/features/email-template-editor-drawer';
-import { ProjectScopePicker } from '@/components/features/project-scope-picker';
 import type { EmailTemplate } from '@/types';
 
 function TemplateRow({
@@ -113,33 +112,20 @@ export default function EmailTemplatesSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<EmailTemplate | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [scopeUuid, setScopeUuid] = useState('');
 
   const canEdit = canManageEmailTemplates(user?.role);
-  const isSuperadmin = user?.role === USER_ROLES.SUPERADMIN;
 
   useEffect(() => {
-    if (
-      user?.role === USER_ROLES.AGENT ||
-      (user && !canManageEmailTemplates(user.role))
-    ) {
+    if (user && !canManageEmailTemplates(user.role)) {
       router.push('/dashboard/settings');
     }
   }, [user, router]);
 
   const effectiveUuid = resolveEmailScopeUuid({
     role: user?.role,
-    explicitUuid: isSuperadmin ? scopeUuid : undefined,
   });
 
   const loadTemplates = useCallback(async () => {
-    if (isSuperadmin && !scopeUuid.trim()) {
-      setTemplates([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
     try {
@@ -156,7 +142,7 @@ export default function EmailTemplatesSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveUuid, isSuperadmin, scopeUuid]);
+  }, [effectiveUuid]);
 
   useEffect(() => {
     if (canEdit) {
@@ -182,16 +168,9 @@ export default function EmailTemplatesSettingsPage() {
     is_enabled: boolean;
   }) => {
     if (!selected) return;
-    if (isSuperadmin && !scopeUuid.trim()) {
-      addToast({ type: 'error', title: 'Select a project', description: 'Whitelabel UUID is required.' });
-      return;
-    }
     setIsSaving(true);
     try {
-      const saved = await emailTemplatesApi.update(selected.action, {
-        ...data,
-        ...(isSuperadmin ? { whitelabel_admin_uuid: scopeUuid.trim() } : {}),
-      });
+      const saved = await emailTemplatesApi.update(selected.action, data);
       upsertTemplate(saved);
       setIsDrawerOpen(false);
       setSelected(null);
@@ -215,12 +194,8 @@ export default function EmailTemplatesSettingsPage() {
   };
 
   const handleToggleEnabled = async (template: EmailTemplate, enabled: boolean) => {
-    if (isSuperadmin && !scopeUuid.trim()) {
-      throw new Error('Whitelabel UUID is required for superadmin.');
-    }
     const saved = await emailTemplatesApi.update(template.action, {
       is_enabled: enabled,
-      ...(isSuperadmin ? { whitelabel_admin_uuid: scopeUuid.trim() } : {}),
     });
     upsertTemplate(saved);
   };
@@ -232,21 +207,6 @@ export default function EmailTemplatesSettingsPage() {
 
   if (isAuthLoading) return <LoadingState />;
   if (!canEdit) return null;
-
-  if (isSuperadmin && !scopeUuid.trim()) {
-    return (
-      <div className="space-y-6 pb-12">
-        <header>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Email templates</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Customize transactional emails sent automatically on player events.
-          </p>
-        </header>
-        <ProjectScopePicker value={scopeUuid} onChange={setScopeUuid} required />
-      </div>
-    );
-  }
-
   if (isLoading) return <LoadingState />;
   if (error && templates.length === 0) {
     return <ErrorState message={error} onRetry={loadTemplates} />;
@@ -266,10 +226,6 @@ export default function EmailTemplatesSettingsPage() {
           Refresh
         </Button>
       </header>
-
-      {isSuperadmin ? (
-        <ProjectScopePicker value={scopeUuid} onChange={setScopeUuid} required />
-      ) : null}
 
       <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">

@@ -117,7 +117,7 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/email-templates',
-    permissions: ['company', 'superadmin', 'manager', 'staff'],
+    permissions: ['company', 'manager', 'staff'],
   },
   {
     id: 'email-broadcasts',

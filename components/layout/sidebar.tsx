@@ -287,30 +287,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
-    name: 'Phone Verification',
-    icon: <PhoneVerificationIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/verification',
-  },
-  {
-    name: 'Referral Settings',
-    icon: <AffiliatesAgentIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/referral',
-  },
-  {
-    name: 'Promo Codes',
-    icon: <AffiliatesAgentIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/referral-promo-codes',
-  },
-  {
-    name: 'Email Templates',
-    icon: <EmailTemplatesIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/email-templates',
-  },
-  {
     name: 'Players',
     icon: <PlayerIcon />,
     roles: [USER_ROLES.SUPERADMIN],

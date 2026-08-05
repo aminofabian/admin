@@ -81,14 +81,15 @@ export function canEditRouletteRewards(role: UserRole | undefined): boolean {
 
 /**
  * Who may manage event email templates.
- * Allowed: superadmin, company, manager, staff. Denied: agent, player.
+ * Company-scoped only (not superadmin) — templates are per project.
+ * Allowed: company, manager, staff. Denied: superadmin, agent, player.
  */
 export function canManageEmailTemplates(role: UserRole | undefined): boolean {
   if (!role) return false;
   return (
+    role === USER_ROLES.COMPANY ||
     role === USER_ROLES.MANAGER ||
-    role === USER_ROLES.STAFF ||
-    ADMIN_ROLES.includes(role)
+    role === USER_ROLES.STAFF
   );
 }
 
@@ -98,11 +99,6 @@ export function canManageEmailTemplates(role: UserRole | undefined): boolean {
  * Allowed: company, manager, staff. Denied: superadmin, agent, player.
  */
 export function canManageEmailBroadcasts(role: UserRole | undefined): boolean {
-  if (!role) return false;
-  return (
-    role === USER_ROLES.COMPANY ||
-    role === USER_ROLES.MANAGER ||
-    role === USER_ROLES.STAFF
-  );
+  return canManageEmailTemplates(role);
 }
 
