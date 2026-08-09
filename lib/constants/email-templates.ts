@@ -1,9 +1,10 @@
 import type { EmailTemplate, EmailTemplateAction } from '@/types';
 
 /**
- * Placeholders available inside email subjects / headers / bodies.
+ * Placeholders available inside email subjects / bodies.
  * `sample` values are used to render a live preview of a template.
  * Django-style tokens use spaces: {{ username }}
+ * Header and banner are no longer separate template fields — put image links in the HTML body.
  */
 export interface EmailTemplateVariable {
   key: string;
