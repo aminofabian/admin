@@ -164,8 +164,6 @@ export default function EmailTemplatesSettingsPage() {
     subject: string;
     body_message: string;
     is_enabled: boolean;
-    header: string;
-    banner: string;
   }) => {
     if (!selected) return;
     setIsSaving(true);

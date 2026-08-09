@@ -20,9 +20,6 @@ interface EmailTemplateEditorDrawerProps {
     subject: string;
     body_message: string;
     is_enabled: boolean;
-    /** Cleared — no longer edited in the UI; images go in the HTML body. */
-    header: string;
-    banner: string;
   }) => Promise<void>;
 }
 
@@ -105,9 +102,6 @@ export function EmailTemplateEditorDrawer({
         subject,
         body_message: bodyMessage,
         is_enabled: isEnabled,
-        // Clear dedicated header/banner fields; put images/links in the HTML body.
-        header: '',
-        banner: '',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save template');
