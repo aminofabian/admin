@@ -29,4 +29,5 @@ export * from './roulette-reward-configs';
 export * from './verification-settings';
 export * from './email-templates';
 export * from './email-broadcasts';
+export * from './email-campaign-templates';
 

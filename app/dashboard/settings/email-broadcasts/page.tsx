@@ -4,13 +4,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { canManageEmailBroadcasts } from '@/lib/constants/roles';
-import { emailBroadcastsApi } from '@/lib/api';
-import { emailBroadcastStatusTone } from '@/lib/constants/email-broadcasts';
+import { emailBroadcastsApi, emailCampaignTemplatesApi } from '@/lib/api';
+import {
+  emailBroadcastStatusTone,
+  formatEmailBroadcastCriteria,
+} from '@/lib/constants/email-broadcasts';
 import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
 import { Badge, Button, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import { EmailBroadcastComposeDrawer } from '@/components/features/email-broadcast-compose-drawer';
-import type { CreateEmailBroadcastRequest, EmailBroadcast } from '@/types';
+import type {
+  CreateEmailBroadcastRequest,
+  EmailBroadcast,
+  EmailCampaignTemplate,
+} from '@/types';
 
 function formatWhen(value: string | null | undefined): string {
   if (!value) return '—';
@@ -25,10 +32,13 @@ export default function EmailBroadcastsSettingsPage() {
   const { addToast } = useToast();
 
   const [broadcasts, setBroadcasts] = useState<EmailBroadcast[]>([]);
+  const [templates, setTemplates] = useState<EmailCampaignTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [composeTemplate, setComposeTemplate] = useState<EmailCampaignTemplate | null>(null);
 
   const canEdit = canManageEmailBroadcasts(user?.role);
 
@@ -42,11 +52,24 @@ export default function EmailBroadcastsSettingsPage() {
     role: user?.role,
   });
 
+  const loadTemplates = useCallback(async () => {
+    try {
+      const rows = await emailCampaignTemplatesApi.list(effectiveUuid);
+      setTemplates(rows);
+    } catch {
+      // Templates are additive; keep campaigns usable if this endpoint is still landing.
+      setTemplates([]);
+    }
+  }, [effectiveUuid]);
+
   const loadBroadcasts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const rows = await emailBroadcastsApi.list(effectiveUuid);
+      const [rows] = await Promise.all([
+        emailBroadcastsApi.list(effectiveUuid),
+        loadTemplates(),
+      ]);
       setBroadcasts(rows);
     } catch (err) {
       const message =
@@ -59,7 +82,7 @@ export default function EmailBroadcastsSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveUuid]);
+  }, [effectiveUuid, loadTemplates]);
 
   useEffect(() => {
     if (canEdit) {
@@ -67,12 +90,22 @@ export default function EmailBroadcastsSettingsPage() {
     }
   }, [canEdit, loadBroadcasts]);
 
+  const openCompose = (template?: EmailCampaignTemplate | null) => {
+    setComposeTemplate(template ?? null);
+    setIsComposeOpen(true);
+  };
+
+  const closeCompose = () => {
+    setIsComposeOpen(false);
+    setComposeTemplate(null);
+  };
+
   const handleCreate = async (data: CreateEmailBroadcastRequest) => {
     setIsSaving(true);
     try {
       const result = await emailBroadcastsApi.create(data);
       setBroadcasts((prev) => [result.broadcast, ...prev.filter((row) => row.id !== result.broadcast.id)]);
-      setIsComposeOpen(false);
+      closeCompose();
       addToast({
         type: 'success',
         title: data.scheduled_at ? 'Campaign scheduled' : 'Campaign queued',
@@ -94,6 +127,27 @@ export default function EmailBroadcastsSettingsPage() {
     }
   };
 
+  const handleDeleteTemplate = async (template: EmailCampaignTemplate) => {
+    setDeletingTemplateId(template.id);
+    try {
+      await emailCampaignTemplatesApi.remove(template.id, effectiveUuid);
+      setTemplates((prev) => prev.filter((row) => row.id !== template.id));
+      addToast({
+        type: 'success',
+        title: 'Template deleted',
+        description: template.name,
+      });
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Failed to delete template',
+      });
+    } finally {
+      setDeletingTemplateId(null);
+    }
+  };
+
   if (isAuthLoading) return <LoadingState />;
   if (!canEdit) return null;
   if (isLoading) return <LoadingState />;
@@ -107,15 +161,15 @@ export default function EmailBroadcastsSettingsPage() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Email campaigns</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Send or schedule marketing emails to opted-in players. Transactional emails are configured
-            under Email Templates.
+            Send or schedule marketing emails with reusable templates and audience criteria.
+            Transactional emails are configured under Email Templates.
           </p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => void loadBroadcasts()}>
             Refresh
           </Button>
-          <Button type="button" size="sm" onClick={() => setIsComposeOpen(true)}>
+          <Button type="button" size="sm" onClick={() => openCompose()}>
             Compose
           </Button>
         </div>
@@ -123,9 +177,83 @@ export default function EmailBroadcastsSettingsPage() {
 
       <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Campaign templates
+          </h2>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Save subject and HTML body once, reuse across campaigns
+          </p>
+        </div>
+
+        <div className="overflow-x-auto px-5 py-2">
+          {templates.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              No saved templates yet. Compose a campaign and use &quot;Save as template&quot;.
+            </p>
+          ) : (
+            <table className="w-full min-w-[560px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="py-2.5 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    Name
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    Subject
+                  </th>
+                  <th className="py-2.5 pl-4 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.map((template) => (
+                  <tr
+                    key={template.id}
+                    className="border-b border-gray-100 last:border-0 dark:border-gray-700/80"
+                  >
+                    <td className="py-3.5 pr-4">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{template.name}</p>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <p className="max-w-md truncate text-xs text-gray-600 dark:text-gray-300">
+                        {template.subject}
+                      </p>
+                    </td>
+                    <td className="py-3.5 pl-4">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openCompose(template)}
+                        >
+                          Use
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          isLoading={deletingTemplateId === template.id}
+                          disabled={deletingTemplateId === template.id}
+                          onClick={() => void handleDeleteTemplate(template)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Campaign history</h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Status, recipients, and delivery counts
+            Status, recipients, criteria, and delivery counts
           </p>
         </div>
 
@@ -159,50 +287,60 @@ export default function EmailBroadcastsSettingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {broadcasts.map((broadcast) => (
-                  <tr
-                    key={broadcast.id}
-                    className="border-b border-gray-100 last:border-0 dark:border-gray-700/80"
-                  >
-                    <td className="py-3.5 pr-4">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{broadcast.subject}</p>
-                      {broadcast.last_error ? (
-                        <p className="mt-0.5 max-w-sm truncate text-xs text-red-500">
-                          {broadcast.last_error}
+                {broadcasts.map((broadcast) => {
+                  const criteriaLabel = formatEmailBroadcastCriteria(broadcast);
+                  return (
+                    <tr
+                      key={broadcast.id}
+                      className="border-b border-gray-100 last:border-0 dark:border-gray-700/80"
+                    >
+                      <td className="py-3.5 pr-4">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {broadcast.subject}
                         </p>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-3.5">
-                      <Badge variant={emailBroadcastStatusTone(broadcast.status)}>
-                        {broadcast.status}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-3.5 capitalize text-gray-600 dark:text-gray-300">
-                      {broadcast.audience}
-                    </td>
-                    <td className="px-3 py-3.5 text-gray-600 dark:text-gray-300">
-                      {broadcast.total_recipients}
-                    </td>
-                    <td className="px-3 py-3.5 text-xs text-gray-600 dark:text-gray-300">
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        {broadcast.successful_deliveries}
-                      </span>
-                      {' / '}
-                      <span className="text-red-500">{broadcast.failed_deliveries}</span>
-                      {' / '}
-                      <span className="text-amber-600 dark:text-amber-400">
-                        {broadcast.skipped_deliveries}
-                      </span>
-                      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-400">
-                        ok / fail / skip
-                      </p>
-                    </td>
-                    <td className="py-3.5 pl-4 text-xs text-gray-600 dark:text-gray-300">
-                      <p>Sent: {formatWhen(broadcast.sent_at)}</p>
-                      <p className="mt-0.5">Scheduled: {formatWhen(broadcast.scheduled_at)}</p>
-                    </td>
-                  </tr>
-                ))}
+                        {criteriaLabel ? (
+                          <p className="mt-0.5 max-w-sm text-xs text-gray-500 dark:text-gray-400">
+                            {criteriaLabel}
+                          </p>
+                        ) : null}
+                        {broadcast.last_error ? (
+                          <p className="mt-0.5 max-w-sm truncate text-xs text-red-500">
+                            {broadcast.last_error}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <Badge variant={emailBroadcastStatusTone(broadcast.status)}>
+                          {broadcast.status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-3.5 capitalize text-gray-600 dark:text-gray-300">
+                        {broadcast.audience}
+                      </td>
+                      <td className="px-3 py-3.5 text-gray-600 dark:text-gray-300">
+                        {broadcast.total_recipients}
+                      </td>
+                      <td className="px-3 py-3.5 text-xs text-gray-600 dark:text-gray-300">
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {broadcast.successful_deliveries}
+                        </span>
+                        {' / '}
+                        <span className="text-red-500">{broadcast.failed_deliveries}</span>
+                        {' / '}
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {broadcast.skipped_deliveries}
+                        </span>
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-400">
+                          ok / fail / skip
+                        </p>
+                      </td>
+                      <td className="py-3.5 pl-4 text-xs text-gray-600 dark:text-gray-300">
+                        <p>Sent: {formatWhen(broadcast.sent_at)}</p>
+                        <p className="mt-0.5">Scheduled: {formatWhen(broadcast.scheduled_at)}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -213,8 +351,11 @@ export default function EmailBroadcastsSettingsPage() {
         isOpen={isComposeOpen}
         isSaving={isSaving}
         isSuperadmin={false}
-        onClose={() => setIsComposeOpen(false)}
+        templates={templates}
+        initialTemplate={composeTemplate}
+        onClose={closeCompose}
         onSubmit={handleCreate}
+        onTemplatesChange={() => void loadTemplates()}
       />
     </div>
   );
