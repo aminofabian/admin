@@ -21,11 +21,6 @@ export const EMAIL_BROADCAST_AUDIENCES: {
     description: 'Active opted-in players in your scope',
   },
   {
-    value: 'whitelabel',
-    label: 'Whitelabel project',
-    description: 'Eligible players for a specific project',
-  },
-  {
     value: 'selected',
     label: 'Selected players',
     description: 'Only the player IDs you choose',

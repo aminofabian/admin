@@ -59,7 +59,7 @@ export function EmailBroadcastComposeDrawer({
 }: EmailBroadcastComposeDrawerProps) {
   const [subject, setSubject] = useState('');
   const [htmlBody, setHtmlBody] = useState('<p>Hi {{ username }},</p>');
-  const [audience, setAudience] = useState<EmailBroadcastAudience>('whitelabel');
+  const [audience, setAudience] = useState<EmailBroadcastAudience>('all');
   const [scopeUuid, setScopeUuid] = useState(defaultScopeUuid);
   const [scheduledAt, setScheduledAt] = useState('');
   const [userIdsText, setUserIdsText] = useState('');
@@ -90,7 +90,7 @@ export function EmailBroadcastComposeDrawer({
   useEffect(() => {
     if (!isOpen) return;
 
-    setAudience(isSuperadmin ? 'whitelabel' : 'all');
+    setAudience('all');
     setScopeUuid(defaultScopeUuid);
     setScheduledAt('');
     setUserIdsText('');
@@ -234,11 +234,6 @@ export function EmailBroadcastComposeDrawer({
     const resolvedUuid =
       scopeUuid.trim() || (!isSuperadmin ? getStoredProjectUuid() || '' : '');
 
-    if (audience === 'whitelabel' && !resolvedUuid) {
-      setError('Whitelabel admin UUID is required for whitelabel audience.');
-      return;
-    }
-
     const userIds = parseUserIds();
     if (audience === 'selected' && userIds.length === 0) {
       setError('Select at least one player or enter user IDs.');
@@ -266,9 +261,7 @@ export function EmailBroadcastComposeDrawer({
       audience,
     };
 
-    if (audience === 'whitelabel' && resolvedUuid) {
-      payload.whitelabel_admin_uuid = resolvedUuid;
-    } else if (isSuperadmin && resolvedUuid) {
+    if (resolvedUuid) {
       payload.whitelabel_admin_uuid = resolvedUuid;
     }
     if (audience === 'selected') {
@@ -424,13 +417,13 @@ export function EmailBroadcastComposeDrawer({
           </p>
         </div>
 
-        {isSuperadmin && (audience === 'whitelabel' || audience === 'all') ? (
+        {isSuperadmin ? (
           <ProjectScopePicker
             value={scopeUuid}
             onChange={setScopeUuid}
             disabled={busy}
-            required={audience === 'whitelabel'}
-            label="Project (whitelabel)"
+            required={false}
+            label="Project scope (optional)"
           />
         ) : null}
 
