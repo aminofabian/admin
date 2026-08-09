@@ -1,5 +1,10 @@
 /**
  * Marketing email broadcasts / scheduled campaigns.
+ *
+ * Audience filter fields (intersect with audience / user_ids):
+ * - ssn_verified: true/false → player is_identity_verified
+ * - deposit_min / deposit_max: lifetime completed deposits ≥ / ≤
+ * - states: case-insensitive match on player.state (e.g. ["California","Texas"])
  */
 
 export type EmailBroadcastAudience = 'all' | 'whitelabel' | 'selected';
@@ -15,11 +20,13 @@ export type EmailBroadcastStatus =
 export type EmailBroadcastSsnVerified = boolean | null;
 
 export interface EmailBroadcastAudienceCriteria {
-  deposit_amount_min?: number | null;
-  deposit_amount_max?: number | null;
-  /** true = verified, false = unverified, null/undefined = any */
+  /** Lifetime completed deposits ≥ this amount */
+  deposit_min?: number | null;
+  /** Lifetime completed deposits ≤ this amount */
+  deposit_max?: number | null;
+  /** true = verified, false = unverified, null/undefined = any (is_identity_verified) */
   ssn_verified?: EmailBroadcastSsnVerified;
-  /** US state codes, e.g. ["CA", "NY"] */
+  /** Case-insensitive match on player.state, e.g. ["California", "Texas"] */
   states?: string[];
 }
 

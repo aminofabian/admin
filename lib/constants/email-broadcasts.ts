@@ -81,8 +81,8 @@ export function formatEmailBroadcastCriteria(
   if (!criteria) return '';
 
   const parts: string[] = [];
-  const min = criteria.deposit_amount_min;
-  const max = criteria.deposit_amount_max;
+  const min = criteria.deposit_min;
+  const max = criteria.deposit_max;
 
   if (min != null && max != null) {
     parts.push(`Deposit $${min}–$${max}`);

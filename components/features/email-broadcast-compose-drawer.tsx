@@ -79,7 +79,6 @@ export function EmailBroadcastComposeDrawer({
   const selectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
 
   const placeholders = useMemo(() => getEmailBroadcastPlaceholders(), []);
-  const showCriteria = audience === 'all' || audience === 'whitelabel';
 
   const applyTemplate = (template: EmailCampaignTemplate) => {
     setSelectedTemplateId(String(template.id));
@@ -284,12 +283,15 @@ export function EmailBroadcastComposeDrawer({
       payload.template_id = templateId;
     }
 
-    if (showCriteria) {
-      if (minAmount != null) payload.deposit_amount_min = minAmount;
-      if (maxAmount != null) payload.deposit_amount_max = maxAmount;
-      if (ssnFilter === 'verified') payload.ssn_verified = true;
-      if (ssnFilter === 'unverified') payload.ssn_verified = false;
-      if (selectedStates.length > 0) payload.states = [...selectedStates].sort();
+    if (minAmount != null) payload.deposit_min = minAmount;
+    if (maxAmount != null) payload.deposit_max = maxAmount;
+    if (ssnFilter === 'verified') payload.ssn_verified = true;
+    if (ssnFilter === 'unverified') payload.ssn_verified = false;
+    if (selectedStates.length > 0) {
+      // Backend matches player.state case-insensitively; API examples use full names.
+      payload.states = selectedStates
+        .map((code) => US_STATES.find((row) => row.value === code)?.label || code)
+        .sort((a, b) => a.localeCompare(b));
     }
 
     try {
@@ -432,121 +434,6 @@ export function EmailBroadcastComposeDrawer({
           />
         ) : null}
 
-        {showCriteria ? (
-          <div className="space-y-4 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                Audience criteria
-              </p>
-              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Optional filters applied on top of the audience above. Leave blank to include everyone
-                eligible.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="email-broadcast-deposit-min"
-                  className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
-                >
-                  Deposit amount min
-                </label>
-                <Input
-                  id="email-broadcast-deposit-min"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={depositMin}
-                  onChange={(e) => setDepositMin(e.target.value)}
-                  placeholder="e.g. 50"
-                  disabled={busy}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="email-broadcast-deposit-max"
-                  className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
-                >
-                  Deposit amount max
-                </label>
-                <Input
-                  id="email-broadcast-deposit-max"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={depositMax}
-                  onChange={(e) => setDepositMax(e.target.value)}
-                  placeholder="e.g. 500"
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100">
-                SSN verification
-              </label>
-              <Select
-                value={ssnFilter}
-                onChange={(value) => setSsnFilter(value as SsnFilterValue)}
-                options={EMAIL_BROADCAST_SSN_OPTIONS.map((item) => ({
-                  value: item.value,
-                  label: item.label,
-                }))}
-                disabled={busy}
-              />
-            </div>
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  States
-                </label>
-                {selectedStates.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStates([])}
-                    disabled={busy}
-                    className="text-xs text-[#6366f1] hover:underline disabled:opacity-50"
-                  >
-                    Clear ({selectedStates.length})
-                  </button>
-                ) : null}
-              </div>
-              <div className="max-h-40 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
-                <ul className="grid grid-cols-1 gap-0 sm:grid-cols-2">
-                  {US_STATES.map((state) => {
-                    const checked = selectedStates.includes(state.value);
-                    return (
-                      <li key={state.value}>
-                        <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={busy}
-                            onChange={() => toggleState(state.value)}
-                            className="rounded border-gray-300 text-[#6366f1] focus:ring-[#6366f1]"
-                          />
-                          <span>
-                            {state.label}
-                            <span className="ml-1 text-xs text-gray-400">{state.value}</span>
-                          </span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                Leave all unchecked to send to every state.
-              </p>
-            </div>
-          </div>
-        ) : null}
-
         {audience === 'selected' ? (
           <div className="space-y-3">
             <div>
@@ -626,6 +513,120 @@ export function EmailBroadcastComposeDrawer({
             </div>
           </div>
         ) : null}
+
+        <div className="space-y-4 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Audience criteria
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Optional filters. With selected players, filters intersect (only matching IDs are
+              emailed). Leave blank to skip a filter.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="email-broadcast-deposit-min"
+                className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
+              >
+                Deposit min (lifetime ≥)
+              </label>
+              <Input
+                id="email-broadcast-deposit-min"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={depositMin}
+                onChange={(e) => setDepositMin(e.target.value)}
+                placeholder="e.g. 50"
+                disabled={busy}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="email-broadcast-deposit-max"
+                className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
+              >
+                Deposit max (lifetime ≤)
+              </label>
+              <Input
+                id="email-broadcast-deposit-max"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={depositMax}
+                onChange={(e) => setDepositMax(e.target.value)}
+                placeholder="e.g. 500"
+                disabled={busy}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100">
+              SSN verification
+            </label>
+            <Select
+              value={ssnFilter}
+              onChange={(value) => setSsnFilter(value as SsnFilterValue)}
+              options={EMAIL_BROADCAST_SSN_OPTIONS.map((item) => ({
+                value: item.value,
+                label: item.label,
+              }))}
+              disabled={busy}
+            />
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              Maps to identity verified (<code className="text-[11px]">is_identity_verified</code>).
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-100">States</label>
+              {selectedStates.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedStates([])}
+                  disabled={busy}
+                  className="text-xs text-[#6366f1] hover:underline disabled:opacity-50"
+                >
+                  Clear ({selectedStates.length})
+                </button>
+              ) : null}
+            </div>
+            <div className="max-h-40 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
+              <ul className="grid grid-cols-1 gap-0 sm:grid-cols-2">
+                {US_STATES.map((state) => {
+                  const checked = selectedStates.includes(state.value);
+                  return (
+                    <li key={state.value}>
+                      <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={busy}
+                          onChange={() => toggleState(state.value)}
+                          className="rounded border-gray-300 text-[#6366f1] focus:ring-[#6366f1]"
+                        />
+                        <span>
+                          {state.label}
+                          <span className="ml-1 text-xs text-gray-400">{state.value}</span>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              Leave all unchecked for every state. Sent as full names (e.g. California).
+            </p>
+          </div>
+        </div>
 
         <div>
           <label
