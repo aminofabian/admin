@@ -8,6 +8,7 @@ import { emailBroadcastsApi, emailCampaignTemplatesApi } from '@/lib/api';
 import {
   emailBroadcastStatusTone,
   formatEmailBroadcastCriteria,
+  resolveEmailBroadcastCriteria,
 } from '@/lib/constants/email-broadcasts';
 import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
 import { Badge, Button, useToast } from '@/components/ui';
@@ -16,6 +17,7 @@ import { EmailBroadcastComposeDrawer } from '@/components/features/email-broadca
 import type {
   CreateEmailBroadcastRequest,
   EmailBroadcast,
+  EmailBroadcastComposeDraft,
   EmailCampaignTemplate,
 } from '@/types';
 
@@ -39,6 +41,7 @@ export default function EmailBroadcastsSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [composeTemplate, setComposeTemplate] = useState<EmailCampaignTemplate | null>(null);
+  const [composeDraft, setComposeDraft] = useState<EmailBroadcastComposeDraft | null>(null);
 
   const canEdit = canManageEmailBroadcasts(user?.role);
 
@@ -91,13 +94,33 @@ export default function EmailBroadcastsSettingsPage() {
   }, [canEdit, loadBroadcasts]);
 
   const openCompose = (template?: EmailCampaignTemplate | null) => {
+    setComposeDraft(null);
     setComposeTemplate(template ?? null);
+    setIsComposeOpen(true);
+  };
+
+  const openReuseCampaign = (broadcast: EmailBroadcast) => {
+    const filters = resolveEmailBroadcastCriteria(broadcast);
+    setComposeTemplate(null);
+    setComposeDraft({
+      subject: broadcast.subject,
+      html_body: broadcast.html_body,
+      audience: broadcast.audience,
+      user_ids: Array.isArray(broadcast.selected_user_ids) ? broadcast.selected_user_ids : [],
+      deposit_min: filters.deposit_min,
+      deposit_max: filters.deposit_max,
+      ssn_verified: filters.ssn_verified,
+      states: filters.states,
+      template_id: broadcast.template_id,
+      template_name: broadcast.subject,
+    });
     setIsComposeOpen(true);
   };
 
   const closeCompose = () => {
     setIsComposeOpen(false);
     setComposeTemplate(null);
+    setComposeDraft(null);
   };
 
   const handleCreate = async (data: CreateEmailBroadcastRequest) => {
@@ -284,6 +307,9 @@ export default function EmailBroadcastsSettingsPage() {
                   <th className="py-2.5 pl-4 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
                     When
                   </th>
+                  <th className="py-2.5 pl-4 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -338,6 +364,16 @@ export default function EmailBroadcastsSettingsPage() {
                         <p>Sent: {formatWhen(broadcast.sent_at)}</p>
                         <p className="mt-0.5">Scheduled: {formatWhen(broadcast.scheduled_at)}</p>
                       </td>
+                      <td className="py-3.5 pl-4 text-right">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openReuseCampaign(broadcast)}
+                        >
+                          Reuse template
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -353,6 +389,7 @@ export default function EmailBroadcastsSettingsPage() {
         isSuperadmin={false}
         templates={templates}
         initialTemplate={composeTemplate}
+        initialDraft={composeDraft}
         onClose={closeCompose}
         onSubmit={handleCreate}
         onTemplatesChange={() => void loadTemplates()}

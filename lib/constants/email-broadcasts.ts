@@ -70,14 +70,30 @@ export function emailBroadcastStatusTone(
   }
 }
 
+export function resolveEmailBroadcastCriteria(
+  broadcast: EmailBroadcastAudienceCriteria | EmailBroadcast | null | undefined,
+): EmailBroadcastAudienceCriteria {
+  if (!broadcast) return {};
+  const nested =
+    'audience_filters' in broadcast && broadcast.audience_filters && typeof broadcast.audience_filters === 'object'
+      ? broadcast.audience_filters
+      : null;
+
+  return {
+    deposit_min: nested?.deposit_min ?? broadcast.deposit_min,
+    deposit_max: nested?.deposit_max ?? broadcast.deposit_max,
+    ssn_verified: nested?.ssn_verified ?? broadcast.ssn_verified,
+    states: nested?.states ?? broadcast.states,
+  };
+}
+
 export function formatEmailBroadcastCriteria(
   criteria: EmailBroadcastAudienceCriteria | EmailBroadcast | null | undefined,
 ): string {
-  if (!criteria) return '';
-
+  const resolved = resolveEmailBroadcastCriteria(criteria);
   const parts: string[] = [];
-  const min = criteria.deposit_min;
-  const max = criteria.deposit_max;
+  const min = resolved.deposit_min;
+  const max = resolved.deposit_max;
 
   if (min != null && max != null) {
     parts.push(`Deposit $${min}–$${max}`);
@@ -87,13 +103,13 @@ export function formatEmailBroadcastCriteria(
     parts.push(`Deposit ≤ $${max}`);
   }
 
-  if (criteria.ssn_verified === true) {
+  if (resolved.ssn_verified === true) {
     parts.push('SSN verified');
-  } else if (criteria.ssn_verified === false) {
+  } else if (resolved.ssn_verified === false) {
     parts.push('SSN unverified');
   }
 
-  const states = Array.isArray(criteria.states) ? criteria.states.filter(Boolean) : [];
+  const states = Array.isArray(resolved.states) ? resolved.states.filter(Boolean) : [];
   if (states.length > 0) {
     const labels = states.map((code) => getUsStateLabel(code) || code);
     parts.push(

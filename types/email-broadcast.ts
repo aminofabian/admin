@@ -35,6 +35,8 @@ export interface EmailBroadcast extends EmailBroadcastAudienceCriteria {
   subject: string;
   html_body: string;
   audience: EmailBroadcastAudience | string;
+  /** Nested filters returned by list API (preferred over flat fields when present) */
+  audience_filters?: EmailBroadcastAudienceCriteria | null;
   selected_user_ids: number[];
   project_id?: number | null;
   template_id?: number | null;
@@ -48,6 +50,21 @@ export interface EmailBroadcast extends EmailBroadcastAudienceCriteria {
   last_error: string;
   created?: string;
   modified?: string;
+}
+
+/** Prefill compose from a saved template or a prior campaign (“Reuse template”). */
+export interface EmailBroadcastComposeDraft {
+  subject: string;
+  html_body: string;
+  audience?: EmailBroadcastAudience | string;
+  user_ids?: number[];
+  deposit_min?: number | null;
+  deposit_max?: number | null;
+  ssn_verified?: EmailBroadcastSsnVerified;
+  states?: string[];
+  /** Saved campaign template id, when reusing from the templates library */
+  template_id?: number | null;
+  template_name?: string;
 }
 
 export interface EmailBroadcastsListResponse {

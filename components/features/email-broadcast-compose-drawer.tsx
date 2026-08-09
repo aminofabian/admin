@@ -17,9 +17,11 @@ import {
 } from '@/lib/constants/email-templates';
 import { ProjectScopePicker } from '@/components/features/project-scope-picker';
 import { getStoredProjectUuid } from '@/lib/utils/project-uuid';
+import { normalizeUsStateCode } from '@/lib/utils/us-states';
 import type {
   CreateEmailBroadcastRequest,
   EmailBroadcastAudience,
+  EmailBroadcastComposeDraft,
   EmailCampaignTemplate,
   Player,
 } from '@/types';
@@ -33,6 +35,8 @@ interface EmailBroadcastComposeDrawerProps {
   defaultScopeUuid?: string;
   templates?: EmailCampaignTemplate[];
   initialTemplate?: EmailCampaignTemplate | null;
+  /** Prefill from a prior campaign (“Reuse template”) or a built draft */
+  initialDraft?: EmailBroadcastComposeDraft | null;
   onClose: () => void;
   onSubmit: (data: CreateEmailBroadcastRequest) => Promise<void>;
   onTemplatesChange?: () => void;
@@ -46,6 +50,22 @@ function parseOptionalAmount(value: string): number | undefined {
   return amount;
 }
 
+function resolveAudience(value: string | undefined): EmailBroadcastAudience {
+  if (value === 'selected') return 'selected';
+  return 'all';
+}
+
+function statesToCodes(states: string[] | undefined): string[] {
+  if (!Array.isArray(states)) return [];
+  return Array.from(
+    new Set(
+      states
+        .map((state) => normalizeUsStateCode(state))
+        .filter((code): code is string => Boolean(code)),
+    ),
+  );
+}
+
 export function EmailBroadcastComposeDrawer({
   isOpen,
   isSaving,
@@ -53,6 +73,7 @@ export function EmailBroadcastComposeDrawer({
   defaultScopeUuid = '',
   templates = [],
   initialTemplate = null,
+  initialDraft = null,
   onClose,
   onSubmit,
   onTemplatesChange,
@@ -87,33 +108,58 @@ export function EmailBroadcastComposeDrawer({
     setTemplateName(template.name);
   };
 
+  const applyDraft = (draft: EmailBroadcastComposeDraft) => {
+    setSubject(draft.subject || '');
+    setHtmlBody(draft.html_body || '<p>Hi {{ username }},</p>');
+    setAudience(resolveAudience(draft.audience));
+    setUserIdsText(
+      Array.isArray(draft.user_ids) && draft.user_ids.length > 0 ? draft.user_ids.join(', ') : '',
+    );
+    setDepositMin(draft.deposit_min != null ? String(draft.deposit_min) : '');
+    setDepositMax(draft.deposit_max != null ? String(draft.deposit_max) : '');
+    if (draft.ssn_verified === true) setSsnFilter('verified');
+    else if (draft.ssn_verified === false) setSsnFilter('unverified');
+    else setSsnFilter('any');
+    setSelectedStates(statesToCodes(draft.states));
+    setSelectedTemplateId(draft.template_id ? String(draft.template_id) : '');
+    setTemplateName(draft.template_name || '');
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
-    setAudience('all');
     setScopeUuid(defaultScopeUuid);
     setScheduledAt('');
-    setUserIdsText('');
     setPlayerQuery('');
     setPlayerHits([]);
     setSelectedPlayers([]);
-    setDepositMin('');
-    setDepositMax('');
-    setSsnFilter('any');
-    setSelectedStates([]);
     setTab('edit');
     setError(null);
     setIsSavingTemplate(false);
 
-    if (initialTemplate) {
+    if (initialDraft) {
+      applyDraft(initialDraft);
+    } else if (initialTemplate) {
+      setAudience('all');
+      setUserIdsText('');
+      setDepositMin('');
+      setDepositMax('');
+      setSsnFilter('any');
+      setSelectedStates([]);
       applyTemplate(initialTemplate);
     } else {
+      setAudience('all');
+      setUserIdsText('');
+      setDepositMin('');
+      setDepositMax('');
+      setSsnFilter('any');
+      setSelectedStates([]);
       setSelectedTemplateId('');
       setSubject('');
       setHtmlBody('<p>Hi {{ username }},</p>');
       setTemplateName('');
     }
-  }, [isOpen, defaultScopeUuid, isSuperadmin, initialTemplate]);
+  }, [isOpen, defaultScopeUuid, isSuperadmin, initialTemplate, initialDraft]);
 
   useEffect(() => {
     if (!isOpen || audience !== 'selected') return;
