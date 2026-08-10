@@ -28,7 +28,7 @@ const EmailCampaignHtmlEditor = dynamic(
     ),
   },
 );
-import { emailBroadcastsApi, emailCampaignTemplatesApi, playersApi } from '@/lib/api';
+import { emailBroadcastsApi } from '@/lib/api';
 import { getEmailBroadcastPlaceholders } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_RECIPIENT_METHODS,
@@ -45,15 +45,14 @@ import {
   saveComposerDraft,
 } from '@/lib/utils/email-campaign-draft';
 import {
-  mapFilterRowsToBroadcastCriteria,
-  mapFilterRowsToPlayerListParams,
+  mapFilterRowsToBroadcastPayload,
   summarizeFilterRows,
   validateFilterRows,
 } from '@/lib/utils/email-campaign-filters';
 import { findUnsupportedEmailVariables } from '@/lib/utils/email-campaign-variables';
-import { getStoredProjectUuid } from '@/lib/utils/project-uuid';
 import type {
   CreateEmailBroadcastRequest,
+  EmailBroadcastPreviewRequest,
   EmailCampaignComposerDraft,
   EmailCampaignComposerStep,
   EmailCampaignRecipientMethod,
@@ -62,8 +61,18 @@ import type {
 
 interface EmailCampaignComposerProps {
   scopeKey: string;
-  whitelabelAdminUuid?: string;
   onSent?: () => void;
+}
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>;
+    const message = typeof record.message === 'string' ? record.message : '';
+    const detail = typeof record.detail === 'string' ? record.detail : '';
+    if (message) return message;
+    if (detail) return detail;
+  }
+  return err instanceof Error ? err.message : fallback;
 }
 
 function validateDraft(draft: EmailCampaignComposerDraft): string[] {
@@ -95,17 +104,15 @@ function validateDraft(draft: EmailCampaignComposerDraft): string[] {
 
 function buildCreatePayload(
   draft: EmailCampaignComposerDraft,
-  whitelabelAdminUuid?: string,
+  saveAsDraft: boolean,
 ): CreateEmailBroadcastRequest {
   const payload: CreateEmailBroadcastRequest = {
+    name: draft.internal_name.trim(),
     subject: draft.subject.trim(),
     html_body: draft.html_body,
-    audience: draft.recipient_method === 'specific' ? 'selected' : 'all',
+    audience: draft.recipient_method,
+    save_as_draft: saveAsDraft,
   };
-
-  if (whitelabelAdminUuid) {
-    payload.whitelabel_admin_uuid = whitelabelAdminUuid;
-  }
 
   if (draft.recipient_method === 'specific') {
     payload.user_ids = draft.selected_players.map((player) => player.id);
@@ -114,7 +121,7 @@ function buildCreatePayload(
   if (draft.recipient_method === 'filtered') {
     Object.assign(
       payload,
-      mapFilterRowsToBroadcastCriteria(draft.filter_rows, draft.match_mode),
+      mapFilterRowsToBroadcastPayload(draft.filter_rows, draft.match_mode),
     );
   }
 
@@ -123,6 +130,27 @@ function buildCreatePayload(
   }
 
   return payload;
+}
+
+function buildPreviewRequest(
+  draft: EmailCampaignComposerDraft,
+): EmailBroadcastPreviewRequest | null {
+  if (draft.recipient_method === 'specific') {
+    if (draft.selected_players.length === 0) return null;
+    return {
+      audience: 'specific',
+      user_ids: draft.selected_players.map((player) => player.id),
+    };
+  }
+  if (draft.recipient_method === 'filtered') {
+    if (draft.filter_rows.length === 0) return null;
+    const { filters, filter_match } = mapFilterRowsToBroadcastPayload(
+      draft.filter_rows,
+      draft.match_mode,
+    );
+    return { audience: 'filtered', filters, filter_match };
+  }
+  return { audience: 'all_eligible' };
 }
 
 const EMPTY_PREVIEW: EmailCampaignRecipientPreview = {
@@ -134,11 +162,14 @@ const EMPTY_PREVIEW: EmailCampaignRecipientPreview = {
   unsupported: [],
 };
 
-export function EmailCampaignComposer({
-  scopeKey,
-  whitelabelAdminUuid,
-  onSent,
-}: EmailCampaignComposerProps) {
+function exclusionCountsLabel(counts?: Record<string, number>): string {
+  if (!counts || Object.keys(counts).length === 0) return '';
+  return Object.entries(counts)
+    .map(([reason, count]) => `${reason.replace(/_/g, ' ')} ${count.toLocaleString()}`)
+    .join(' · ');
+}
+
+export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignComposerProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const [draft, setDraft] = useState<EmailCampaignComposerDraft>(createEmptyEmailCampaignDraft);
@@ -157,7 +188,13 @@ export function EmailCampaignComposer({
   );
 
   const placeholders = useMemo(() => getEmailBroadcastPlaceholders(), []);
-  const resolvedUuid = whitelabelAdminUuid || getStoredProjectUuid() || undefined;
+
+  const previewRequest = useMemo(
+    () => buildPreviewRequest(draft),
+    // Preview only depends on targeting; name/subject/html edits must not refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft.recipient_method, draft.filter_rows, draft.match_mode, draft.selected_players],
+  );
 
   const handleInsertReady = useCallback((insert: (token: string) => void) => {
     setInsertVariable(() => insert);
@@ -175,12 +212,10 @@ export function EmailCampaignComposer({
   }, [scopeKey]);
 
   useEffect(() => {
-    if (!hydrated || draft.recipient_method !== 'filtered') {
-      setRecipientPreview(EMPTY_PREVIEW);
-      return;
-    }
+    if (!hydrated) return;
 
-    if (draft.filter_rows.length === 0) {
+    const request = previewRequest;
+    if (!request) {
       setRecipientPreview({
         ...EMPTY_PREVIEW,
         matched: 0,
@@ -190,32 +225,29 @@ export function EmailCampaignComposer({
       return;
     }
 
-    const { params, unsupported } = mapFilterRowsToPlayerListParams(draft.filter_rows);
     let cancelled = false;
-    setRecipientPreview((prev) => ({ ...prev, loading: true, error: null, unsupported }));
+    setRecipientPreview((prev) => ({ ...prev, loading: true, error: null }));
 
     const timer = window.setTimeout(async () => {
       try {
-        const response = await playersApi.list(params);
+        const response = await emailBroadcastsApi.preview(request);
         if (cancelled) return;
-        const matched = typeof response?.count === 'number' ? response.count : null;
         setRecipientPreview({
-          matched,
-          excluded: null,
-          final: matched,
+          matched: response.matched_count,
+          excluded: response.excluded_count,
+          final: response.final_count,
           loading: false,
           error: null,
-          unsupported,
+          unsupported: [],
+          exclusion_counts: response.exclusion_counts,
+          excluded_sample: response.excluded_sample,
+          final_sample: response.final_sample,
         });
       } catch {
         if (cancelled) return;
         setRecipientPreview({
-          matched: null,
-          excluded: null,
-          final: null,
-          loading: false,
-          error: 'Could not estimate recipients from player filters.',
-          unsupported,
+          ...EMPTY_PREVIEW,
+          error: 'Could not estimate recipients from the current targeting.',
         });
       }
     }, 350);
@@ -224,11 +256,28 @@ export function EmailCampaignComposer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [hydrated, draft.recipient_method, draft.filter_rows, draft.match_mode]);
+  }, [hydrated, previewRequest]);
 
   const updateDraft = (patch: Partial<EmailCampaignComposerDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   };
+
+  const previewHtml = renderEmailPreview(draft.html_body, placeholders);
+  const recipientLabel =
+    EMAIL_CAMPAIGN_RECIPIENT_METHODS.find((item) => item.value === draft.recipient_method)
+      ?.label || draft.recipient_method;
+  const selectedCount = draft.selected_players.length;
+
+  const resolveFinalCount = (): number | null => {
+    if (recipientPreview.final != null) return recipientPreview.final;
+    if (draft.recipient_method === 'specific') return selectedCount;
+    return null;
+  };
+  const finalCount = resolveFinalCount();
+
+  const validationErrors = validateDraft(draft);
+  const canReview = validationErrors.length === 0 && finalCount != null && finalCount > 0;
+  const busy = isSavingDraft || isSending;
 
   const handleSaveDraft = async () => {
     setErrors([]);
@@ -239,33 +288,38 @@ export function EmailCampaignComposer({
 
     setIsSavingDraft(true);
     try {
-      const withStamp = { ...draft, updated_at: new Date().toISOString() };
-      saveComposerDraft(scopeKey, withStamp);
-      setDraft(withStamp);
+      const payload = buildCreatePayload(draft, true);
+      const savedLocally = { ...draft, updated_at: new Date().toISOString() };
+      saveComposerDraft(scopeKey, savedLocally);
 
-      // Also persist subject/body as a reusable campaign template when possible.
+      let broadcastId: number | null = draft.broadcast_id ?? null;
+      let savedOnServer = false;
       try {
-        const templatePayload = {
-          name: withStamp.internal_name.trim(),
-          subject: withStamp.subject.trim() || withStamp.internal_name.trim(),
-          html_body: withStamp.html_body,
-          ...(resolvedUuid ? { whitelabel_admin_uuid: resolvedUuid } : {}),
-        };
-        const existingId = withStamp.template_id && withStamp.template_id > 0 ? withStamp.template_id : null;
-        const saved = existingId
-          ? await emailCampaignTemplatesApi.update(existingId, templatePayload)
-          : await emailCampaignTemplatesApi.create(templatePayload);
-        const next = { ...withStamp, template_id: saved.id };
-        updateDraft({ template_id: saved.id });
-        saveComposerDraft(scopeKey, next);
-      } catch {
-        // Local draft still saved if template API is unavailable.
+        const result = broadcastId
+          ? await emailBroadcastsApi.update(broadcastId, payload)
+          : await emailBroadcastsApi.create(payload);
+        broadcastId = result.broadcast.id;
+        savedOnServer = true;
+      } catch (err) {
+        const message = extractErrorMessage(err, 'Could not save draft on the server.');
+        setErrors([message]);
+        addToast({
+          type: 'error',
+          title: 'Draft kept locally',
+          description: message,
+        });
+        return;
       }
 
+      const next = { ...savedLocally, broadcast_id: broadcastId };
+      updateDraft({ broadcast_id: broadcastId });
+      saveComposerDraft(scopeKey, next);
       addToast({
         type: 'success',
         title: 'Draft saved',
-        description: draft.internal_name.trim(),
+        description: savedOnServer
+          ? `${draft.internal_name.trim()} (#${broadcastId})`
+          : draft.internal_name.trim(),
       });
     } finally {
       setIsSavingDraft(false);
@@ -274,6 +328,10 @@ export function EmailCampaignComposer({
 
   const handleReview = () => {
     const nextErrors = validateDraft(draft);
+    const reviewFinalCount = resolveFinalCount();
+    if (nextErrors.length === 0 && reviewFinalCount != null && reviewFinalCount <= 0) {
+      nextErrors.push('No eligible recipients match this targeting. Adjust the recipients first.');
+    }
     setErrors(nextErrors);
     if (nextErrors.length > 0) return;
     setSendConfirm('');
@@ -283,13 +341,17 @@ export function EmailCampaignComposer({
   const handleSend = async () => {
     if (isSending) return;
     const nextErrors = validateDraft(draft);
+    const sendFinalCount = resolveFinalCount();
+    if (nextErrors.length === 0 && sendFinalCount != null && sendFinalCount <= 0) {
+      nextErrors.push('No eligible recipients match this targeting. Adjust the recipients first.');
+    }
     setErrors(nextErrors);
     if (nextErrors.length > 0) {
       setStep('edit');
       return;
     }
 
-    if (draft.recipient_method === 'all' && sendConfirm.trim() !== 'SEND') {
+    if (draft.recipient_method === 'all_eligible' && sendConfirm.trim() !== 'SEND') {
       setErrors(['Type SEND to confirm sending to all eligible players.']);
       return;
     }
@@ -297,37 +359,28 @@ export function EmailCampaignComposer({
     setIsSending(true);
     setErrors([]);
     try {
-      const payload = buildCreatePayload(draft, resolvedUuid);
-      const result = await emailBroadcastsApi.create(payload);
+      if (draft.broadcast_id) {
+        await emailBroadcastsApi.send(draft.broadcast_id);
+      } else {
+        const payload = buildCreatePayload(draft, false);
+        await emailBroadcastsApi.create(payload);
+      }
       clearComposerDraft(scopeKey);
       addToast({
         type: 'success',
         title: 'Campaign queued',
-        description: result.message || result.broadcast.subject,
+        description: draft.internal_name.trim(),
       });
       onSent?.();
       router.push('/dashboard/settings/email-broadcasts');
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' && err && 'detail' in err
-            ? String((err as { detail: unknown }).detail)
-            : 'Failed to send campaign';
+      const message = extractErrorMessage(err, 'Failed to send campaign');
       setErrors([message]);
       addToast({ type: 'error', title: 'Send failed', description: message });
     } finally {
       setIsSending(false);
     }
   };
-
-  const previewHtml = renderEmailPreview(draft.html_body, placeholders);
-  const recipientLabel =
-    EMAIL_CAMPAIGN_RECIPIENT_METHODS.find((item) => item.value === draft.recipient_method)
-      ?.label || draft.recipient_method;
-  const selectedCount = draft.selected_players.length;
-  const canReview = validateDraft(draft).length === 0;
-  const busy = isSavingDraft || isSending;
 
   if (!hydrated) {
     return (
@@ -341,17 +394,19 @@ export function EmailCampaignComposer({
     const matchedLabel =
       draft.recipient_method === 'specific'
         ? String(selectedCount)
-        : draft.recipient_method === 'filtered' && recipientPreview.matched != null
+        : recipientPreview.matched != null
           ? recipientPreview.matched.toLocaleString()
           : '—';
+    const excludedLabel =
+      recipientPreview.excluded == null
+        ? 'On send'
+        : recipientPreview.excluded.toLocaleString();
     const finalCountLabel =
-      draft.recipient_method === 'specific'
-        ? String(selectedCount)
-        : draft.recipient_method === 'filtered' && recipientPreview.final != null
-          ? recipientPreview.final.toLocaleString()
-          : draft.recipient_method === 'filtered'
-            ? 'Resolved on send'
-            : 'All eligible';
+      recipientPreview.final != null
+        ? recipientPreview.final.toLocaleString()
+        : draft.recipient_method === 'specific'
+          ? String(selectedCount)
+          : 'Resolved on send';
 
     return (
       <div className="mx-auto max-w-5xl space-y-5 pb-10">
@@ -389,17 +444,30 @@ export function EmailCampaignComposer({
 
         <div className="grid gap-3 sm:grid-cols-3">
           <ComposerMetric label="Matched / selected" value={matchedLabel} />
-          <ComposerMetric
-            label="Auto-excluded"
-            value={
-              recipientPreview.excluded == null
-                ? 'On send'
-                : recipientPreview.excluded.toLocaleString()
-            }
-            tone="warning"
-          />
+          <ComposerMetric label="Auto-excluded" value={excludedLabel} tone="warning" />
           <ComposerMetric label="Final recipients" value={finalCountLabel} tone="success" />
         </div>
+
+        {recipientPreview.exclusion_counts &&
+        Object.keys(recipientPreview.exclusion_counts).length > 0 ? (
+          <ComposerAlert tone="warning">
+            <p className="font-medium">Automatic exclusions applied</p>
+            <p className="mt-1 opacity-90">
+              {exclusionCountsLabel(recipientPreview.exclusion_counts)}. These players cannot
+              receive marketing email and are excluded automatically.
+            </p>
+          </ComposerAlert>
+        ) : null}
+
+        {finalCount != null && finalCount <= 0 ? (
+          <ComposerAlert>
+            <p className="font-medium">No eligible recipients</p>
+            <p className="mt-1 opacity-90">
+              Everyone in the current targeting is automatically excluded. Go back and adjust the
+              recipients before sending.
+            </p>
+          </ComposerAlert>
+        ) : null}
 
         <ComposerSection title="Campaign summary" description="What will be sent">
           <dl className="grid gap-4 sm:grid-cols-2">
@@ -441,7 +509,7 @@ export function EmailCampaignComposer({
           </dl>
         </ComposerSection>
 
-        {draft.recipient_method === 'all' ? (
+        {draft.recipient_method === 'all_eligible' ? (
           <ComposerAlert tone="warning">
             <p className="font-medium">Strong confirmation required</p>
             <p className="mt-1 opacity-90">
@@ -461,9 +529,10 @@ export function EmailCampaignComposer({
           <ComposerAlert tone="info">
             Confirm sending to{' '}
             <strong>
+              {finalCountLabel}
               {draft.recipient_method === 'specific'
-                ? `${selectedCount} selected player${selectedCount === 1 ? '' : 's'}`
-                : 'filtered eligible players'}
+                ? ` of ${selectedCount} selected player${selectedCount === 1 ? '' : 's'}`
+                : ' eligible players'}
             </strong>
             . Marketing-ineligible players are excluded automatically on send.
           </ComposerAlert>
@@ -484,7 +553,10 @@ export function EmailCampaignComposer({
             size="sm"
             isLoading={isSending}
             disabled={
-              busy || (draft.recipient_method === 'all' && sendConfirm.trim() !== 'SEND')
+              busy ||
+              finalCount == null ||
+              finalCount <= 0 ||
+              (draft.recipient_method === 'all_eligible' && sendConfirm.trim() !== 'SEND')
             }
             onClick={() => void handleSend()}
           >
@@ -552,7 +624,8 @@ export function EmailCampaignComposer({
 
       {!canReview ? (
         <ComposerAlert tone="warning">
-          Complete required fields and recipient rules to enable Review & Send.
+          Complete required fields and recipient rules to enable Review & Send. Review stays locked
+          until at least one eligible recipient matches.
         </ComposerAlert>
       ) : null}
 
@@ -655,13 +728,65 @@ export function EmailCampaignComposer({
           />
         ) : null}
 
-        {draft.recipient_method === 'all' ? (
-          <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100">
-            <p className="font-medium">All eligible players in this brand</p>
-            <p className="mt-1 text-xs leading-relaxed opacity-90">
-              Marketing-ineligible addresses are excluded automatically. Review requires typing{' '}
-              <strong>SEND</strong> before final submission.
-            </p>
+        {draft.recipient_method === 'all_eligible' ? (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ComposerMetric
+                label="Matched"
+                value={
+                  recipientPreview.loading
+                    ? '…'
+                    : recipientPreview.matched == null
+                      ? '—'
+                      : recipientPreview.matched.toLocaleString()
+                }
+              />
+              <ComposerMetric
+                label="Auto-excluded"
+                value={
+                  recipientPreview.excluded == null
+                    ? '—'
+                    : recipientPreview.excluded.toLocaleString()
+                }
+                tone="warning"
+              />
+              <ComposerMetric
+                label="Final recipients"
+                value={
+                  recipientPreview.loading
+                    ? '…'
+                    : recipientPreview.final == null
+                      ? '—'
+                      : recipientPreview.final.toLocaleString()
+                }
+                tone="success"
+              />
+            </div>
+            <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100">
+              <p className="font-medium">All eligible players in this brand</p>
+              <p className="mt-1 text-xs leading-relaxed opacity-90">
+                Marketing-ineligible addresses are excluded automatically. Review requires typing{' '}
+                <strong>SEND</strong> before final submission.
+              </p>
+              {recipientPreview.final_sample && recipientPreview.final_sample.length > 0 ? (
+                <details className="mt-3 rounded-lg border border-sky-200/70 bg-white/60 dark:border-sky-900/40 dark:bg-gray-900/40">
+                  <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-sky-900 dark:text-sky-200">
+                    View sample recipients
+                  </summary>
+                  <ul className="max-h-40 overflow-auto border-t border-sky-200/70 px-3 py-1 dark:border-sky-900/40">
+                    {recipientPreview.final_sample.map((row) => (
+                      <li
+                        key={row.user_id}
+                        className="flex items-center justify-between gap-3 py-1.5 text-xs text-sky-900 dark:text-sky-100"
+                      >
+                        <span className="font-medium">{row.username}</span>
+                        <span className="truncate opacity-70">{row.email}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </ComposerSection>
@@ -754,8 +879,9 @@ export function EmailCampaignComposer({
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Drafts save locally{draft.updated_at ? ` · last saved ${new Date(draft.updated_at).toLocaleString()}` : ''}.
-            Review before anything is queued.
+            Drafts save locally{draft.updated_at ? ` · last saved ${new Date(draft.updated_at).toLocaleString()}` : ''}
+            {draft.broadcast_id ? ` · server draft #${draft.broadcast_id}` : ''}. Review before
+            anything is queued.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button

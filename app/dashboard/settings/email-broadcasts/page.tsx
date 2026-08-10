@@ -4,23 +4,30 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { canManageEmailBroadcasts } from '@/lib/constants/roles';
-import { emailBroadcastsApi, emailCampaignTemplatesApi } from '@/lib/api';
+import { emailBroadcastsApi } from '@/lib/api';
 import {
+  emailBroadcastAudienceLabel,
   emailBroadcastStatusTone,
   formatEmailBroadcastCriteria,
   resolveEmailBroadcastCriteria,
 } from '@/lib/constants/email-broadcasts';
 import { createEmptyEmailCampaignDraft } from '@/lib/constants/email-campaign-composer';
+import { getFilterFieldDef } from '@/lib/constants/email-campaign-filters';
 import { writeComposerSeed } from '@/lib/utils/email-campaign-draft';
-import { migrateLegacyFiltersToRows } from '@/lib/utils/email-campaign-filters';
-import { normalizeUsStateCode } from '@/lib/utils/us-states';
+import {
+  migrateLegacyFiltersToRows,
+  normalizeFilterOperator,
+} from '@/lib/utils/email-campaign-filters';
 import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
-import { Badge, Button, useToast } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import type {
   EmailBroadcast,
   EmailCampaignComposerDraft,
-  EmailCampaignTemplate,
+  EmailCampaignFilterField,
+  EmailCampaignFilterOperator,
+  EmailCampaignFilterRow,
+  EmailCampaignRecipientMethod,
 } from '@/types';
 
 function formatWhen(value: string | null | undefined): string {
@@ -30,54 +37,71 @@ function formatWhen(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function templateToComposerSeed(template: EmailCampaignTemplate): EmailCampaignComposerDraft {
-  return {
-    ...createEmptyEmailCampaignDraft(),
-    internal_name: template.name,
-    subject: template.subject,
-    html_body: template.html_body,
-    template_id: template.id,
-  };
+function newRowId(): string {
+  return `filter_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Convert a previously sent/drafted campaign into a composer seed ("Reuse template"). */
 function broadcastToComposerSeed(broadcast: EmailBroadcast): EmailCampaignComposerDraft {
-  const filters = resolveEmailBroadcastCriteria(broadcast);
-  const userIds = Array.isArray(broadcast.selected_user_ids) ? broadcast.selected_user_ids : [];
-  const isSelected = broadcast.audience === 'selected' || userIds.length > 0;
-  const hasFilters =
-    filters.deposit_min != null ||
-    filters.deposit_max != null ||
-    filters.ssn_verified === true ||
-    filters.ssn_verified === false ||
-    (Array.isArray(filters.states) && filters.states.length > 0);
-
   const seed = createEmptyEmailCampaignDraft();
+
+  // New backend: structured filters + audience enum.
+  const filters = Array.isArray(broadcast.filters) ? broadcast.filters : [];
+  const userIds = Array.isArray(broadcast.user_ids)
+    ? broadcast.user_ids
+    : Array.isArray(broadcast.selected_user_ids)
+      ? broadcast.selected_user_ids
+      : [];
+
+  const filterRows: EmailCampaignFilterRow[] = filters
+    .map((filter): EmailCampaignFilterRow | null => {
+      const def = getFilterFieldDef(filter.field as EmailCampaignFilterField);
+      if (!def) return null;
+      const row: EmailCampaignFilterRow = {
+        id: newRowId(),
+        field: def.field,
+        operator: normalizeFilterOperator(filter.op) as EmailCampaignFilterOperator,
+        value: '',
+        value_to: '',
+      };
+      if (Array.isArray(filter.value)) {
+        row.value = String(filter.value[0] ?? '');
+        row.value_to = String(filter.value[1] ?? '');
+      } else if (filter.value !== null && filter.value !== undefined) {
+        row.value = String(filter.value);
+      }
+      return row;
+    })
+    .filter((row): row is EmailCampaignFilterRow => row !== null);
+
+  // Legacy backend fallback (deposit criteria only; SSN/state have no new equivalent).
+  const legacy = resolveEmailBroadcastCriteria(broadcast);
+  const migrated = migrateLegacyFiltersToRows({
+    deposit_min: legacy.deposit_min != null ? String(legacy.deposit_min) : '',
+    deposit_max: legacy.deposit_max != null ? String(legacy.deposit_max) : '',
+  });
+
+  const audience = broadcast.audience;
+  const recipientMethod: EmailCampaignRecipientMethod =
+    audience === 'specific' || audience === 'selected' || userIds.length > 0
+      ? 'specific'
+      : audience === 'filtered' || filterRows.length > 0 || migrated.length > 0
+        ? 'filtered'
+        : 'all_eligible';
+
   return {
     ...seed,
-    internal_name: broadcast.subject,
+    internal_name: broadcast.name || broadcast.subject,
     subject: broadcast.subject,
     html_body: broadcast.html_body,
-    recipient_method: isSelected ? 'specific' : hasFilters ? 'filtered' : 'all',
+    recipient_method: recipientMethod,
     selected_players: userIds.map((id) => ({
       id,
       username: `User #${id}`,
       email: '',
     })),
-    filter_rows: migrateLegacyFiltersToRows({
-      deposit_min: filters.deposit_min != null ? String(filters.deposit_min) : '',
-      deposit_max: filters.deposit_max != null ? String(filters.deposit_max) : '',
-      ssn_filter:
-        filters.ssn_verified === true
-          ? 'verified'
-          : filters.ssn_verified === false
-            ? 'unverified'
-            : 'any',
-      states: Array.isArray(filters.states)
-        ? filters.states
-            .map((state) => normalizeUsStateCode(state))
-            .filter((code): code is string => Boolean(code))
-        : [],
-    }),
+    match_mode: broadcast.filter_match === 'any' ? 'any' : 'all',
+    filter_rows: [...filterRows, ...migrated],
     template_id: broadcast.template_id ?? null,
   };
 }
@@ -85,12 +109,9 @@ function broadcastToComposerSeed(broadcast: EmailBroadcast): EmailCampaignCompos
 export default function EmailBroadcastsSettingsPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { addToast } = useToast();
 
   const [broadcasts, setBroadcasts] = useState<EmailBroadcast[]>([]);
-  const [templates, setTemplates] = useState<EmailCampaignTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canEdit = canManageEmailBroadcasts(user?.role);
@@ -106,23 +127,11 @@ export default function EmailBroadcastsSettingsPage() {
     role: user?.role,
   });
 
-  const loadTemplates = useCallback(async () => {
-    try {
-      const rows = await emailCampaignTemplatesApi.list(effectiveUuid);
-      setTemplates(rows);
-    } catch {
-      setTemplates([]);
-    }
-  }, [effectiveUuid]);
-
   const loadBroadcasts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [rows] = await Promise.all([
-        emailBroadcastsApi.list(effectiveUuid),
-        loadTemplates(),
-      ]);
+      const rows = await emailBroadcastsApi.list(effectiveUuid);
       setBroadcasts(rows);
     } catch (err) {
       const message =
@@ -135,7 +144,7 @@ export default function EmailBroadcastsSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveUuid, loadTemplates]);
+  }, [effectiveUuid]);
 
   useEffect(() => {
     if (canEdit) {
@@ -146,27 +155,6 @@ export default function EmailBroadcastsSettingsPage() {
   const openCompose = (seed?: EmailCampaignComposerDraft) => {
     if (seed) writeComposerSeed(seed);
     router.push(composePath);
-  };
-
-  const handleDeleteTemplate = async (template: EmailCampaignTemplate) => {
-    setDeletingTemplateId(template.id);
-    try {
-      await emailCampaignTemplatesApi.remove(template.id, effectiveUuid);
-      setTemplates((prev) => prev.filter((row) => row.id !== template.id));
-      addToast({
-        type: 'success',
-        title: 'Template deleted',
-        description: template.name,
-      });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        title: 'Delete failed',
-        description: err instanceof Error ? err.message : 'Failed to delete template',
-      });
-    } finally {
-      setDeletingTemplateId(null);
-    }
   };
 
   if (isAuthLoading) return <LoadingState />;
@@ -201,82 +189,10 @@ export default function EmailBroadcastsSettingsPage() {
       <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
         <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Campaign templates
+            Campaign history
           </h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Saved subject and HTML — open in the composer to send another lot
-          </p>
-        </div>
-
-        <div className="overflow-x-auto px-5 py-2">
-          {templates.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              No saved templates yet. Use Save Draft in the composer to create one.
-            </p>
-          ) : (
-            <table className="w-full min-w-[560px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-2.5 pr-4 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Name
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Subject
-                  </th>
-                  <th className="py-2.5 pl-4 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.map((template) => (
-                  <tr
-                    key={template.id}
-                    className="border-b border-gray-100 last:border-0 dark:border-gray-700/80"
-                  >
-                    <td className="py-3.5 pr-4">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{template.name}</p>
-                    </td>
-                    <td className="px-3 py-3.5">
-                      <p className="max-w-md truncate text-xs text-gray-600 dark:text-gray-300">
-                        {template.subject}
-                      </p>
-                    </td>
-                    <td className="py-3.5 pl-4">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openCompose(templateToComposerSeed(template))}
-                        >
-                          Use
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          isLoading={deletingTemplateId === template.id}
-                          disabled={deletingTemplateId === template.id}
-                          onClick={() => void handleDeleteTemplate(template)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
-        <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Campaign history</h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Status, recipients, criteria, and delivery counts
+            Drafts, status, recipients, criteria, and delivery counts
           </p>
         </div>
 
@@ -340,21 +256,21 @@ export default function EmailBroadcastsSettingsPage() {
                           {broadcast.status}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3.5 capitalize text-gray-600 dark:text-gray-300">
-                        {broadcast.audience}
+                      <td className="px-3 py-3.5 text-gray-600 dark:text-gray-300">
+                        {emailBroadcastAudienceLabel(broadcast.audience)}
                       </td>
                       <td className="px-3 py-3.5 text-gray-600 dark:text-gray-300">
-                        {broadcast.total_recipients}
+                        {broadcast.total_recipients ?? '—'}
                       </td>
                       <td className="px-3 py-3.5 text-xs text-gray-600 dark:text-gray-300">
                         <span className="text-emerald-600 dark:text-emerald-400">
-                          {broadcast.successful_deliveries}
+                          {broadcast.successful_deliveries ?? 0}
                         </span>
                         {' / '}
-                        <span className="text-red-500">{broadcast.failed_deliveries}</span>
+                        <span className="text-red-500">{broadcast.failed_deliveries ?? 0}</span>
                         {' / '}
                         <span className="text-amber-600 dark:text-amber-400">
-                          {broadcast.skipped_deliveries}
+                          {broadcast.skipped_deliveries ?? 0}
                         </span>
                         <p className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-400">
                           ok / fail / skip
@@ -371,7 +287,7 @@ export default function EmailBroadcastsSettingsPage() {
                           size="sm"
                           onClick={() => openCompose(broadcastToComposerSeed(broadcast))}
                         >
-                          Reuse template
+                          Reuse
                         </Button>
                       </td>
                     </tr>

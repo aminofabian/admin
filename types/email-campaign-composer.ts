@@ -1,10 +1,14 @@
+import type { EmailBroadcastExcludedPlayerSample, EmailBroadcastFinalPlayerSample } from './email-broadcast';
+
 /**
  * Brand-level email campaign composer draft + filter-builder types.
+ *
+ * The wire format (POST /api/v1/email/broadcasts/) uses:
+ * - audience: 'specific' | 'filtered' | 'all_eligible'
+ * - filter rows: { field, op, value } with filter_match: 'all' | 'any'
  */
 
-export type EmailCampaignRecipientMethod = 'specific' | 'filtered' | 'all';
-
-export type EmailCampaignSsnFilter = 'any' | 'verified' | 'unverified';
+export type EmailCampaignRecipientMethod = 'specific' | 'filtered' | 'all_eligible';
 
 export type EmailCampaignMatchMode = 'all' | 'any';
 
@@ -19,27 +23,24 @@ export type EmailCampaignFilterField =
   | 'total_purchase_amount'
   | 'number_of_purchases'
   | 'current_balance'
-  | 'marketing_eligibility'
-  | 'ssn_verified'
-  | 'state';
+  | 'marketing_eligibility';
 
 export type EmailCampaignFilterOperator =
-  | 'is'
-  | 'is_not'
+  | 'eq'
   | 'before'
   | 'after'
   | 'between'
   | 'last_x_days'
   | 'never'
-  | 'greater_than'
-  | 'less_than'
-  | 'equal_to'
-  | 'in';
+  | 'gt'
+  | 'lt';
 
 export interface EmailCampaignSelectedPlayer {
   id: number;
   username: string;
   email: string;
+  /** Set when the player cannot receive marketing email (auto-excluded on send). */
+  exclusion_reason?: string | null;
 }
 
 export interface EmailCampaignFilterRow {
@@ -59,14 +60,12 @@ export interface EmailCampaignComposerDraft {
   selected_players: EmailCampaignSelectedPlayer[];
   match_mode: EmailCampaignMatchMode;
   filter_rows: EmailCampaignFilterRow[];
+  /** Saved draft id returned by POST /email/broadcasts/ with save_as_draft: true */
+  broadcast_id?: number | null;
   /** @deprecated Prefer filter_rows; kept for draft migration */
   deposit_min?: string;
   /** @deprecated Prefer filter_rows */
   deposit_max?: string;
-  /** @deprecated Prefer filter_rows */
-  ssn_filter?: EmailCampaignSsnFilter;
-  /** @deprecated Prefer filter_rows — US state codes */
-  states?: string[];
   template_id?: number | null;
   updated_at?: string;
 }
@@ -81,4 +80,10 @@ export interface EmailCampaignRecipientPreview {
   error: string | null;
   /** Filters that cannot be applied by the players list / broadcast API yet */
   unsupported: string[];
+  /** Breakdown of automatic exclusions by reason (unsubscribed, missing_email, …) */
+  exclusion_counts?: Record<string, number>;
+  /** Sample of excluded players returned by the preview API. */
+  excluded_sample?: EmailBroadcastExcludedPlayerSample[];
+  /** Sample of final (deliverable) players returned by the preview API. */
+  final_sample?: EmailBroadcastFinalPlayerSample[];
 }

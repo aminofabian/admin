@@ -16,7 +16,7 @@ export const EMAIL_CAMPAIGN_RECIPIENT_METHODS: {
     description: 'Build an audience with player filter conditions',
   },
   {
-    value: 'all',
+    value: 'all_eligible',
     label: 'All Eligible Players',
     description: 'Every eligible player in the current brand',
   },
@@ -33,6 +33,7 @@ export function createEmptyEmailCampaignDraft(): EmailCampaignComposerDraft {
     selected_players: [],
     match_mode: 'all',
     filter_rows: [],
+    broadcast_id: null,
     template_id: null,
   };
 }

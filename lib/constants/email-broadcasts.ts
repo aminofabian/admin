@@ -2,14 +2,21 @@ import type {
   EmailBroadcast,
   EmailBroadcastAudience,
   EmailBroadcastAudienceCriteria,
+  EmailBroadcastFilterPayload,
   EmailBroadcastStatus,
 } from '@/types';
 import {
   EMAIL_TEMPLATE_VARIABLES,
   type EmailTemplateVariable,
 } from './email-templates';
+import {
+  EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS,
+  getFilterFieldDef,
+} from './email-campaign-filters';
+import type { EmailCampaignFilterField, EmailCampaignFilterOperator } from '@/types';
 import { getUsStateLabel } from '@/lib/utils/us-states';
 
+/** Legacy audience options (still used by the legacy compose drawer). */
 export const EMAIL_BROADCAST_AUDIENCES: {
   value: EmailBroadcastAudience;
   label: string;
@@ -39,11 +46,14 @@ export const EMAIL_BROADCAST_SSN_OPTIONS: {
 export const EMAIL_BROADCAST_PLACEHOLDER_KEYS = [
   'username',
   'full_name',
+  'email',
   'logo',
   'project_name',
   'email_support',
   'telegram_support',
   'unsubscribe_url',
+  'balance',
+  'subject',
 ] as const;
 
 export function getEmailBroadcastPlaceholders(): EmailTemplateVariable[] {
@@ -65,9 +75,63 @@ export function emailBroadcastStatusTone(
       return 'info';
     case 'scheduled':
       return 'warning';
+    case 'draft':
+      return 'default';
     default:
       return 'default';
   }
+}
+
+export function emailBroadcastAudienceLabel(
+  audience: EmailBroadcastAudience | string | undefined | null,
+): string {
+  switch (audience) {
+    case 'specific':
+      return 'Specific Players';
+    case 'filtered':
+      return 'Filtered Players';
+    case 'all_eligible':
+      return 'All Eligible Players';
+    case 'selected':
+      return 'Selected Players';
+    case 'all':
+    case 'whitelabel':
+      return 'All Eligible Players';
+    default:
+      return audience || '—';
+  }
+}
+
+function formatFilterValue(
+  row: EmailBroadcastFilterPayload,
+  defLabel: string,
+  opLabel: string,
+): string {
+  const value = row.value;
+  if (row.op === 'never' || value === null || value === undefined) {
+    return `${defLabel}: ${opLabel.toLowerCase()}`;
+  }
+  if (Array.isArray(value)) {
+    return `${defLabel} ${opLabel.toLowerCase()} ${value.join(' – ')}`;
+  }
+  return `${defLabel} ${opLabel.toLowerCase()} ${String(value)}`;
+}
+
+/** Format the new { field, op, value } filter rows into a readable summary. */
+export function formatEmailBroadcastFilters(
+  filters: EmailBroadcastFilterPayload[] | null | undefined,
+  match: 'all' | 'any' | null | undefined,
+): string {
+  if (!Array.isArray(filters) || filters.length === 0) return '';
+  const prefix = match === 'any' ? 'Any condition · ' : 'All conditions · ';
+  const parts = filters.map((row) => {
+    const def = getFilterFieldDef(row.field as EmailCampaignFilterField);
+    const defLabel = def?.label || row.field;
+    const opLabel =
+      EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS[row.op as EmailCampaignFilterOperator] || row.op;
+    return formatFilterValue(row, defLabel, opLabel);
+  });
+  return `${prefix}${parts.join(' · ')}`;
 }
 
 export function resolveEmailBroadcastCriteria(
@@ -90,6 +154,16 @@ export function resolveEmailBroadcastCriteria(
 export function formatEmailBroadcastCriteria(
   criteria: EmailBroadcastAudienceCriteria | EmailBroadcast | null | undefined,
 ): string {
+  // New backend: filter rows first.
+  if (criteria && 'filters' in criteria) {
+    const filterSummary = formatEmailBroadcastFilters(
+      criteria.filters as EmailBroadcastFilterPayload[] | null | undefined,
+      criteria.filter_match,
+    );
+    if (filterSummary) return filterSummary;
+  }
+
+  // Legacy backend: flat deposit / SSN / state criteria.
   const resolved = resolveEmailBroadcastCriteria(criteria);
   const parts: string[] = [];
   const min = resolved.deposit_min;

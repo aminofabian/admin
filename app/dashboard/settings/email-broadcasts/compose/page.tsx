@@ -25,10 +25,5 @@ export default function EmailCampaignComposePage() {
   if (isAuthLoading) return <LoadingState />;
   if (!canEdit) return null;
 
-  return (
-    <EmailCampaignComposer
-      scopeKey={scopeKey}
-      whitelabelAdminUuid={scopeUuid || undefined}
-    />
-  );
+  return <EmailCampaignComposer scopeKey={scopeKey} />;
 }

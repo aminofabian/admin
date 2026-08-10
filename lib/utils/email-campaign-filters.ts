@@ -1,68 +1,87 @@
-import { US_STATES } from '@/components/dashboard/players/players-filters';
 import {
   createFilterRow,
   getFilterFieldDef,
 } from '@/lib/constants/email-campaign-filters';
 import type {
   CreateEmailBroadcastRequest,
+  EmailBroadcastFilterPayload,
   EmailCampaignComposerDraft,
+  EmailCampaignFilterOperator,
   EmailCampaignFilterRow,
   EmailCampaignMatchMode,
 } from '@/types';
 
-function daysAgoIso(days: number): string {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() - days);
-  return date.toISOString().slice(0, 10);
+const LEGACY_OPERATOR_MAP: Record<string, EmailCampaignFilterOperator> = {
+  is: 'eq',
+  is_not: 'eq',
+  equal_to: 'eq',
+  greater_than: 'gt',
+  less_than: 'lt',
+  between: 'between',
+  before: 'before',
+  after: 'after',
+  last_x_days: 'last_x_days',
+  never: 'never',
+};
+
+/** Map a wire/legacy operator string onto the current operator set. */
+export function normalizeFilterOperator(operator: string | undefined): EmailCampaignFilterOperator {
+  return LEGACY_OPERATOR_MAP[operator || ''] || 'eq';
 }
 
+/**
+ * Normalize draft filter rows into the current field/operator set.
+ * Legacy rows (is/gt/…, ssn_verified, state) are upgraded or dropped when the
+ * new backend has no equivalent filter.
+ */
 export function migrateLegacyFiltersToRows(
   draft: Partial<EmailCampaignComposerDraft>,
 ): EmailCampaignFilterRow[] {
-  if (Array.isArray(draft.filter_rows) && draft.filter_rows.length > 0) {
-    return draft.filter_rows;
-  }
-
+  const rawRows = Array.isArray(draft.filter_rows) ? draft.filter_rows : [];
   const rows: EmailCampaignFilterRow[] = [];
-  const min = draft.deposit_min?.trim();
-  const max = draft.deposit_max?.trim();
 
-  if (min && max) {
+  for (const row of rawRows) {
+    if (!row || typeof row !== 'object') continue;
+    const def = getFilterFieldDef(row.field);
+    if (!def) continue; // ssn_verified / state have no new backend equivalent.
+
+    const operator = normalizeFilterOperator(row.operator);
+    const value =
+      row.field === 'kyc_status' && row.value === 'approved' ? 'verified' : row.value;
     rows.push({
-      ...createFilterRow('total_purchase_amount'),
-      operator: 'between',
-      value: min,
-      value_to: max,
-    });
-  } else if (min) {
-    rows.push({
-      ...createFilterRow('total_purchase_amount'),
-      operator: 'greater_than',
-      value: min,
-    });
-  } else if (max) {
-    rows.push({
-      ...createFilterRow('total_purchase_amount'),
-      operator: 'less_than',
-      value: max,
+      id: typeof row.id === 'string' ? row.id : `filter_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      field: def.field,
+      operator,
+      value: typeof value === 'string' ? value : '',
+      value_to: typeof row.value_to === 'string' ? row.value_to : '',
     });
   }
 
-  if (draft.ssn_filter === 'verified' || draft.ssn_filter === 'unverified') {
-    rows.push({
-      ...createFilterRow('ssn_verified'),
-      operator: 'is',
-      value: draft.ssn_filter === 'verified' ? 'true' : 'false',
-    });
-  }
+  // Legacy flat criteria (older drafts / reused broadcasts).
+  if (rows.length === 0) {
+    const min = draft.deposit_min?.trim();
+    const max = draft.deposit_max?.trim();
 
-  if (Array.isArray(draft.states) && draft.states.length > 0) {
-    rows.push({
-      ...createFilterRow('state'),
-      operator: 'in',
-      value: draft.states.join(','),
-    });
+    if (min && max) {
+      rows.push({
+        ...createFilterRow('total_purchase_amount'),
+        operator: 'between',
+        value: min,
+        value_to: max,
+      });
+    } else if (min) {
+      rows.push({
+        ...createFilterRow('total_purchase_amount'),
+        operator: 'gt',
+        value: min,
+      });
+    } else if (max) {
+      rows.push({
+        ...createFilterRow('total_purchase_amount'),
+        operator: 'lt',
+        value: max,
+      });
+    }
   }
 
   return rows;
@@ -84,13 +103,6 @@ export function validateFilterRows(rows: EmailCampaignFilterRow[]): string[] {
       return;
     }
 
-    if (row.operator === 'in') {
-      if (!row.value.trim()) {
-        errors.push(`Filter ${n} (${label}): select at least one state.`);
-      }
-      return;
-    }
-
     if (!row.value.trim()) {
       errors.push(`Filter ${n} (${label}): value is required.`);
     }
@@ -99,124 +111,48 @@ export function validateFilterRows(rows: EmailCampaignFilterRow[]): string[] {
   return errors;
 }
 
-export function mapFilterRowsToBroadcastCriteria(
-  rows: EmailCampaignFilterRow[],
-  matchMode: EmailCampaignMatchMode,
-): Pick<
-  CreateEmailBroadcastRequest,
-  'deposit_min' | 'deposit_max' | 'ssn_verified' | 'states'
-> & { filters?: EmailCampaignFilterRow[]; match_mode?: EmailCampaignMatchMode } {
-  const criteria: Pick<
-    CreateEmailBroadcastRequest,
-    'deposit_min' | 'deposit_max' | 'ssn_verified' | 'states'
-  > & { filters?: EmailCampaignFilterRow[]; match_mode?: EmailCampaignMatchMode } = {};
+function rowToPayloadValue(row: EmailCampaignFilterRow): EmailBroadcastFilterPayload['value'] {
+  if (row.operator === 'never') return null;
 
-  for (const row of rows) {
-    if (row.field === 'total_purchase_amount') {
-      const from = Number(row.value);
-      const to = Number(row.value_to);
-      if (row.operator === 'greater_than' && Number.isFinite(from)) {
-        criteria.deposit_min = from;
-      } else if (row.operator === 'less_than' && Number.isFinite(from)) {
-        criteria.deposit_max = from;
-      } else if (row.operator === 'between') {
-        if (Number.isFinite(from)) criteria.deposit_min = from;
-        if (Number.isFinite(to)) criteria.deposit_max = to;
-      }
-    }
+  const def = getFilterFieldDef(row.field);
+  const numeric =
+    def?.valueType === 'number' || row.operator === 'last_x_days';
 
-    if (row.field === 'ssn_verified' && row.operator === 'is') {
-      if (row.value === 'true') criteria.ssn_verified = true;
-      if (row.value === 'false') criteria.ssn_verified = false;
+  if (row.operator === 'between') {
+    const from = row.value.trim();
+    const to = (row.value_to || '').trim();
+    if (numeric) {
+      const fromNum = Number(from);
+      const toNum = Number(to);
+      return [fromNum, toNum];
     }
-
-    if (row.field === 'state' && row.operator === 'in') {
-      const codes = row.value
-        .split(',')
-        .map((part) => part.trim())
-        .filter(Boolean);
-      criteria.states = codes
-        .map((code) => US_STATES.find((state) => state.value === code)?.label || code)
-        .sort((a, b) => a.localeCompare(b));
-    }
+    return [from, to];
   }
 
-  // Forward-compatible payload for BE filter builder.
-  if (rows.length > 0) {
-    criteria.filters = rows;
-    criteria.match_mode = matchMode;
-  }
-
-  return criteria;
+  const single = row.value.trim();
+  return numeric ? Number(single) : single;
 }
 
-export function mapFilterRowsToPlayerListParams(
+/** Map filter rows to the new backend wire format: filters + filter_match. */
+export function mapFilterRowsToBroadcastPayload(
   rows: EmailCampaignFilterRow[],
-): { params: Record<string, string | number | boolean>; unsupported: string[] } {
-  const params: Record<string, string | number | boolean> = { page: 1, page_size: 1 };
-  const unsupported: string[] = [];
-
-  for (const row of rows) {
-    const def = getFilterFieldDef(row.field);
-    if (!def?.previewSupported) {
-      unsupported.push(def?.label || row.field);
-      continue;
-    }
-
-    if (row.field === 'account_status' && row.operator === 'is' && row.value) {
-      params.status = row.value;
-      continue;
-    }
-
-    if (row.field === 'kyc_status' && row.operator === 'is' && row.value) {
-      params.identity_verification_status = row.value;
-      continue;
-    }
-
-    if (row.field === 'first_purchase' && row.operator === 'is') {
-      if (row.value === 'completed') params.first_deposit_done = true;
-      if (row.value === 'not_completed') params.first_deposit_done = false;
-      continue;
-    }
-
-    if (row.field === 'state' && row.operator === 'in') {
-      const codes = row.value
-        .split(',')
-        .map((part) => part.trim())
-        .filter(Boolean);
-      // Players list currently accepts a single state; use first for preview hint.
-      if (codes[0]) params.state = codes[0];
-      if (codes.length > 1) unsupported.push('State (multi-select preview limited to first)');
-      continue;
-    }
-
-    if (row.field === 'registration_date') {
-      if (row.operator === 'before' && row.value) {
-        params.date_to = row.value;
-        continue;
+  matchMode: EmailCampaignMatchMode,
+): Pick<CreateEmailBroadcastRequest, 'filters' | 'filter_match'> {
+  const filters: EmailBroadcastFilterPayload[] = rows
+    .filter((row) => {
+      if (row.operator === 'never') return true;
+      if (row.operator === 'between') {
+        return Boolean(row.value.trim() && (row.value_to || '').trim());
       }
-      if (row.operator === 'after' && row.value) {
-        params.date_from = row.value;
-        continue;
-      }
-      if (row.operator === 'between' && row.value && row.value_to) {
-        params.date_from = row.value;
-        params.date_to = row.value_to;
-        continue;
-      }
-      if (row.operator === 'last_x_days') {
-        const days = Number(row.value);
-        if (Number.isFinite(days) && days > 0) {
-          params.date_from = daysAgoIso(days);
-          continue;
-        }
-      }
-    }
+      return Boolean(row.value.trim());
+    })
+    .map((row) => ({
+      field: row.field,
+      op: row.operator,
+      value: rowToPayloadValue(row),
+    }));
 
-    unsupported.push(def.label);
-  }
-
-  return { params, unsupported: Array.from(new Set(unsupported)) };
+  return { filters, filter_match: matchMode };
 }
 
 export function summarizeFilterRows(rows: EmailCampaignFilterRow[]): string {
@@ -224,10 +160,9 @@ export function summarizeFilterRows(rows: EmailCampaignFilterRow[]): string {
   return rows
     .map((row) => {
       const label = getFilterFieldDef(row.field)?.label || row.field;
-      if (row.operator === 'between') return `${label} ${row.value}–${row.value_to || ''}`;
-      if (row.operator === 'in') {
-        const count = row.value.split(',').filter(Boolean).length;
-        return `${label}: ${count} selected`;
+      if (row.operator === 'never') return `${label}: never`;
+      if (row.operator === 'between') {
+        return `${label} ${row.value}–${row.value_to || ''}`;
       }
       return `${label} ${row.operator.replace(/_/g, ' ')} ${row.value}`;
     })

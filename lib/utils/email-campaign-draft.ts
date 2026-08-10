@@ -40,9 +40,11 @@ export function normalizeComposerDraft(
 
   const method = raw.recipient_method;
   const recipient_method =
-    method === 'specific' || method === 'filtered' || method === 'all'
+    method === 'specific' || method === 'filtered' || method === 'all_eligible'
       ? method
-      : empty.recipient_method;
+      : method === 'all' || method === 'whitelabel'
+        ? 'all_eligible'
+        : empty.recipient_method;
 
   const match_mode = raw.match_mode === 'any' ? 'any' : 'all';
   const filter_rows = migrateLegacyFiltersToRows({

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui/input';
-import { playersApi } from '@/lib/api';
+import { emailBroadcastsApi } from '@/lib/api';
 import { ComposerFieldLabel } from '@/components/features/email-campaign-composer-ui';
-import type { EmailCampaignSelectedPlayer, Player } from '@/types';
+import type { EmailBroadcastPlayerSearchResult, EmailCampaignSelectedPlayer } from '@/types';
 
 const TABLE_THRESHOLD = 6;
 
@@ -15,12 +15,17 @@ interface EmailCampaignSpecificPlayersProps {
   onChange: (players: EmailCampaignSelectedPlayer[]) => void;
 }
 
-function toSelected(player: Player): EmailCampaignSelectedPlayer {
+function toSelected(player: EmailBroadcastPlayerSearchResult): EmailCampaignSelectedPlayer {
   return {
     id: player.id,
     username: player.username,
     email: player.email || '',
+    exclusion_reason: player.exclusion_reason || null,
   };
+}
+
+function exclusionReasonLabel(reason: string): string {
+  return reason.replace(/_/g, ' ');
 }
 
 export function EmailCampaignSpecificPlayers({
@@ -29,7 +34,7 @@ export function EmailCampaignSpecificPlayers({
   onChange,
 }: EmailCampaignSpecificPlayersProps) {
   const [query, setQuery] = useState('');
-  const [hits, setHits] = useState<Player[]>([]);
+  const [hits, setHits] = useState<EmailBroadcastPlayerSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showTable, setShowTable] = useState(false);
 
@@ -44,7 +49,7 @@ export function EmailCampaignSpecificPlayers({
     setIsSearching(true);
     const timer = window.setTimeout(async () => {
       try {
-        const response = await playersApi.list({ search: trimmed, page_size: 12 });
+        const response = await emailBroadcastsApi.searchPlayers(trimmed);
         setHits(Array.isArray(response?.results) ? response.results : []);
       } catch {
         setHits([]);
@@ -60,7 +65,7 @@ export function EmailCampaignSpecificPlayers({
     if (selected.length >= TABLE_THRESHOLD) setShowTable(true);
   }, [selected.length]);
 
-  const addPlayer = (player: Player) => {
+  const addPlayer = (player: EmailBroadcastPlayerSearchResult) => {
     if (selected.some((row) => row.id === player.id)) return;
     onChange([...selected, toSelected(player)]);
   };
@@ -96,8 +101,12 @@ export function EmailCampaignSpecificPlayers({
             ) : (
               hits.map((player) => {
                 const already = selected.some((row) => row.id === player.id);
+                const ineligible = Boolean(player.exclusion_reason);
                 return (
-                  <li key={player.id} className="border-b border-gray-100 last:border-0 dark:border-gray-700/70">
+                  <li
+                    key={player.id}
+                    className="border-b border-gray-100 last:border-0 dark:border-gray-700/70"
+                  >
                     <button
                       type="button"
                       disabled={already || disabled}
@@ -111,6 +120,11 @@ export function EmailCampaignSpecificPlayers({
                         <span className="mt-0.5 block truncate text-xs text-gray-500">
                           {player.email || 'No email'} · #{player.id}
                         </span>
+                        {ineligible ? (
+                          <span className="mt-1 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                            Ineligible — {exclusionReasonLabel(player.exclusion_reason || 'excluded')}
+                          </span>
+                        ) : null}
                       </span>
                       <span
                         className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium ${
@@ -132,6 +146,12 @@ export function EmailCampaignSpecificPlayers({
             Start typing a username or email to search.
           </div>
         )}
+        {selected.some((player) => player.exclusion_reason) ? (
+          <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+            Ineligible players are marked automatically and cannot be overridden — they are excluded
+            from the final recipient list on send.
+          </p>
+        ) : null}
       </div>
 
       <div className="min-w-0 space-y-3">
@@ -178,10 +198,23 @@ export function EmailCampaignSpecificPlayers({
                 type="button"
                 disabled={disabled}
                 onClick={() => removePlayer(player.id)}
-                className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-700 shadow-sm transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                title={player.email || undefined}
+                className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-sm transition-colors disabled:opacity-50 ${
+                  player.exclusion_reason
+                    ? 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'
+                }`}
+                title={
+                  player.exclusion_reason
+                    ? `Ineligible — ${exclusionReasonLabel(player.exclusion_reason)}`
+                    : player.email || undefined
+                }
               >
                 <span className="truncate font-medium">{player.username}</span>
+                {player.exclusion_reason ? (
+                  <span className="truncate text-[10px] opacity-80">
+                    (ineligible: {exclusionReasonLabel(player.exclusion_reason)})
+                  </span>
+                ) : null}
                 <span className="text-gray-400">×</span>
               </button>
             ))}
@@ -196,6 +229,9 @@ export function EmailCampaignSpecificPlayers({
                   </th>
                   <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Email
+                  </th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    Eligibility
                   </th>
                   <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     {' '}
@@ -214,6 +250,17 @@ export function EmailCampaignSpecificPlayers({
                     </td>
                     <td className="max-w-[160px] truncate px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300">
                       {player.email || '—'}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {player.exclusion_reason ? (
+                        <span className="inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                          {exclusionReasonLabel(player.exclusion_reason)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                          Eligible
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <button

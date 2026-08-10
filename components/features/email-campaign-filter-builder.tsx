@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { US_STATES } from '@/components/dashboard/players/players-filters';
 import {
   ComposerFieldLabel,
   ComposerMetric,
@@ -31,6 +30,13 @@ interface EmailCampaignFilterBuilderProps {
   onChange: (rows: EmailCampaignFilterRow[]) => void;
 }
 
+function exclusionCountsLabel(counts?: Record<string, number>): string {
+  if (!counts || Object.keys(counts).length === 0) return '';
+  return Object.entries(counts)
+    .map(([reason, count]) => `${reason.replace(/_/g, ' ')} ${count.toLocaleString()}`)
+    .join(' · ');
+}
+
 export function EmailCampaignFilterBuilder({
   matchMode,
   rows,
@@ -47,9 +53,17 @@ export function EmailCampaignFilterBuilder({
     const def = getFilterFieldDef(field);
     updateRow(id, {
       field,
-      operator: def?.operators[0] || 'is',
+      operator: def?.operators[0] || 'eq',
       value: '',
       value_to: '',
+    });
+  };
+
+  const changeOperator = (id: string, operator: EmailCampaignFilterOperator, currentValue: string, currentValueTo: string) => {
+    updateRow(id, {
+      operator,
+      value: operator === 'never' ? '' : currentValue,
+      value_to: operator === 'between' ? currentValueTo : '',
     });
   };
 
@@ -89,16 +103,16 @@ export function EmailCampaignFilterBuilder({
       {preview.error ? (
         <p className="text-xs text-amber-700 dark:text-amber-300">{preview.error}</p>
       ) : null}
-      {preview.unsupported.length > 0 ? (
+      {preview.exclusion_counts && Object.keys(preview.exclusion_counts).length > 0 ? (
         <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-          Not in live preview yet: {preview.unsupported.join(', ')}. Send still applies purchase
-          amount, SSN, and state on the broadcast API.
+          Automatically excluded: {exclusionCountsLabel(preview.exclusion_counts)}. These
+          exclusions cannot be overridden.
         </p>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:items-end">
         <div>
-          <ComposerFieldLabel hint="AND matches everyone who satisfies every row. OR is forwarded when the backend supports it.">
+          <ComposerFieldLabel hint="All conditions (AND) matches everyone who satisfies every row; Any condition (OR) matches anyone who satisfies at least one.">
             Match mode
           </ComposerFieldLabel>
           <Select
@@ -134,7 +148,8 @@ export function EmailCampaignFilterBuilder({
         ) : (
           rows.map((row, index) => {
             const def = getFilterFieldDef(row.field);
-            const operators = def?.operators || ['is'];
+            const operators = def?.operators || ['eq'];
+            const numeric = def?.valueType === 'number' || row.operator === 'last_x_days';
             return (
               <div
                 key={row.id}
@@ -173,10 +188,7 @@ export function EmailCampaignFilterBuilder({
                     <Select
                       value={row.operator}
                       onChange={(value) =>
-                        updateRow(row.id, {
-                          operator: value as EmailCampaignFilterOperator,
-                          value: value === 'never' ? '' : row.value,
-                        })
+                        changeOperator(row.id, value as EmailCampaignFilterOperator, row.value, row.value_to || '')
                       }
                       options={operators.map((operator) => ({
                         value: operator,
@@ -202,76 +214,37 @@ export function EmailCampaignFilterBuilder({
                         placeholder="Select value"
                         disabled={disabled}
                       />
-                    ) : def?.valueType === 'states' ? (
-                      <div className="max-h-36 overflow-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-                        <div className="grid grid-cols-1 sm:grid-cols-2">
-                          {US_STATES.map((state) => {
-                            const selected = row.value
-                              .split(',')
-                              .map((part) => part.trim())
-                              .filter(Boolean);
-                            const checked = selected.includes(state.value);
-                            return (
-                              <label
-                                key={state.value}
-                                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  disabled={disabled}
-                                  onChange={() => {
-                                    const next = checked
-                                      ? selected.filter((code) => code !== state.value)
-                                      : [...selected, state.value];
-                                    updateRow(row.id, { value: next.join(',') });
-                                  }}
-                                  className="rounded border-gray-300 text-[#6366f1] focus:ring-[#6366f1]"
-                                />
-                                <span className="truncate">
-                                  {state.label}
-                                  <span className="ml-1 text-gray-400">{state.value}</span>
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
                     ) : row.operator === 'between' ? (
                       <div className="grid grid-cols-2 gap-2">
                         <Input
-                          type={def?.valueType === 'number' ? 'number' : 'date'}
+                          type={numeric ? 'number' : 'date'}
                           value={row.value}
                           onChange={(e) => updateRow(row.id, { value: e.target.value })}
                           disabled={disabled}
-                          placeholder="From"
+                          placeholder={numeric ? 'Min' : 'From'}
+                          min={0}
                         />
                         <Input
-                          type={def?.valueType === 'number' ? 'number' : 'date'}
+                          type={numeric ? 'number' : 'date'}
                           value={row.value_to || ''}
                           onChange={(e) => updateRow(row.id, { value_to: e.target.value })}
                           disabled={disabled}
-                          placeholder="To"
+                          placeholder={numeric ? 'Max' : 'To'}
+                          min={0}
                         />
                       </div>
                     ) : (
                       <Input
-                        type={
-                          row.operator === 'last_x_days' || def?.valueType === 'number'
-                            ? 'number'
-                            : def?.valueType === 'date'
-                              ? 'date'
-                              : 'text'
-                        }
+                        type={numeric ? 'number' : 'date'}
                         value={row.value}
                         onChange={(e) => updateRow(row.id, { value: e.target.value })}
                         disabled={disabled}
                         placeholder={
                           row.operator === 'last_x_days'
                             ? 'Days'
-                            : def?.valueType === 'number'
-                              ? 'Amount'
-                              : 'Value'
+                            : numeric
+                              ? 'Value'
+                              : 'Date'
                         }
                         min={0}
                       />

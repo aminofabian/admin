@@ -3,6 +3,9 @@ import type {
   CreateEmailBroadcastRequest,
   CreateEmailBroadcastResponse,
   EmailBroadcast,
+  EmailBroadcastPlayerSearchResponse,
+  EmailBroadcastPreviewRequest,
+  EmailBroadcastRecipientPreviewResponse,
   EmailBroadcastsListResponse,
 } from '@/types';
 
@@ -58,9 +61,12 @@ function scopeParams(whitelabelAdminUuid?: string) {
 }
 
 export const emailBroadcastsApi = {
-  list: async (whitelabelAdminUuid?: string) => {
+  list: async (whitelabelAdminUuid?: string, status?: string) => {
     const response = await apiClient.get<EmailBroadcastEnvelope>('api/admin/email-broadcasts', {
-      params: scopeParams(whitelabelAdminUuid),
+      params: {
+        ...scopeParams(whitelabelAdminUuid),
+        ...(status ? { status } : {}),
+      },
     });
     return extractEmailBroadcasts(response);
   },
@@ -81,5 +87,53 @@ export const emailBroadcastsApi = {
       } satisfies CreateEmailBroadcastResponse;
     }
     throw new Error('Unexpected create response for email broadcast');
+  },
+
+  /** Load a single campaign / reopen a draft. */
+  get: async (id: number) => {
+    const response = await apiClient.get<EmailBroadcastEnvelope>(`api/admin/email-broadcasts/${id}/`);
+    return extractEmailBroadcasts(response)[0] || null;
+  },
+
+  /** Update a draft only (PATCH /email/broadcasts/<id>/). */
+  update: async (id: number, data: CreateEmailBroadcastRequest) => {
+    const response = await apiClient.patch<CreateEmailBroadcastResponse | EmailBroadcast>(
+      `api/admin/email-broadcasts/${id}/`,
+      data,
+    );
+    if (response && typeof response === 'object' && 'broadcast' in response && isEmailBroadcast(response.broadcast)) {
+      return response as CreateEmailBroadcastResponse;
+    }
+    if (isEmailBroadcast(response)) {
+      return {
+        success: true,
+        message: 'Draft updated.',
+        broadcast: response,
+      } satisfies CreateEmailBroadcastResponse;
+    }
+    throw new Error('Unexpected update response for email broadcast');
+  },
+
+  /** Queue a saved draft for sending (POST /email/broadcasts/<id>/send/). */
+  send: async (id: number) => {
+    return apiClient.post<CreateEmailBroadcastResponse | EmailBroadcast>(
+      `api/admin/email-broadcasts/${id}/send`,
+    );
+  },
+
+  /** Live recipient counts for the current targeting (POST /email/broadcasts/preview/). */
+  preview: async (data: EmailBroadcastPreviewRequest) => {
+    return apiClient.post<EmailBroadcastRecipientPreviewResponse>(
+      'api/admin/email-broadcasts/preview',
+      data,
+    );
+  },
+
+  /** Search players by username or email (GET /email/broadcasts/players/search/?q=). */
+  searchPlayers: async (query: string) => {
+    return apiClient.get<EmailBroadcastPlayerSearchResponse>(
+      'api/admin/email-broadcasts/players/search',
+      { params: { q: query, limit: 20 } },
+    );
   },
 };
