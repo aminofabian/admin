@@ -10,14 +10,16 @@ import {
   formatEmailBroadcastCriteria,
   resolveEmailBroadcastCriteria,
 } from '@/lib/constants/email-broadcasts';
+import { createEmptyEmailCampaignDraft } from '@/lib/constants/email-campaign-composer';
+import { writeComposerSeed } from '@/lib/utils/email-campaign-draft';
+import { migrateLegacyFiltersToRows } from '@/lib/utils/email-campaign-filters';
+import { normalizeUsStateCode } from '@/lib/utils/us-states';
 import { resolveEmailScopeUuid } from '@/lib/utils/project-uuid';
 import { Badge, Button, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
-import { EmailBroadcastComposeDrawer } from '@/components/features/email-broadcast-compose-drawer';
 import type {
-  CreateEmailBroadcastRequest,
   EmailBroadcast,
-  EmailBroadcastComposeDraft,
+  EmailCampaignComposerDraft,
   EmailCampaignTemplate,
 } from '@/types';
 
@@ -28,6 +30,58 @@ function formatWhen(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
+function templateToComposerSeed(template: EmailCampaignTemplate): EmailCampaignComposerDraft {
+  return {
+    ...createEmptyEmailCampaignDraft(),
+    internal_name: template.name,
+    subject: template.subject,
+    html_body: template.html_body,
+    template_id: template.id,
+  };
+}
+
+function broadcastToComposerSeed(broadcast: EmailBroadcast): EmailCampaignComposerDraft {
+  const filters = resolveEmailBroadcastCriteria(broadcast);
+  const userIds = Array.isArray(broadcast.selected_user_ids) ? broadcast.selected_user_ids : [];
+  const isSelected = broadcast.audience === 'selected' || userIds.length > 0;
+  const hasFilters =
+    filters.deposit_min != null ||
+    filters.deposit_max != null ||
+    filters.ssn_verified === true ||
+    filters.ssn_verified === false ||
+    (Array.isArray(filters.states) && filters.states.length > 0);
+
+  const seed = createEmptyEmailCampaignDraft();
+  return {
+    ...seed,
+    internal_name: broadcast.subject,
+    subject: broadcast.subject,
+    html_body: broadcast.html_body,
+    recipient_method: isSelected ? 'specific' : hasFilters ? 'filtered' : 'all',
+    selected_players: userIds.map((id) => ({
+      id,
+      username: `User #${id}`,
+      email: '',
+    })),
+    filter_rows: migrateLegacyFiltersToRows({
+      deposit_min: filters.deposit_min != null ? String(filters.deposit_min) : '',
+      deposit_max: filters.deposit_max != null ? String(filters.deposit_max) : '',
+      ssn_filter:
+        filters.ssn_verified === true
+          ? 'verified'
+          : filters.ssn_verified === false
+            ? 'unverified'
+            : 'any',
+      states: Array.isArray(filters.states)
+        ? filters.states
+            .map((state) => normalizeUsStateCode(state))
+            .filter((code): code is string => Boolean(code))
+        : [],
+    }),
+    template_id: broadcast.template_id ?? null,
+  };
+}
+
 export default function EmailBroadcastsSettingsPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -36,14 +90,11 @@ export default function EmailBroadcastsSettingsPage() {
   const [broadcasts, setBroadcasts] = useState<EmailBroadcast[]>([]);
   const [templates, setTemplates] = useState<EmailCampaignTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [composeTemplate, setComposeTemplate] = useState<EmailCampaignTemplate | null>(null);
-  const [composeDraft, setComposeDraft] = useState<EmailBroadcastComposeDraft | null>(null);
 
   const canEdit = canManageEmailBroadcasts(user?.role);
+  const composePath = '/dashboard/settings/email-broadcasts/compose';
 
   useEffect(() => {
     if (user && !canManageEmailBroadcasts(user.role)) {
@@ -60,7 +111,6 @@ export default function EmailBroadcastsSettingsPage() {
       const rows = await emailCampaignTemplatesApi.list(effectiveUuid);
       setTemplates(rows);
     } catch {
-      // Templates are additive; keep campaigns usable if this endpoint is still landing.
       setTemplates([]);
     }
   }, [effectiveUuid]);
@@ -93,61 +143,9 @@ export default function EmailBroadcastsSettingsPage() {
     }
   }, [canEdit, loadBroadcasts]);
 
-  const openCompose = (template?: EmailCampaignTemplate | null) => {
-    setComposeDraft(null);
-    setComposeTemplate(template ?? null);
-    setIsComposeOpen(true);
-  };
-
-  const openReuseCampaign = (broadcast: EmailBroadcast) => {
-    const filters = resolveEmailBroadcastCriteria(broadcast);
-    setComposeTemplate(null);
-    setComposeDraft({
-      subject: broadcast.subject,
-      html_body: broadcast.html_body,
-      audience: broadcast.audience,
-      user_ids: Array.isArray(broadcast.selected_user_ids) ? broadcast.selected_user_ids : [],
-      deposit_min: filters.deposit_min,
-      deposit_max: filters.deposit_max,
-      ssn_verified: filters.ssn_verified,
-      states: filters.states,
-      template_id: broadcast.template_id,
-      template_name: broadcast.subject,
-    });
-    setIsComposeOpen(true);
-  };
-
-  const closeCompose = () => {
-    setIsComposeOpen(false);
-    setComposeTemplate(null);
-    setComposeDraft(null);
-  };
-
-  const handleCreate = async (data: CreateEmailBroadcastRequest) => {
-    setIsSaving(true);
-    try {
-      const result = await emailBroadcastsApi.create(data);
-      setBroadcasts((prev) => [result.broadcast, ...prev.filter((row) => row.id !== result.broadcast.id)]);
-      closeCompose();
-      addToast({
-        type: 'success',
-        title: data.scheduled_at ? 'Campaign scheduled' : 'Campaign queued',
-        description: result.message || result.broadcast.subject,
-      });
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' && err && 'detail' in err
-            ? String((err as { detail: unknown }).detail)
-            : typeof err === 'object' && err && 'message' in err
-              ? String((err as { message: unknown }).message)
-              : 'Failed to create campaign';
-      addToast({ type: 'error', title: 'Send failed', description: message });
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
+  const openCompose = (seed?: EmailCampaignComposerDraft) => {
+    if (seed) writeComposerSeed(seed);
+    router.push(composePath);
   };
 
   const handleDeleteTemplate = async (template: EmailCampaignTemplate) => {
@@ -184,8 +182,8 @@ export default function EmailBroadcastsSettingsPage() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Email campaigns</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Send or schedule marketing emails with reusable templates and audience criteria.
-            Transactional emails are configured under Email Templates.
+            Compose marketing emails with drafts, review, and recipient targeting. Transactional
+            emails are configured under Email Templates.
           </p>
         </div>
         <div className="flex gap-2">
@@ -204,14 +202,14 @@ export default function EmailBroadcastsSettingsPage() {
             Campaign templates
           </h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Save subject and HTML body once, reuse across campaigns
+            Saved subject and HTML body — open in the composer to send another lot
           </p>
         </div>
 
         <div className="overflow-x-auto px-5 py-2">
           {templates.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              No saved templates yet. Compose a campaign and use &quot;Save as template&quot;.
+              No saved templates yet. Use Save Draft in the composer to create one.
             </p>
           ) : (
             <table className="w-full min-w-[560px] border-collapse text-sm">
@@ -248,7 +246,7 @@ export default function EmailBroadcastsSettingsPage() {
                           type="button"
                           variant="secondary"
                           size="sm"
-                          onClick={() => openCompose(template)}
+                          onClick={() => openCompose(templateToComposerSeed(template))}
                         >
                           Use
                         </Button>
@@ -369,7 +367,7 @@ export default function EmailBroadcastsSettingsPage() {
                           type="button"
                           variant="secondary"
                           size="sm"
-                          onClick={() => openReuseCampaign(broadcast)}
+                          onClick={() => openCompose(broadcastToComposerSeed(broadcast))}
                         >
                           Reuse template
                         </Button>
@@ -382,18 +380,6 @@ export default function EmailBroadcastsSettingsPage() {
           )}
         </div>
       </section>
-
-      <EmailBroadcastComposeDrawer
-        isOpen={isComposeOpen}
-        isSaving={isSaving}
-        isSuperadmin={false}
-        templates={templates}
-        initialTemplate={composeTemplate}
-        initialDraft={composeDraft}
-        onClose={closeCompose}
-        onSubmit={handleCreate}
-        onTemplatesChange={() => void loadTemplates()}
-      />
     </div>
   );
 }

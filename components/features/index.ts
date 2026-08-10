@@ -34,5 +34,8 @@ export * from '../dashboard/data-sections/action-modal/activity-details-modal';
 export * from './edit-profile-drawer';
 export * from './email-template-editor-drawer';
 export * from './email-broadcast-compose-drawer';
+export * from './email-campaign-composer';
+export * from './email-campaign-specific-players';
+export * from './email-campaign-filter-builder';
 export * from './project-scope-picker';
 

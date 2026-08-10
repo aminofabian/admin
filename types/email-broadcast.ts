@@ -80,6 +80,9 @@ export interface CreateEmailBroadcastRequest extends EmailBroadcastAudienceCrite
   scheduled_at?: string;
   /** Optional saved campaign template used to compose this send */
   template_id?: number;
+  /** Forward-compatible filter builder rows (Phase 3+) */
+  filters?: unknown[];
+  match_mode?: 'all' | 'any';
 }
 
 export interface CreateEmailBroadcastResponse {
