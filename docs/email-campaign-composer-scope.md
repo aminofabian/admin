@@ -260,4 +260,12 @@ Shipped in FE:
 - Send maps purchase amount / SSN / state to current broadcast payload
 - Unsupported filters flagged in preview (need BE for full send/count)
 
-Still deferred: dedicated recipient-count API with auto-exclusion breakdown, Monaco editor, per-reason exclusion UI.
+### Started 2026-08-10 — Phase 5 (done on FE)
+
+- Monaco HTML editor (`@monaco-editor/react`) with line numbers + syntax highlight
+- Find / Replace (Monaco), Format HTML (`js-beautify`), Full screen mode
+- Variable chips insert at cursor
+- Desktop / Mobile preview + Refresh Preview (already present)
+- Reject unsupported `{{ variables }}` before Review & Send
+
+Still deferred: dedicated recipient-count API with auto-exclusion breakdown (Phase 4).

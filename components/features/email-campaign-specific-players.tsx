@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { playersApi } from '@/lib/api';
+import { ComposerFieldLabel } from '@/components/features/email-campaign-composer-ui';
 import type { EmailCampaignSelectedPlayer, Player } from '@/types';
 
 const TABLE_THRESHOLD = 6;
@@ -56,15 +57,12 @@ export function EmailCampaignSpecificPlayers({
   }, [query]);
 
   useEffect(() => {
-    if (selected.length >= TABLE_THRESHOLD) {
-      setShowTable(true);
-    }
+    if (selected.length >= TABLE_THRESHOLD) setShowTable(true);
   }, [selected.length]);
 
   const addPlayer = (player: Player) => {
     if (selected.some((row) => row.id === player.id)) return;
     onChange([...selected, toSelected(player)]);
-    // Keep search open/query so staff can continue selecting.
   };
 
   const removePlayer = (id: number) => {
@@ -72,42 +70,39 @@ export function EmailCampaignSpecificPlayers({
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="min-w-0 space-y-3">
+        <ComposerFieldLabel
           htmlFor="email-campaign-player-search"
-          className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
+          hint="Search by username or email. Results stay open so you can keep adding."
         >
           Find players
-        </label>
+        </ComposerFieldLabel>
         <Input
           id="email-campaign-player-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by username or email"
+          placeholder="Type at least 2 characters…"
           disabled={disabled}
           autoComplete="off"
         />
-        <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-          Search by username or email only. The menu stays open so you can keep adding players.
-        </p>
 
         {query.trim().length >= 2 ? (
-          <ul className="mt-2 max-h-52 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
+          <ul className="max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/30">
             {isSearching ? (
-              <li className="px-3 py-2 text-sm text-gray-500">Searching…</li>
+              <li className="px-3 py-3 text-sm text-gray-500">Searching…</li>
             ) : hits.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-gray-500">No players found</li>
+              <li className="px-3 py-3 text-sm text-gray-500">No players found</li>
             ) : (
               hits.map((player) => {
                 const already = selected.some((row) => row.id === player.id);
                 return (
-                  <li key={player.id}>
+                  <li key={player.id} className="border-b border-gray-100 last:border-0 dark:border-gray-700/70">
                     <button
                       type="button"
                       disabled={already || disabled}
                       onClick={() => addPlayer(player)}
-                      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800"
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800/80"
                     >
                       <span className="min-w-0">
                         <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -117,7 +112,13 @@ export function EmailCampaignSpecificPlayers({
                           {player.email || 'No email'} · #{player.id}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-[#6366f1]">
+                      <span
+                        className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                          already
+                            ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                            : 'bg-[#6366f1]/10 text-[#4f46e5] dark:text-[#a5b4fc]'
+                        }`}
+                      >
                         {already ? 'Added' : 'Add'}
                       </span>
                     </button>
@@ -126,16 +127,23 @@ export function EmailCampaignSpecificPlayers({
               })
             )}
           </ul>
-        ) : null}
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-200 px-3 py-6 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            Start typing a username or email to search.
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          Selected: <span className="font-medium">{selected.length}</span>
-        </p>
-        <div className="flex gap-2">
+      <div className="min-w-0 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+            Selected
+            <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+              {selected.length}
+            </span>
+          </p>
           {selected.length > 0 ? (
-            <>
+            <div className="flex gap-1.5">
               <Button
                 type="button"
                 variant="ghost"
@@ -143,7 +151,7 @@ export function EmailCampaignSpecificPlayers({
                 disabled={disabled}
                 onClick={() => setShowTable((prev) => !prev)}
               >
-                {showTable ? 'Hide table' : 'View Selected Players'}
+                {showTable ? 'Chips' : 'Table'}
               </Button>
               <Button
                 type="button"
@@ -152,75 +160,78 @@ export function EmailCampaignSpecificPlayers({
                 disabled={disabled}
                 onClick={() => onChange([])}
               >
-                Clear All
+                Clear all
               </Button>
-            </>
+            </div>
           ) : null}
         </div>
-      </div>
 
-      {selected.length > 0 && !showTable ? (
-        <div className="flex flex-wrap gap-2">
-          {selected.map((player) => (
-            <button
-              key={player.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => removePlayer(player.id)}
-              className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-              title={player.email || undefined}
-            >
-              {player.username} ×
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {selected.length > 0 && showTable ? (
-        <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
-          <table className="w-full min-w-[420px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40">
-                <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  Username
-                </th>
-                <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  Email
-                </th>
-                <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {selected.map((player) => (
-                <tr
-                  key={player.id}
-                  className="border-b border-gray-100 last:border-0 dark:border-gray-700/80"
-                >
-                  <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">
-                    {player.username}
-                    <span className="ml-1 text-xs font-normal text-gray-400">#{player.id}</span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                    {player.email || '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => removePlayer(player.id)}
-                      className="text-xs text-red-600 hover:underline disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
-                  </td>
+        {selected.length === 0 ? (
+          <div className="flex h-full min-h-[140px] items-center justify-center rounded-xl border border-dashed border-gray-200 px-3 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            No players selected yet.
+          </div>
+        ) : !showTable ? (
+          <div className="flex max-h-64 flex-wrap content-start gap-2 overflow-auto rounded-xl border border-gray-200 bg-gray-50/60 p-3 dark:border-gray-700 dark:bg-gray-900/30">
+            {selected.map((player) => (
+              <button
+                key={player.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => removePlayer(player.id)}
+                className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-700 shadow-sm transition-colors hover:border-red-200 hover:text-red-600 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                title={player.email || undefined}
+              >
+                <span className="truncate font-medium">{player.username}</span>
+                <span className="text-gray-400">×</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="max-h-64 overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <table className="w-full min-w-[320px] border-collapse text-sm">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900">
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    Player
+                  </th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    Email
+                  </th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    {' '}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+              </thead>
+              <tbody>
+                {selected.map((player) => (
+                  <tr
+                    key={player.id}
+                    className="border-b border-gray-100 last:border-0 dark:border-gray-700/70"
+                  >
+                    <td className="px-3 py-2.5 font-medium text-gray-900 dark:text-gray-100">
+                      {player.username}
+                      <span className="ml-1 text-xs font-normal text-gray-400">#{player.id}</span>
+                    </td>
+                    <td className="max-w-[160px] truncate px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300">
+                      {player.email || '—'}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => removePlayer(player.id)}
+                        className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

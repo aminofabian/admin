@@ -177,16 +177,18 @@ export default function EmailBroadcastsSettingsPage() {
   }
 
   return (
-    <div className="space-y-8 pb-12">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Email campaigns</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Compose marketing emails with drafts, review, and recipient targeting. Transactional
-            emails are configured under Email Templates.
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+      <header className="flex flex-col gap-4 rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+            Email campaigns
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+            Compose marketing emails with drafts, review, and targeting. Transactional emails live
+            under Email Templates.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => void loadBroadcasts()}>
             Refresh
           </Button>
@@ -196,13 +198,13 @@ export default function EmailBroadcastsSettingsPage() {
         </div>
       </header>
 
-      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+      <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Campaign templates
           </h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Saved subject and HTML body — open in the composer to send another lot
+            Saved subject and HTML — open in the composer to send another lot
           </p>
         </div>
 
@@ -270,8 +272,8 @@ export default function EmailBroadcastsSettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+      <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Campaign history</h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
             Status, recipients, criteria, and delivery counts

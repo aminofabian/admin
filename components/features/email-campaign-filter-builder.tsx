@@ -5,6 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { US_STATES } from '@/components/dashboard/players/players-filters';
 import {
+  ComposerFieldLabel,
+  ComposerMetric,
+} from '@/components/features/email-campaign-composer-ui';
+import {
   EMAIL_CAMPAIGN_FILTER_FIELDS,
   EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS,
   createFilterRow,
@@ -50,66 +54,83 @@ export function EmailCampaignFilterBuilder({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Match mode</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            All conditions (AND) by default. Any condition (OR) is forwarded to the backend when
-            supported.
-          </p>
-        </div>
-        <Select
-          value={matchMode}
-          onChange={(value) => onMatchModeChange(value as EmailCampaignMatchMode)}
-          options={[
-            { value: 'all', label: 'All conditions (AND)' },
-            { value: 'any', label: 'Any condition (OR)' },
-          ]}
-          disabled={disabled}
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <ComposerMetric
+          label="Matched"
+          value={
+            preview.loading
+              ? '…'
+              : preview.matched == null
+                ? '—'
+                : preview.matched.toLocaleString()
+          }
+        />
+        <ComposerMetric
+          label="Auto-excluded"
+          value={
+            preview.excluded == null ? '—' : preview.excluded.toLocaleString()
+          }
+          tone="warning"
+        />
+        <ComposerMetric
+          label="Final recipients"
+          value={
+            preview.loading
+              ? '…'
+              : preview.final == null
+                ? '—'
+                : preview.final.toLocaleString()
+          }
+          tone="success"
         />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900/40">
-        {preview.loading ? (
-          <p className="text-gray-500">Calculating recipient estimate…</p>
-        ) : preview.error ? (
-          <p className="text-amber-700 dark:text-amber-300">{preview.error}</p>
-        ) : (
-          <div className="flex flex-wrap gap-4">
-            <p>
-              <span className="text-gray-500">Matched:</span>{' '}
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {preview.matched == null ? '—' : preview.matched.toLocaleString()}
-              </span>
-            </p>
-            <p>
-              <span className="text-gray-500">Auto-excluded:</span>{' '}
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {preview.excluded == null ? '—' : preview.excluded.toLocaleString()}
-              </span>
-            </p>
-            <p>
-              <span className="text-gray-500">Final recipients:</span>{' '}
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {preview.final == null ? '—' : preview.final.toLocaleString()}
-              </span>
-            </p>
-          </div>
-        )}
-        {preview.unsupported.length > 0 ? (
-          <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-            Not included in live preview yet: {preview.unsupported.join(', ')}. Send still uses
-            supported broadcast filters (purchase amount, SSN, state).
-          </p>
-        ) : null}
+      {preview.error ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300">{preview.error}</p>
+      ) : null}
+      {preview.unsupported.length > 0 ? (
+        <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+          Not in live preview yet: {preview.unsupported.join(', ')}. Send still applies purchase
+          amount, SSN, and state on the broadcast API.
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:items-end">
+        <div>
+          <ComposerFieldLabel hint="AND matches everyone who satisfies every row. OR is forwarded when the backend supports it.">
+            Match mode
+          </ComposerFieldLabel>
+          <Select
+            value={matchMode}
+            onChange={(value) => onMatchModeChange(value as EmailCampaignMatchMode)}
+            options={[
+              { value: 'all', label: 'All conditions (AND)' },
+              { value: 'any', label: 'Any condition (OR)' },
+            ]}
+            disabled={disabled}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={disabled}
+          onClick={() => onChange([...rows, createFilterRow()])}
+          className="md:mb-0.5"
+        >
+          Add filter
+        </Button>
       </div>
 
       <div className="space-y-3">
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500 dark:border-gray-600">
-            No filters yet. Add a condition to narrow the audience.
-          </p>
+          <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center dark:border-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">No filters yet</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Add a condition to narrow who receives this email.
+            </p>
+          </div>
         ) : (
           rows.map((row, index) => {
             const def = getFilterFieldDef(row.field);
@@ -117,137 +138,12 @@ export function EmailCampaignFilterBuilder({
             return (
               <div
                 key={row.id}
-                className="grid gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700 sm:grid-cols-[1.2fr_1fr_1.4fr_auto]"
+                className="rounded-xl border border-gray-200 bg-gray-50/40 p-3 dark:border-gray-700 dark:bg-gray-900/25"
               >
-                <div>
-                  {index === 0 ? (
-                    <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                      Field
-                    </label>
-                  ) : null}
-                  <Select
-                    value={row.field}
-                    onChange={(value) => changeField(row.id, value as EmailCampaignFilterField)}
-                    options={EMAIL_CAMPAIGN_FILTER_FIELDS.map((field) => ({
-                      value: field.field,
-                      label: field.label,
-                    }))}
-                    disabled={disabled}
-                  />
-                </div>
-
-                <div>
-                  {index === 0 ? (
-                    <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                      Operator
-                    </label>
-                  ) : null}
-                  <Select
-                    value={row.operator}
-                    onChange={(value) =>
-                      updateRow(row.id, {
-                        operator: value as EmailCampaignFilterOperator,
-                        value: value === 'never' ? '' : row.value,
-                      })
-                    }
-                    options={operators.map((operator) => ({
-                      value: operator,
-                      label: EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS[operator],
-                    }))}
-                    disabled={disabled}
-                  />
-                </div>
-
-                <div>
-                  {index === 0 ? (
-                    <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                      Value
-                    </label>
-                  ) : null}
-                  {row.operator === 'never' ? (
-                    <p className="py-2 text-sm text-gray-500">No value needed</p>
-                  ) : def?.valueType === 'enum' ? (
-                    <Select
-                      value={row.value}
-                      onChange={(value) => updateRow(row.id, { value })}
-                      options={(def.options || []).map((option) => ({
-                        value: option.value,
-                        label: option.label,
-                      }))}
-                      placeholder="Select value"
-                      disabled={disabled}
-                    />
-                  ) : def?.valueType === 'states' ? (
-                    <div className="max-h-28 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
-                      {US_STATES.map((state) => {
-                        const selected = row.value
-                          .split(',')
-                          .map((part) => part.trim())
-                          .filter(Boolean);
-                        const checked = selected.includes(state.value);
-                        return (
-                          <label
-                            key={state.value}
-                            className="flex cursor-pointer items-center gap-2 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={disabled}
-                              onChange={() => {
-                                const next = checked
-                                  ? selected.filter((code) => code !== state.value)
-                                  : [...selected, state.value];
-                                updateRow(row.id, { value: next.join(',') });
-                              }}
-                            />
-                            {state.label}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : row.operator === 'between' ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        type={def?.valueType === 'number' ? 'number' : 'date'}
-                        value={row.value}
-                        onChange={(e) => updateRow(row.id, { value: e.target.value })}
-                        disabled={disabled}
-                        placeholder="From"
-                      />
-                      <Input
-                        type={def?.valueType === 'number' ? 'number' : 'date'}
-                        value={row.value_to || ''}
-                        onChange={(e) => updateRow(row.id, { value_to: e.target.value })}
-                        disabled={disabled}
-                        placeholder="To"
-                      />
-                    </div>
-                  ) : (
-                    <Input
-                      type={
-                        row.operator === 'last_x_days' || def?.valueType === 'number'
-                          ? 'number'
-                          : def?.valueType === 'date'
-                            ? 'date'
-                            : 'text'
-                      }
-                      value={row.value}
-                      onChange={(e) => updateRow(row.id, { value: e.target.value })}
-                      disabled={disabled}
-                      placeholder={
-                        row.operator === 'last_x_days'
-                          ? 'Days'
-                          : def?.valueType === 'number'
-                            ? 'Amount'
-                            : 'Value'
-                      }
-                      min={0}
-                    />
-                  )}
-                </div>
-
-                <div className={index === 0 ? 'pt-5' : ''}>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    Condition {index + 1}
+                  </p>
                   <Button
                     type="button"
                     variant="ghost"
@@ -258,21 +154,135 @@ export function EmailCampaignFilterBuilder({
                     Remove
                   </Button>
                 </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium text-gray-500">Field</p>
+                    <Select
+                      value={row.field}
+                      onChange={(value) => changeField(row.id, value as EmailCampaignFilterField)}
+                      options={EMAIL_CAMPAIGN_FILTER_FIELDS.map((field) => ({
+                        value: field.field,
+                        label: field.label,
+                      }))}
+                      disabled={disabled}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium text-gray-500">Operator</p>
+                    <Select
+                      value={row.operator}
+                      onChange={(value) =>
+                        updateRow(row.id, {
+                          operator: value as EmailCampaignFilterOperator,
+                          value: value === 'never' ? '' : row.value,
+                        })
+                      }
+                      options={operators.map((operator) => ({
+                        value: operator,
+                        label: EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS[operator],
+                      }))}
+                      disabled={disabled}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 xl:col-span-1">
+                    <p className="mb-1 text-[11px] font-medium text-gray-500">Value</p>
+                    {row.operator === 'never' ? (
+                      <p className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+                        No value needed
+                      </p>
+                    ) : def?.valueType === 'enum' ? (
+                      <Select
+                        value={row.value}
+                        onChange={(value) => updateRow(row.id, { value })}
+                        options={(def.options || []).map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                        placeholder="Select value"
+                        disabled={disabled}
+                      />
+                    ) : def?.valueType === 'states' ? (
+                      <div className="max-h-36 overflow-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                        <div className="grid grid-cols-1 sm:grid-cols-2">
+                          {US_STATES.map((state) => {
+                            const selected = row.value
+                              .split(',')
+                              .map((part) => part.trim())
+                              .filter(Boolean);
+                            const checked = selected.includes(state.value);
+                            return (
+                              <label
+                                key={state.value}
+                                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={disabled}
+                                  onChange={() => {
+                                    const next = checked
+                                      ? selected.filter((code) => code !== state.value)
+                                      : [...selected, state.value];
+                                    updateRow(row.id, { value: next.join(',') });
+                                  }}
+                                  className="rounded border-gray-300 text-[#6366f1] focus:ring-[#6366f1]"
+                                />
+                                <span className="truncate">
+                                  {state.label}
+                                  <span className="ml-1 text-gray-400">{state.value}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : row.operator === 'between' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          type={def?.valueType === 'number' ? 'number' : 'date'}
+                          value={row.value}
+                          onChange={(e) => updateRow(row.id, { value: e.target.value })}
+                          disabled={disabled}
+                          placeholder="From"
+                        />
+                        <Input
+                          type={def?.valueType === 'number' ? 'number' : 'date'}
+                          value={row.value_to || ''}
+                          onChange={(e) => updateRow(row.id, { value_to: e.target.value })}
+                          disabled={disabled}
+                          placeholder="To"
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        type={
+                          row.operator === 'last_x_days' || def?.valueType === 'number'
+                            ? 'number'
+                            : def?.valueType === 'date'
+                              ? 'date'
+                              : 'text'
+                        }
+                        value={row.value}
+                        onChange={(e) => updateRow(row.id, { value: e.target.value })}
+                        disabled={disabled}
+                        placeholder={
+                          row.operator === 'last_x_days'
+                            ? 'Days'
+                            : def?.valueType === 'number'
+                              ? 'Amount'
+                              : 'Value'
+                        }
+                        min={0}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })
         )}
       </div>
-
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={disabled}
-        onClick={() => onChange([...rows, createFilterRow()])}
-      >
-        Add Filter
-      </Button>
     </div>
   );
 }

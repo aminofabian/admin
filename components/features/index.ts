@@ -35,7 +35,9 @@ export * from './edit-profile-drawer';
 export * from './email-template-editor-drawer';
 export * from './email-broadcast-compose-drawer';
 export * from './email-campaign-composer';
+export * from './email-campaign-composer-ui';
 export * from './email-campaign-specific-players';
 export * from './email-campaign-filter-builder';
+export * from './email-campaign-html-editor';
 export * from './project-scope-picker';
 

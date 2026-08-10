@@ -1,11 +1,33 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { EmailCampaignSpecificPlayers } from '@/components/features/email-campaign-specific-players';
 import { EmailCampaignFilterBuilder } from '@/components/features/email-campaign-filter-builder';
+import {
+  ComposerAlert,
+  ComposerFieldLabel,
+  ComposerMetric,
+  ComposerSection,
+} from '@/components/features/email-campaign-composer-ui';
+
+const EmailCampaignHtmlEditor = dynamic(
+  () =>
+    import('@/components/features/email-campaign-html-editor').then(
+      (mod) => mod.EmailCampaignHtmlEditor,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[360px] items-center justify-center rounded-md border border-gray-300 text-sm text-gray-500 dark:border-gray-600">
+        Loading HTML editor…
+      </div>
+    ),
+  },
+);
 import { emailBroadcastsApi, emailCampaignTemplatesApi, playersApi } from '@/lib/api';
 import { getEmailBroadcastPlaceholders } from '@/lib/constants/email-broadcasts';
 import {
@@ -28,6 +50,7 @@ import {
   summarizeFilterRows,
   validateFilterRows,
 } from '@/lib/utils/email-campaign-filters';
+import { findUnsupportedEmailVariables } from '@/lib/utils/email-campaign-variables';
 import { getStoredProjectUuid } from '@/lib/utils/project-uuid';
 import type {
   CreateEmailBroadcastRequest,
@@ -58,6 +81,13 @@ function validateDraft(draft: EmailCampaignComposerDraft): string[] {
       errors.push('Add at least one filter for Filtered Players.');
     }
     errors.push(...validateFilterRows(draft.filter_rows));
+  }
+
+  const unsupported = findUnsupportedEmailVariables(draft.html_body);
+  if (unsupported.length > 0) {
+    errors.push(
+      `Unsupported variables: ${unsupported.map((key) => `{{ ${key} }}`).join(', ')}.`,
+    );
   }
 
   return errors;
@@ -122,11 +152,16 @@ export function EmailCampaignComposer({
   const [hydrated, setHydrated] = useState(false);
   const [recipientPreview, setRecipientPreview] =
     useState<EmailCampaignRecipientPreview>(EMPTY_PREVIEW);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const selectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const [insertVariable, setInsertVariable] = useState<(token: string) => void>(
+    () => () => undefined,
+  );
 
   const placeholders = useMemo(() => getEmailBroadcastPlaceholders(), []);
   const resolvedUuid = whitelabelAdminUuid || getStoredProjectUuid() || undefined;
+
+  const handleInsertReady = useCallback((insert: (token: string) => void) => {
+    setInsertVariable(() => insert);
+  }, []);
 
   useEffect(() => {
     const seed = consumeComposerSeed();
@@ -195,30 +230,6 @@ export function EmailCampaignComposer({
     setDraft((prev) => ({ ...prev, ...patch }));
   };
 
-  const rememberSelection = () => {
-    if (bodyRef.current) {
-      selectionRef.current = {
-        start: bodyRef.current.selectionStart,
-        end: bodyRef.current.selectionEnd,
-      };
-    }
-  };
-
-  const insertVariable = (key: string) => {
-    rememberSelection();
-    const { start, end } = selectionRef.current;
-    const token = emailPlaceholderToken(key);
-    const next = draft.html_body.slice(0, start) + token + draft.html_body.slice(end);
-    updateDraft({ html_body: next });
-    requestAnimationFrame(() => {
-      if (bodyRef.current) {
-        const cursor = start + token.length;
-        bodyRef.current.focus();
-        bodyRef.current.setSelectionRange(cursor, cursor);
-      }
-    });
-  };
-
   const handleSaveDraft = async () => {
     setErrors([]);
     if (!draft.internal_name.trim()) {
@@ -228,22 +239,25 @@ export function EmailCampaignComposer({
 
     setIsSavingDraft(true);
     try {
-      saveComposerDraft(scopeKey, draft);
+      const withStamp = { ...draft, updated_at: new Date().toISOString() };
+      saveComposerDraft(scopeKey, withStamp);
+      setDraft(withStamp);
 
       // Also persist subject/body as a reusable campaign template when possible.
       try {
         const templatePayload = {
-          name: draft.internal_name.trim(),
-          subject: draft.subject.trim() || draft.internal_name.trim(),
-          html_body: draft.html_body,
+          name: withStamp.internal_name.trim(),
+          subject: withStamp.subject.trim() || withStamp.internal_name.trim(),
+          html_body: withStamp.html_body,
           ...(resolvedUuid ? { whitelabel_admin_uuid: resolvedUuid } : {}),
         };
-        const existingId = draft.template_id && draft.template_id > 0 ? draft.template_id : null;
+        const existingId = withStamp.template_id && withStamp.template_id > 0 ? withStamp.template_id : null;
         const saved = existingId
           ? await emailCampaignTemplatesApi.update(existingId, templatePayload)
           : await emailCampaignTemplatesApi.create(templatePayload);
+        const next = { ...withStamp, template_id: saved.id };
         updateDraft({ template_id: saved.id });
-        saveComposerDraft(scopeKey, { ...draft, template_id: saved.id });
+        saveComposerDraft(scopeKey, next);
       } catch {
         // Local draft still saved if template API is unavailable.
       }
@@ -317,7 +331,7 @@ export function EmailCampaignComposer({
 
   if (!hydrated) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
         Loading composer…
       </div>
     );
@@ -336,16 +350,21 @@ export function EmailCampaignComposer({
         : draft.recipient_method === 'filtered' && recipientPreview.final != null
           ? recipientPreview.final.toLocaleString()
           : draft.recipient_method === 'filtered'
-            ? 'Filtered eligible players (final count resolved on send)'
-            : 'All eligible players (final count resolved on send)';
+            ? 'Resolved on send'
+            : 'All eligible';
 
     return (
-      <div className="space-y-6">
+      <div className="mx-auto max-w-5xl space-y-5 pb-10">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Review & Send</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6366f1]">
+              Step 2 of 2
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+              Review & Send
+            </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Confirm details before queuing this campaign.
+              Confirm the summary, then queue the campaign.
             </p>
           </div>
           <Button
@@ -359,105 +378,98 @@ export function EmailCampaignComposer({
         </header>
 
         {errors.length > 0 ? (
-          <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400">
+          <ComposerAlert>
             <ul className="list-disc space-y-1 pl-4">
               {errors.map((error) => (
                 <li key={error}>{error}</li>
               ))}
             </ul>
-          </div>
+          </ComposerAlert>
         ) : null}
 
-        <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Summary</h2>
-          </div>
-          <dl className="grid gap-4 px-5 py-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                Internal email name
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ComposerMetric label="Matched / selected" value={matchedLabel} />
+          <ComposerMetric
+            label="Auto-excluded"
+            value={
+              recipientPreview.excluded == null
+                ? 'On send'
+                : recipientPreview.excluded.toLocaleString()
+            }
+            tone="warning"
+          />
+          <ComposerMetric label="Final recipients" value={finalCountLabel} tone="success" />
+        </div>
+
+        <ComposerSection title="Campaign summary" description="What will be sent">
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Internal name
               </dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{draft.internal_name}</dd>
+              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                {draft.internal_name}
+              </dd>
             </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Subject
               </dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{draft.subject}</dd>
+              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                {draft.subject}
+              </dd>
             </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Recipient method
               </dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{recipientLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                Matched / selected
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{matchedLabel}</dd>
+              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                {recipientLabel}
+              </dd>
             </div>
             {draft.recipient_method === 'filtered' ? (
-              <div className="sm:col-span-2">
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+              <div className="rounded-xl bg-gray-50 px-3.5 py-3 sm:col-span-2 dark:bg-gray-900/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                   Filters
                 </dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <dd className="mt-1 text-sm text-gray-800 dark:text-gray-200">
                   {draft.match_mode === 'any' ? 'Any condition · ' : 'All conditions · '}
                   {summarizeFilterRows(draft.filter_rows)}
                 </dd>
               </div>
             ) : null}
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                Automatically excluded
-              </dt>
-              <dd className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {recipientPreview.excluded == null
-                  ? 'Applied on send (unsubscribed, invalid, bounced, suppressed)'
-                  : recipientPreview.excluded.toLocaleString()}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                Final recipients
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{finalCountLabel}</dd>
-            </div>
           </dl>
-        </section>
+        </ComposerSection>
 
         {draft.recipient_method === 'all' ? (
-          <section className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-900/50 dark:bg-amber-950/30">
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-              Strong confirmation required
-            </p>
-            <p className="mt-1 text-xs text-amber-800 dark:text-amber-200/80">
-              You are about to email all eligible players in this brand. Type <strong>SEND</strong>{' '}
-              to enable the send button.
+          <ComposerAlert tone="warning">
+            <p className="font-medium">Strong confirmation required</p>
+            <p className="mt-1 opacity-90">
+              You are about to email all eligible players in this brand. Type{' '}
+              <strong>SEND</strong> below to enable the send button.
             </p>
             <Input
-              className="mt-3 max-w-xs"
+              className="mt-3 max-w-xs bg-white dark:bg-gray-900"
               value={sendConfirm}
               onChange={(e) => setSendConfirm(e.target.value)}
               placeholder="Type SEND"
               disabled={busy}
               autoComplete="off"
             />
-          </section>
+          </ComposerAlert>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <ComposerAlert tone="info">
             Confirm sending to{' '}
             <strong>
               {draft.recipient_method === 'specific'
                 ? `${selectedCount} selected player${selectedCount === 1 ? '' : 's'}`
                 : 'filtered eligible players'}
             </strong>
-            . Ineligible marketing recipients are excluded automatically on send.
-          </p>
+            . Marketing-ineligible players are excluded automatically on send.
+          </ComposerAlert>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95">
           <Button
             type="button"
             variant="secondary"
@@ -484,20 +496,24 @@ export function EmailCampaignComposer({
   }
 
   return (
-    <div className="space-y-6 pb-16">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            Compose email campaign
+    <div className="mx-auto max-w-7xl space-y-5 pb-28">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6366f1]">
+            Step 1 of 2 · Compose
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+            Email campaign
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create an HTML email and send it to specific, filtered, or all eligible players.
+          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+            Write the message, choose who gets it, preview on desktop or mobile, then review before
+            sending.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             size="sm"
             onClick={() => router.push('/dashboard/settings/email-broadcasts')}
           >
@@ -525,37 +541,34 @@ export function EmailCampaignComposer({
       </header>
 
       {errors.length > 0 ? (
-        <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400">
+        <ComposerAlert>
           <ul className="list-disc space-y-1 pl-4">
             {errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </div>
+        </ComposerAlert>
       ) : null}
 
       {!canReview ? (
-        <p className="text-xs text-amber-700 dark:text-amber-300">
-          Review & Send stays disabled until required fields and recipient rules are valid.
-        </p>
+        <ComposerAlert tone="warning">
+          Complete required fields and recipient rules to enable Review & Send.
+        </ComposerAlert>
       ) : null}
 
-      {/* 1. Email details */}
-      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">1. Email details</h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Internal name and recipient-facing subject
-          </p>
-        </div>
-        <div className="space-y-4 px-5 py-4">
+      <ComposerSection
+        step="1"
+        title="Email details"
+        description="Internal name for staff, subject line for players"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label
+            <ComposerFieldLabel
               htmlFor="email-campaign-internal-name"
-              className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
+              hint="Only visible to your team"
             >
               Internal email name
-            </label>
+            </ComposerFieldLabel>
             <Input
               id="email-campaign-internal-name"
               value={draft.internal_name}
@@ -566,12 +579,12 @@ export function EmailCampaignComposer({
             />
           </div>
           <div>
-            <label
+            <ComposerFieldLabel
               htmlFor="email-campaign-subject"
-              className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100"
+              hint="Shown in the player inbox"
             >
               Subject
-            </label>
+            </ComposerFieldLabel>
             <Input
               id="email-campaign-subject"
               value={draft.subject}
@@ -582,176 +595,167 @@ export function EmailCampaignComposer({
             />
           </div>
         </div>
-      </section>
+      </ComposerSection>
 
-      {/* 2. Recipients */}
-      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">2. Recipients</h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Specific players, filtered players, or all eligible players
-          </p>
-        </div>
-        <div className="space-y-4 px-5 py-4">
-          <div className="flex flex-wrap gap-2">
-            {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
-              const active = draft.recipient_method === method.value;
-              return (
-                <button
-                  key={method.value}
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
-                  }
-                  className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+      <ComposerSection
+        step="2"
+        title="Recipients"
+        description="Pick how this campaign should target players"
+      >
+        <div className="mb-5 grid gap-2 sm:grid-cols-3">
+          {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
+            const active = draft.recipient_method === method.value;
+            return (
+              <button
+                key={method.value}
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
+                }
+                className={`rounded-xl border px-3.5 py-3 text-left transition-all ${
+                  active
+                    ? 'border-[#6366f1] bg-[#6366f1]/[0.08] shadow-sm ring-1 ring-[#6366f1]/30 dark:bg-[#6366f1]/15'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900/40'
+                }`}
+              >
+                <span
+                  className={`block text-sm font-semibold ${
                     active
-                      ? 'border-[#6366f1] bg-[#6366f1]/10 text-[#4338ca] dark:text-[#a5b4fc]'
-                      : 'border-gray-200 text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:text-gray-300'
+                      ? 'text-[#4338ca] dark:text-[#c7d2fe]'
+                      : 'text-gray-900 dark:text-gray-100'
                   }`}
                 >
-                  <span className="block font-medium">{method.label}</span>
-                  <span className="mt-0.5 block text-xs opacity-80">{method.description}</span>
-                </button>
-              );
-            })}
+                  {method.label}
+                </span>
+                <span className="mt-1 block text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                  {method.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {draft.recipient_method === 'specific' ? (
+          <EmailCampaignSpecificPlayers
+            selected={draft.selected_players}
+            disabled={busy}
+            onChange={(selected_players) => updateDraft({ selected_players })}
+          />
+        ) : null}
+
+        {draft.recipient_method === 'filtered' ? (
+          <EmailCampaignFilterBuilder
+            matchMode={draft.match_mode}
+            rows={draft.filter_rows}
+            preview={recipientPreview}
+            disabled={busy}
+            onMatchModeChange={(match_mode) => updateDraft({ match_mode })}
+            onChange={(filter_rows) => updateDraft({ filter_rows })}
+          />
+        ) : null}
+
+        {draft.recipient_method === 'all' ? (
+          <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100">
+            <p className="font-medium">All eligible players in this brand</p>
+            <p className="mt-1 text-xs leading-relaxed opacity-90">
+              Marketing-ineligible addresses are excluded automatically. Review requires typing{' '}
+              <strong>SEND</strong> before final submission.
+            </p>
           </div>
+        ) : null}
+      </ComposerSection>
 
-          {draft.recipient_method === 'specific' ? (
-            <EmailCampaignSpecificPlayers
-              selected={draft.selected_players}
+      <ComposerSection
+        step="3"
+        title="Content & preview"
+        description="Edit HTML on the left, preview how it looks on the right"
+      >
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="min-w-0 space-y-3">
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">HTML content</p>
+            <EmailCampaignHtmlEditor
+              value={draft.html_body}
               disabled={busy}
-              onChange={(selected_players) => updateDraft({ selected_players })}
+              onChange={(html_body) => updateDraft({ html_body })}
+              onInsertReady={handleInsertReady}
             />
-          ) : null}
-
-          {draft.recipient_method === 'filtered' ? (
-            <EmailCampaignFilterBuilder
-              matchMode={draft.match_mode}
-              rows={draft.filter_rows}
-              preview={recipientPreview}
-              disabled={busy}
-              onMatchModeChange={(match_mode) => updateDraft({ match_mode })}
-              onChange={(filter_rows) => updateDraft({ filter_rows })}
-            />
-          ) : null}
-
-          {draft.recipient_method === 'all' ? (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300">
-              <p>
-                Sends to every eligible player in the current brand. Marketing ineligible players
-                are excluded automatically on send.
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                Insert variable
               </p>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Review requires typing <strong>SEND</strong> before final submission. Live recipient
-                counts arrive when the preview API is available.
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* 3 + 4. HTML editor and preview */}
-      <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            3. HTML content &amp; 4. Preview
-          </h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Complete email HTML with variables. Preview uses sample data in a sandboxed iframe.
-          </p>
-        </div>
-        <div className="space-y-4 px-5 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <label
-              htmlFor="email-campaign-html"
-              className="text-sm font-medium text-gray-900 dark:text-gray-100"
-            >
-              HTML content
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex rounded-md border border-gray-200 p-0.5 dark:border-gray-700">
-                {(['desktop', 'mobile'] as const).map((mode) => (
+              <div className="flex flex-wrap gap-1.5">
+                {placeholders.map((variable) => (
                   <button
-                    key={mode}
+                    key={variable.key}
                     type="button"
-                    onClick={() => setPreviewMode(mode)}
-                    className={`rounded px-3 py-1 text-xs font-medium capitalize ${
-                      previewMode === mode
-                        ? 'bg-[#6366f1] text-white'
-                        : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
-                    }`}
+                    onClick={() => insertVariable(emailPlaceholderToken(variable.key))}
+                    disabled={busy}
+                    title={variable.label}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-mono text-[11px] text-gray-700 shadow-sm transition-colors hover:border-[#6366f1] hover:text-[#4f46e5] disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
                   >
-                    {mode}
+                    {emailPlaceholderToken(variable.key)}
                   </button>
                 ))}
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setPreviewKey((key) => key + 1)}
-              >
-                Refresh Preview
-              </Button>
             </div>
           </div>
 
-          <textarea
-            id="email-campaign-html"
-            ref={bodyRef}
-            value={draft.html_body}
-            onChange={(e) => updateDraft({ html_body: e.target.value })}
-            onSelect={rememberSelection}
-            onClick={rememberSelection}
-            onKeyUp={rememberSelection}
-            disabled={busy}
-            spellCheck={false}
-            rows={14}
-            className="w-full rounded-md border border-gray-300 bg-white p-3 font-mono text-xs leading-relaxed text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-          />
-
-          <div>
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              Variables — click to insert
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {placeholders.map((variable) => (
-                <button
-                  key={variable.key}
+          <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Live preview</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+                  {(['desktop', 'mobile'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPreviewMode(mode)}
+                      className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                        previewMode === mode
+                          ? 'bg-[#6366f1] text-white'
+                          : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+                <Button
                   type="button"
-                  onClick={() => insertVariable(variable.key)}
-                  disabled={busy}
-                  title={variable.label}
-                  className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:border-[#6366f1] hover:text-[#6366f1] disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPreviewKey((key) => key + 1)}
                 >
-                  {emailPlaceholderToken(variable.key)}
-                </button>
-              ))}
+                  Refresh
+                </Button>
+              </div>
             </div>
-          </div>
-
-          <div
-            className={`mx-auto overflow-hidden rounded-md border border-gray-300 bg-white dark:border-gray-600 ${
-              previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'
-            }`}
-          >
-            <iframe
-              key={previewKey}
-              title="Email preview"
-              srcDoc={previewHtml}
-              sandbox=""
-              className="h-[420px] w-full"
-            />
+            <div
+              className={`mx-auto overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all dark:border-gray-700 ${
+                previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'
+              }`}
+            >
+              <div className="border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-700 dark:bg-gray-900">
+                {previewMode === 'mobile' ? 'Mobile frame · 375px' : 'Desktop frame'}
+              </div>
+              <iframe
+                key={previewKey}
+                title="Email preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                className="h-[min(520px,60vh)] min-h-[320px] w-full bg-white"
+              />
+            </div>
           </div>
         </div>
-      </section>
+      </ComposerSection>
 
-      {/* 5. Actions */}
-      <section className="sticky bottom-0 z-10 rounded-xl border border-gray-200 bg-white/95 px-5 py-4 backdrop-blur dark:border-gray-700 dark:bg-gray-800/95">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            5. Actions — save without sending, or review before queueing.
+            Drafts save locally{draft.updated_at ? ` · last saved ${new Date(draft.updated_at).toLocaleString()}` : ''}.
+            Review before anything is queued.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -774,7 +778,7 @@ export function EmailCampaignComposer({
             </Button>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
