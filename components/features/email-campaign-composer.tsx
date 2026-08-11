@@ -669,10 +669,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               </span>
             ) : null}
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Write the message, choose who gets it, preview on desktop or mobile, then review before
-            sending.
-          </p>
         </div>
         <button
           type="button"
@@ -733,13 +729,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </ComposerAlert>
-      ) : null}
-
-      {!canReview ? (
-        <ComposerAlert tone="warning">
-          Complete required fields and recipient rules to enable Review & Send. Review stays locked
-          until at least one eligible recipient matches.
         </ComposerAlert>
       ) : null}
 

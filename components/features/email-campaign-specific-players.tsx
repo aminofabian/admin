@@ -77,12 +77,7 @@ export function EmailCampaignSpecificPlayers({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="min-w-0 space-y-3">
-        <ComposerFieldLabel
-          htmlFor="email-campaign-player-search"
-          hint="Search by username or email. Results stay open so you can keep adding."
-        >
-          Find players
-        </ComposerFieldLabel>
+        <ComposerFieldLabel htmlFor="email-campaign-player-search">Find players</ComposerFieldLabel>
         <Input
           id="email-campaign-player-search"
           value={query}

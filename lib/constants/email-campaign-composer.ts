@@ -8,7 +8,7 @@ export const EMAIL_CAMPAIGN_RECIPIENT_METHODS: {
   {
     value: 'specific',
     label: 'Specific Players',
-    description: 'Select one or more players by username or email',
+    description: '',
   },
   {
     value: 'filtered',
