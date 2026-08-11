@@ -162,6 +162,38 @@ const EMPTY_PREVIEW: EmailCampaignRecipientPreview = {
   unsupported: [],
 };
 
+function Icon({ d, className = 'h-4 w-4' }: { d: string; className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d} />
+    </svg>
+  );
+}
+
+const METHOD_ICONS: Record<
+  EmailCampaignRecipientMethod,
+  { d: string; tint: string }
+> = {
+  specific: {
+    d: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+    tint: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300',
+  },
+  filtered: {
+    d: 'M22 3H2l8 9.46V19l4 2v-8.54L22 3z',
+    tint: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-300',
+  },
+  all_eligible: {
+    d: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    tint: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
+  },
+};
+
+const COMPOSER_STEPS = [
+  { n: 1, label: 'Email details', sectionId: 'composer-step-details' },
+  { n: 2, label: 'Recipients', sectionId: 'composer-step-recipients' },
+  { n: 3, label: 'Content & preview', sectionId: 'composer-step-content' },
+] as const;
+
 function exclusionCountsLabel(counts?: Record<string, number>): string {
   if (!counts || Object.keys(counts).length === 0) return '';
   return Object.entries(counts)
@@ -279,6 +311,21 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const canReview = validationErrors.length === 0 && finalCount != null && finalCount > 0;
   const busy = isSavingDraft || isSending;
 
+  const step1Complete = draft.internal_name.trim().length > 0 && draft.subject.trim().length > 0;
+  const step2Complete =
+    draft.recipient_method === 'specific'
+      ? selectedCount > 0
+      : draft.recipient_method === 'filtered'
+        ? draft.filter_rows.length > 0 && validateFilterRows(draft.filter_rows).length === 0
+        : true;
+  const step3Complete =
+    draft.html_body.trim().length > 0 &&
+    findUnsupportedEmailVariables(draft.html_body).length === 0;
+
+  const scrollToSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleSaveDraft = async () => {
     setErrors([]);
     if (!draft.internal_name.trim()) {
@@ -384,8 +431,16 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   if (!hydrated) {
     return (
-      <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
-        Loading composer…
+      <div className="mx-auto max-w-7xl space-y-5 pb-12">
+        <div className="rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 sm:p-7">
+          <div className="h-3 w-44 animate-pulse rounded bg-white/30" />
+          <div className="mt-3 h-7 w-56 animate-pulse rounded bg-white/30" />
+          <div className="mt-3 h-4 w-full max-w-xl animate-pulse rounded bg-white/20" />
+        </div>
+        <div className="h-10 animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800" />
+        <div className="flex h-[300px] animate-pulse items-center justify-center rounded-2xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+          Loading composer…
+        </div>
       </div>
     );
   }
@@ -409,27 +464,40 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           : 'Resolved on send';
 
     return (
-      <div className="mx-auto max-w-5xl space-y-5 pb-10">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6366f1]">
-              Step 2 of 2
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
-              Review & Send
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Confirm the summary, then queue the campaign.
-            </p>
+      <div className="mx-auto max-w-5xl space-y-5 pb-28">
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 shadow-lg shadow-indigo-500/20 sm:p-7">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 85% 20%, rgba(255,255,255,0.9) 0, transparent 34%), radial-gradient(circle at 20% 100%, rgba(255,255,255,0.55) 0, transparent 28%)',
+            }}
+          />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-100/80">
+                Settings · Email campaigns
+              </p>
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Review & Send
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-indigo-100/90">
+                Confirm the summary, then queue the campaign. Nothing is sent until you press Send
+                Email.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard/settings/email-broadcasts')}
+              className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+            >
+              <Icon
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                className="h-3.5 w-3.5"
+              />
+              Back to campaigns
+            </button>
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push('/dashboard/settings/email-broadcasts')}
-          >
-            Back to campaigns
-          </Button>
         </header>
 
         {errors.length > 0 ? (
@@ -443,9 +511,9 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <ComposerMetric label="Matched / selected" value={matchedLabel} />
-          <ComposerMetric label="Auto-excluded" value={excludedLabel} tone="warning" />
-          <ComposerMetric label="Final recipients" value={finalCountLabel} tone="success" />
+          <ComposerMetric size="lg" label="Matched / selected" value={matchedLabel} />
+          <ComposerMetric size="lg" label="Auto-excluded" value={excludedLabel} tone="warning" />
+          <ComposerMetric size="lg" label="Final recipients" value={finalCountLabel} tone="success" />
         </div>
 
         {recipientPreview.exclusion_counts &&
@@ -539,6 +607,19 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         )}
 
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95">
+          <p className="mr-auto text-xs text-gray-500 dark:text-gray-400">
+            {finalCount != null && finalCount > 0 ? (
+              <>
+                Ready to send to{' '}
+                <strong className="text-emerald-600 dark:text-emerald-400">
+                  {finalCount.toLocaleString()}
+                </strong>{' '}
+                recipient{finalCount === 1 ? '' : 's'}
+              </>
+            ) : (
+              'No eligible recipients yet'
+            )}
+          </p>
           <Button
             type="button"
             variant="secondary"
@@ -569,48 +650,84 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 pb-28">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6366f1]">
-            Step 1 of 2 · Compose
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
-            Email campaign
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-            Write the message, choose who gets it, preview on desktop or mobile, then review before
-            sending.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
+      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 shadow-lg shadow-indigo-500/20 sm:p-7">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 85% 20%, rgba(255,255,255,0.9) 0, transparent 34%), radial-gradient(circle at 20% 100%, rgba(255,255,255,0.55) 0, transparent 28%)',
+          }}
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-100/80">
+              Settings · Email campaigns
+            </p>
+            <h1 className="mt-1.5 flex flex-wrap items-center gap-2.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Compose campaign
+              {draft.broadcast_id ? (
+                <span className="rounded-full border border-white/30 bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white">
+                  Draft #{draft.broadcast_id}
+                </span>
+              ) : null}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-indigo-100/90">
+              Write the message, choose who gets it, preview on desktop or mobile, then review
+              before sending.
+            </p>
+          </div>
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => router.push('/dashboard/settings/email-broadcasts')}
+            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
           >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            isLoading={isSavingDraft}
-            disabled={busy}
-            onClick={() => void handleSaveDraft()}
-          >
-            Save Draft
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={busy || !canReview}
-            onClick={handleReview}
-          >
-            Review & Send
-          </Button>
+            <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
+            Back to campaigns
+          </button>
         </div>
       </header>
+
+      {/* Progress stepper */}
+      <nav className="flex items-center gap-2 overflow-x-auto rounded-2xl border border-gray-200/80 bg-white px-4 py-3 shadow-sm sm:gap-3 sm:px-5 dark:border-gray-700/80 dark:bg-gray-800">
+        {COMPOSER_STEPS.map((stepDef, index) => {
+          const complete =
+            stepDef.n === 1 ? step1Complete : stepDef.n === 2 ? step2Complete : step3Complete;
+          const isLast = index === COMPOSER_STEPS.length - 1;
+          return (
+            <div key={stepDef.n} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => scrollToSection(stepDef.sectionId)}
+                className="group flex min-w-0 items-center gap-2 text-left"
+              >
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                    complete
+                      ? 'bg-[#6366f1] text-white'
+                      : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
+                  }`}
+                >
+                  {complete ? (
+                    <Icon d="M5 13l4 4L19 7" className="h-3.5 w-3.5" />
+                  ) : (
+                    stepDef.n
+                  )}
+                </span>
+                <span className="truncate text-xs font-medium text-gray-700 transition-colors group-hover:text-[#4f46e5] dark:text-gray-200 dark:group-hover:text-[#a5b4fc]">
+                  {stepDef.label}
+                </span>
+              </button>
+              {!isLast ? (
+                <span
+                  className={`h-px flex-1 transition-colors ${
+                    complete ? 'bg-[#6366f1]/40' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </nav>
 
       {errors.length > 0 ? (
         <ComposerAlert>
@@ -633,6 +750,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         step="1"
         title="Email details"
         description="Internal name for staff, subject line for players"
+        completed={step1Complete}
+        id="composer-step-details"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div>
@@ -674,10 +793,23 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         step="2"
         title="Recipients"
         description="Pick how this campaign should target players"
+        completed={step2Complete}
+        id="composer-step-recipients"
       >
         <div className="mb-5 grid gap-2 sm:grid-cols-3">
           {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
             const active = draft.recipient_method === method.value;
+            const icon = METHOD_ICONS[method.value];
+            const countHint =
+              method.value === 'specific'
+                ? selectedCount > 0
+                  ? `${selectedCount} selected`
+                  : null
+                : recipientPreview.loading
+                  ? null
+                  : recipientPreview.final != null
+                    ? `${recipientPreview.final.toLocaleString()} eligible`
+                    : null;
             return (
               <button
                 key={method.value}
@@ -686,24 +818,38 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 onClick={() =>
                   updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
                 }
-                className={`rounded-xl border px-3.5 py-3 text-left transition-all ${
+                className={`relative rounded-xl border p-3.5 text-left transition-all ${
                   active
-                    ? 'border-[#6366f1] bg-[#6366f1]/[0.08] shadow-sm ring-1 ring-[#6366f1]/30 dark:bg-[#6366f1]/15'
+                    ? 'border-[#6366f1] bg-[#6366f1]/[0.06] shadow-sm ring-1 ring-[#6366f1]/30 dark:bg-[#6366f1]/15'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900/40'
                 }`}
               >
-                <span
-                  className={`block text-sm font-semibold ${
-                    active
-                      ? 'text-[#4338ca] dark:text-[#c7d2fe]'
-                      : 'text-gray-900 dark:text-gray-100'
-                  }`}
-                >
-                  {method.label}
-                </span>
-                <span className="mt-1 block text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                  {method.description}
-                </span>
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${icon.tint}`}
+                  >
+                    <Icon d={icon.d} className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span
+                      className={`block text-sm font-semibold ${
+                        active
+                          ? 'text-[#4338ca] dark:text-[#c7d2fe]'
+                          : 'text-gray-900 dark:text-gray-100'
+                      }`}
+                    >
+                      {method.label}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                      {method.description}
+                    </span>
+                  </span>
+                </div>
+                {active && countHint ? (
+                  <span className="mt-2.5 inline-block rounded-full bg-[#6366f1]/10 px-2 py-0.5 text-[11px] font-semibold text-[#4f46e5] dark:bg-[#6366f1]/25 dark:text-[#a5b4fc]">
+                    {countHint}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -795,6 +941,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         step="3"
         title="Content & preview"
         description="Edit HTML on the left, preview how it looks on the right"
+        completed={step3Complete}
+        id="composer-step-content"
       >
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-w-0 space-y-3">
@@ -878,11 +1026,25 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Drafts save locally{draft.updated_at ? ` · last saved ${new Date(draft.updated_at).toLocaleString()}` : ''}
-            {draft.broadcast_id ? ` · server draft #${draft.broadcast_id}` : ''}. Review before
-            anything is queued.
-          </p>
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${
+                finalCount != null && finalCount > 0 ? 'bg-emerald-500' : 'bg-amber-500'
+              }`}
+            />
+            <p className="truncate text-xs text-gray-600 dark:text-gray-300">
+              {finalCount != null && finalCount > 0
+                ? `${finalCount.toLocaleString()} eligible recipient${finalCount === 1 ? '' : 's'}`
+                : 'No eligible recipients yet'}
+              {draft.broadcast_id ? ` · draft #${draft.broadcast_id}` : ''}
+              {draft.updated_at
+                ? ` · saved ${new Date(draft.updated_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}`
+                : ''}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

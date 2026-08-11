@@ -6,24 +6,52 @@ export function ComposerSection({
   step,
   title,
   description,
+  completed = false,
+  id,
   children,
   className = '',
 }: {
   step?: string;
   title: string;
   description?: string;
+  /** Show the step badge as complete (indigo fill + check). */
+  completed?: boolean;
+  id?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <section
+      id={id}
       className={`overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
     >
       <div className="border-b border-gray-100 px-4 py-3.5 sm:px-5 dark:border-gray-700/80">
         <div className="flex items-start gap-3">
           {step ? (
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#6366f1]/10 text-[11px] font-semibold text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]">
-              {step}
+            <span
+              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
+                completed
+                  ? 'bg-[#6366f1] text-white'
+                  : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
+              }`}
+            >
+              {completed ? (
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : (
+                step
+              )}
             </span>
           ) : null}
           <div className="min-w-0">
@@ -67,10 +95,12 @@ export function ComposerMetric({
   label,
   value,
   tone = 'default',
+  size = 'sm',
 }: {
   label: string;
   value: ReactNode;
   tone?: 'default' | 'success' | 'warning' | 'muted';
+  size?: 'sm' | 'lg';
 }) {
   const valueClass =
     tone === 'success'
@@ -81,10 +111,28 @@ export function ComposerMetric({
           ? 'text-gray-500 dark:text-gray-400'
           : 'text-gray-900 dark:text-gray-50';
 
+  const isLg = size === 'lg';
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-900/40">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-      <p className={`mt-1 text-lg font-semibold tabular-nums ${valueClass}`}>{value}</p>
+    <div
+      className={`border border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40 ${
+        isLg ? 'rounded-2xl px-5 py-5' : 'rounded-xl px-3.5 py-3'
+      }`}
+    >
+      <p
+        className={`font-semibold uppercase tracking-wider text-gray-400 ${
+          isLg ? 'text-[11px]' : 'text-[10px]'
+        }`}
+      >
+        {label}
+      </p>
+      <p
+        className={`mt-1 font-semibold tabular-nums ${valueClass} ${
+          isLg ? 'text-3xl' : 'text-lg'
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
