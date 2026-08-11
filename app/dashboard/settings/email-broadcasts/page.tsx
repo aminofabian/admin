@@ -8,6 +8,7 @@ import { emailBroadcastsApi } from '@/lib/api';
 import {
   emailBroadcastAudienceLabel,
   formatEmailBroadcastCriteria,
+  formatEmailBroadcastDeliveryError,
   resolveEmailBroadcastCriteria,
 } from '@/lib/constants/email-broadcasts';
 import { createEmptyEmailCampaignDraft } from '@/lib/constants/email-campaign-composer';
@@ -593,6 +594,7 @@ export default function EmailBroadcastsSettingsPage() {
               <tbody>
                 {filtered.map((broadcast) => {
                   const criteriaLabel = formatEmailBroadcastCriteria(broadcast);
+                  const deliveryIssue = formatEmailBroadcastDeliveryError(broadcast.last_error);
                   const isDraft = groupOf(broadcast.status) === 'drafts';
                   const seed = broadcastToComposerSeed(broadcast);
                   const [primaryWhen, secondaryWhen] = whenLines(broadcast);
@@ -626,16 +628,16 @@ export default function EmailBroadcastsSettingsPage() {
                             <span className="truncate">{criteriaLabel}</span>
                           </p>
                         ) : null}
-                        {broadcast.last_error ? (
+                        {deliveryIssue ? (
                           <p
-                            className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-red-500"
-                            title={broadcast.last_error}
+                            className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-amber-50/90 px-1.5 py-0.5 text-[11px] text-amber-700 dark:bg-amber-950/35 dark:text-amber-300"
+                            title={deliveryIssue.detail || deliveryIssue.label}
                           >
                             <Icon
-                              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                              className="h-3 w-3 shrink-0"
+                              d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                              className="h-3 w-3 shrink-0 opacity-80"
                             />
-                            <span className="truncate">Delivery error — hover for details</span>
+                            <span className="truncate">{deliveryIssue.label}</span>
                           </p>
                         ) : null}
                       </td>

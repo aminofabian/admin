@@ -102,6 +102,61 @@ export function emailBroadcastAudienceLabel(
   }
 }
 
+/**
+ * Turn raw backend / Python exception strings into calm, staff-facing copy.
+ * Full technical detail can still be shown via tooltip when useful.
+ */
+export function formatEmailBroadcastDeliveryError(
+  raw: string | null | undefined,
+): { label: string; detail?: string } | null {
+  if (!raw || !raw.trim()) return null;
+
+  const text = raw.trim();
+  const lower = text.toLowerCase();
+
+  // Python / Django internals — never show these verbatim in the UI.
+  const isTechnical =
+    /nonetype|attributeerror|typeerror|keyerror|indexerror|traceback|django\.|object has no attribute|integrityerror|operationalerror|doesnotexist/i.test(
+      text,
+    ) || /^['"]?\w+Error\b/.test(text);
+
+  if (isTechnical) {
+    if (lower.includes('admin') || lower.includes('nonetype')) {
+      return {
+        label: 'Couldn’t finish sending — try again or contact support',
+        detail: text,
+      };
+    }
+    return {
+      label: 'Something went wrong while sending',
+      detail: text,
+    };
+  }
+
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return { label: 'Sending timed out — you can retry this campaign', detail: text };
+  }
+  if (lower.includes('rate') || lower.includes('throttle') || lower.includes('too many')) {
+    return { label: 'Send was rate-limited — wait a moment and retry', detail: text };
+  }
+  if (
+    lower.includes('smtp') ||
+    lower.includes('mail') ||
+    lower.includes('provider') ||
+    lower.includes('ses') ||
+    lower.includes('sendgrid')
+  ) {
+    return { label: 'Email provider rejected some deliveries', detail: text };
+  }
+  if (lower.includes('permission') || lower.includes('forbidden') || lower.includes('unauthorized')) {
+    return { label: 'Not authorized to send this campaign', detail: text };
+  }
+
+  // Already human-readable enough — keep it, but cap length for the row.
+  const short = text.length > 90 ? `${text.slice(0, 87)}…` : text;
+  return { label: short, detail: text.length > 90 ? text : undefined };
+}
+
 function formatFilterValue(
   row: EmailBroadcastFilterPayload,
   defLabel: string,
