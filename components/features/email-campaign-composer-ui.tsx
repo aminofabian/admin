@@ -64,7 +64,7 @@ export function ComposerSection({
           </div>
         </div>
       </div>
-      <div className="px-4 py-4 sm:px-5 sm:py-5">{children}</div>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
     </section>
   );
 }

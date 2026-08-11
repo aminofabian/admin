@@ -322,6 +322,24 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
     draft.html_body.trim().length > 0 &&
     findUnsupportedEmailVariables(draft.html_body).length === 0;
 
+  const activeMethod = EMAIL_CAMPAIGN_RECIPIENT_METHODS.find(
+    (item) => item.value === draft.recipient_method,
+  );
+  const activeMethodHint = [
+    activeMethod?.description,
+    draft.recipient_method === 'specific'
+      ? selectedCount > 0
+        ? `${selectedCount} selected`
+        : null
+      : recipientPreview.loading
+        ? 'Counting recipients…'
+        : recipientPreview.final != null
+          ? `${recipientPreview.final.toLocaleString()} eligible`
+          : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   const scrollToSection = (sectionId: string) => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -464,7 +482,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           : 'Resolved on send';
 
     return (
-      <div className="mx-auto max-w-5xl space-y-5 pb-28">
+      <div className="mx-auto max-w-5xl space-y-4 pb-24">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -594,7 +612,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           </ComposerAlert>
         )}
 
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95">
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-gray-200 bg-white/95 px-3 py-2.5 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95">
           <p className="mr-auto text-xs text-gray-500 dark:text-gray-400">
             {finalCount != null && finalCount > 0 ? (
               <>
@@ -637,7 +655,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 pb-28">
+    <div className="mx-auto max-w-7xl space-y-4 pb-24">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
@@ -667,27 +685,27 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       </header>
 
       {/* Progress stepper */}
-      <nav className="flex items-center gap-2 overflow-x-auto rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-sm sm:gap-3 sm:px-5 dark:border-gray-700/80 dark:bg-gray-800">
+      <nav className="flex items-center gap-2 overflow-x-auto rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 dark:border-gray-700/80 dark:bg-gray-800">
         {COMPOSER_STEPS.map((stepDef, index) => {
           const complete =
             stepDef.n === 1 ? step1Complete : stepDef.n === 2 ? step2Complete : step3Complete;
           const isLast = index === COMPOSER_STEPS.length - 1;
           return (
-            <div key={stepDef.n} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div key={stepDef.n} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={() => scrollToSection(stepDef.sectionId)}
                 className="group flex min-w-0 items-center gap-2 text-left"
               >
                 <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
                     complete
                       ? 'bg-[#6366f1] text-white'
                       : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
                   }`}
                 >
                   {complete ? (
-                    <Icon d="M5 13l4 4L19 7" className="h-3.5 w-3.5" />
+                    <Icon d="M5 13l4 4L19 7" className="h-3 w-3" />
                   ) : (
                     stepDef.n
                   )}
@@ -775,20 +793,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         completed={step2Complete}
         id="composer-step-recipients"
       >
-        <div className="mb-5 grid gap-2 sm:grid-cols-3">
+        <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/60 p-1 dark:border-gray-700 dark:bg-gray-900/30">
           {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
             const active = draft.recipient_method === method.value;
             const icon = METHOD_ICONS[method.value];
-            const countHint =
-              method.value === 'specific'
-                ? selectedCount > 0
-                  ? `${selectedCount} selected`
-                  : null
-                : recipientPreview.loading
-                  ? null
-                  : recipientPreview.final != null
-                    ? `${recipientPreview.final.toLocaleString()} eligible`
-                    : null;
             return (
               <button
                 key={method.value}
@@ -797,42 +805,27 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 onClick={() =>
                   updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
                 }
-                className={`relative rounded-xl border p-3.5 text-left transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   active
-                    ? 'border-[#6366f1] bg-[#6366f1]/[0.06] shadow-sm ring-1 ring-[#6366f1]/30 dark:bg-[#6366f1]/15'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900/40'
+                    ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-900'
+                    : 'text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${icon.tint}`}
-                  >
-                    <Icon d={icon.d} className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span
-                      className={`block text-sm font-semibold ${
-                        active
-                          ? 'text-[#4338ca] dark:text-[#c7d2fe]'
-                          : 'text-gray-900 dark:text-gray-100'
-                      }`}
-                    >
-                      {method.label}
-                    </span>
-                    <span className="mt-1 block text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                      {method.description}
-                    </span>
-                  </span>
-                </div>
-                {active && countHint ? (
-                  <span className="mt-2.5 inline-block rounded-full bg-[#6366f1]/10 px-2 py-0.5 text-[11px] font-semibold text-[#4f46e5] dark:bg-[#6366f1]/25 dark:text-[#a5b4fc]">
-                    {countHint}
-                  </span>
-                ) : null}
+                <Icon
+                  d={icon.d}
+                  className={`h-3.5 w-3.5 ${
+                    active ? '' : 'text-gray-400 dark:text-gray-500'
+                  }`}
+                />
+                {method.label}
               </button>
             );
           })}
         </div>
+
+        {activeMethodHint ? (
+          <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{activeMethodHint}</p>
+        ) : null}
 
         {draft.recipient_method === 'specific' ? (
           <EmailCampaignSpecificPlayers
@@ -1003,7 +996,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         </div>
       </ComposerSection>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2">
             <span
