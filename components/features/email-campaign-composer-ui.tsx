@@ -191,3 +191,33 @@ export function ReadinessItem({
     </div>
   );
 }
+
+export function ExcludedPlayersSample({
+  rows,
+  emptyLabel = 'No excluded sample available',
+}: {
+  rows?: { user_id: number; username: string; email: string; reason: string }[];
+  emptyLabel?: string;
+}) {
+  if (!rows || rows.length === 0) {
+    return <p className="text-[11px] text-gray-500 dark:text-gray-400">{emptyLabel}</p>;
+  }
+
+  return (
+    <ul className="max-h-36 overflow-auto divide-y divide-amber-200/70 dark:divide-amber-900/40">
+      {rows.map((row) => (
+        <li key={`${row.user_id}-${row.reason}`} className="flex items-start justify-between gap-3 py-1.5 text-[11px]">
+          <span className="min-w-0">
+            <span className="font-medium text-amber-900 dark:text-amber-100">{row.username}</span>
+            <span className="mt-0.5 block truncate text-amber-800/80 dark:text-amber-200/70">
+              {row.email || 'No email'}
+            </span>
+          </span>
+          <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+            {row.reason}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}

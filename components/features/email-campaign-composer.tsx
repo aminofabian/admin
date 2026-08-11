@@ -13,6 +13,7 @@ import {
   ComposerMetric,
   ComposerPanel,
   ComposerSection,
+  ExcludedPlayersSample,
   ReadinessItem,
 } from '@/components/features/email-campaign-composer-ui';
 
@@ -31,7 +32,7 @@ const EmailCampaignHtmlEditor = dynamic(
   },
 );
 import { emailBroadcastsApi } from '@/lib/api';
-import { getEmailBroadcastPlaceholders } from '@/lib/constants/email-broadcasts';
+import { getEmailBroadcastPlaceholders, formatEmailBroadcastExclusionReason } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_RECIPIENT_METHODS,
   createEmptyEmailCampaignDraft,
@@ -51,7 +52,7 @@ import {
   summarizeFilterRows,
   validateFilterRows,
 } from '@/lib/utils/email-campaign-filters';
-import { findUnsupportedEmailVariables } from '@/lib/utils/email-campaign-variables';
+import { findMissingRequiredEmailVariables, findUnsupportedEmailVariables } from '@/lib/utils/email-campaign-variables';
 import type {
   CreateEmailBroadcastRequest,
   EmailBroadcastPreviewRequest,
@@ -100,6 +101,15 @@ function validateDraft(draft: EmailCampaignComposerDraft): string[] {
   if (unsupported.length > 0) {
     errors.push(
       `Unsupported variables: ${unsupported.map((key) => `{{ ${key} }}`).join(', ')}.`,
+    );
+  }
+
+  const missingRequired = findMissingRequiredEmailVariables(draft.html_body);
+  if (missingRequired.length > 0) {
+    errors.push(
+      `Missing required variable${missingRequired.length === 1 ? '' : 's'}: ${missingRequired
+        .map((key) => `{{ ${key} }}`)
+        .join(', ')}.`,
     );
   }
 
@@ -190,7 +200,10 @@ const EDIT_PANELS: { id: EditPanel; n: number; label: string; hint: string }[] =
 function exclusionCountsLabel(counts?: Record<string, number>): string {
   if (!counts || Object.keys(counts).length === 0) return '';
   return Object.entries(counts)
-    .map(([reason, count]) => `${reason.replace(/_/g, ' ')} ${count.toLocaleString()}`)
+    .map(
+      ([reason, count]) =>
+        `${formatEmailBroadcastExclusionReason(reason)} ${count.toLocaleString()}`,
+    )
     .join(' · ');
 }
 
@@ -315,7 +328,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const setupComplete = step1Complete && step2Complete;
   const step3Complete =
     draft.html_body.trim().length > 0 &&
-    findUnsupportedEmailVariables(draft.html_body).length === 0;
+    findUnsupportedEmailVariables(draft.html_body).length === 0 &&
+    findMissingRequiredEmailVariables(draft.html_body).length === 0;
 
   const activeMethod = EMAIL_CAMPAIGN_RECIPIENT_METHODS.find(
     (item) => item.value === draft.recipient_method,
@@ -535,6 +549,21 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           {recipientPreview.error ? (
             <p className="text-[11px] text-red-500">{recipientPreview.error}</p>
           ) : null}
+          {recipientPreview.excluded_sample && recipientPreview.excluded_sample.length > 0 ? (
+            <details className="rounded-md border border-amber-200/80 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20">
+              <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">
+                View excluded sample
+              </summary>
+              <div className="border-t border-amber-200/80 px-2.5 py-1 dark:border-amber-900/40">
+                <ExcludedPlayersSample
+                  rows={recipientPreview.excluded_sample.map((row) => ({
+                    ...row,
+                    reason: formatEmailBroadcastExclusionReason(row.reason),
+                  }))}
+                />
+              </div>
+            </details>
+          ) : null}
         </div>
       </div>
 
@@ -630,6 +659,21 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               {exclusionCountsLabel(recipientPreview.exclusion_counts)}. These players cannot
               receive marketing email and are excluded automatically.
             </p>
+            {recipientPreview.excluded_sample && recipientPreview.excluded_sample.length > 0 ? (
+              <details className="mt-2 rounded-md border border-amber-200/80 bg-white/50 dark:border-amber-900/40 dark:bg-gray-900/30">
+                <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] font-medium">
+                  View excluded sample
+                </summary>
+                <div className="border-t border-amber-200/80 px-2.5 py-1 dark:border-amber-900/40">
+                  <ExcludedPlayersSample
+                    rows={recipientPreview.excluded_sample.map((row) => ({
+                      ...row,
+                      reason: formatEmailBroadcastExclusionReason(row.reason),
+                    }))}
+                  />
+                </div>
+              </details>
+            ) : null}
           </ComposerAlert>
         ) : null}
 
@@ -1028,6 +1072,22 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                         Marketing-ineligible addresses are excluded automatically. Review requires
                         typing <strong>SEND</strong> before final submission.
                       </p>
+                      {recipientPreview.excluded_sample &&
+                      recipientPreview.excluded_sample.length > 0 ? (
+                        <details className="mt-2 rounded-md border border-amber-200/70 bg-white/60 dark:border-amber-900/40 dark:bg-gray-900/40">
+                          <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] font-medium text-amber-900 dark:text-amber-200">
+                            View excluded sample
+                          </summary>
+                          <div className="border-t border-amber-200/70 px-2.5 py-1 dark:border-amber-900/40">
+                            <ExcludedPlayersSample
+                              rows={recipientPreview.excluded_sample.map((row) => ({
+                                ...row,
+                                reason: formatEmailBroadcastExclusionReason(row.reason),
+                              }))}
+                            />
+                          </div>
+                        </details>
+                      ) : null}
                       {recipientPreview.final_sample &&
                       recipientPreview.final_sample.length > 0 ? (
                         <details className="mt-2 rounded-md border border-sky-200/70 bg-white/60 dark:border-sky-900/40 dark:bg-gray-900/40">

@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/select';
 import {
   ComposerFieldLabel,
 } from '@/components/features/email-campaign-composer-ui';
+import { formatEmailBroadcastExclusionReason } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_FILTER_FIELDS,
   EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS,
@@ -32,7 +33,10 @@ interface EmailCampaignFilterBuilderProps {
 function exclusionCountsLabel(counts?: Record<string, number>): string {
   if (!counts || Object.keys(counts).length === 0) return '';
   return Object.entries(counts)
-    .map(([reason, count]) => `${reason.replace(/_/g, ' ')} ${count.toLocaleString()}`)
+    .map(
+      ([reason, count]) =>
+        `${formatEmailBroadcastExclusionReason(reason)} ${count.toLocaleString()}`,
+    )
     .join(' · ');
 }
 

@@ -67,6 +67,12 @@ export function normalizeComposerDraft(
       : [],
     match_mode,
     filter_rows,
+    broadcast_id:
+      typeof raw.broadcast_id === 'number'
+        ? raw.broadcast_id
+        : raw.broadcast_id === null
+          ? null
+          : empty.broadcast_id ?? null,
     template_id:
       typeof raw.template_id === 'number' || raw.template_id === null
         ? raw.template_id

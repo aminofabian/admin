@@ -97,6 +97,7 @@ vi.mock('@/components/features/email-campaign-composer-ui', () => ({
     </section>
   ),
   ReadinessItem: ({ label }: { label: string }) => <div>{label}</div>,
+  ExcludedPlayersSample: () => <div data-testid="excluded-sample" />,
 }));
 
 const previewResponse = {

@@ -102,6 +102,24 @@ export function emailBroadcastAudienceLabel(
   }
 }
 
+export function formatEmailBroadcastExclusionReason(reason: string | null | undefined): string {
+  if (!reason) return 'Excluded';
+  const key = reason.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    unsubscribed: 'Unsubscribed from marketing',
+    missing_email: 'Missing email address',
+    invalid_email: 'Invalid email address',
+    bounced: 'Permanently bounced',
+    permanent_bounce: 'Permanently bounced',
+    spam_complaint: 'Spam complaint recorded',
+    suppressed: 'Suppressed email address',
+    blocked: 'Blocked email address',
+    not_opted_in: 'Not opted in to marketing',
+    marketing_opt_out: 'Unsubscribed from marketing',
+  };
+  return labels[key] || reason.replace(/_/g, ' ');
+}
+
 /**
  * Turn raw backend / Python exception strings into calm, staff-facing copy.
  * Full technical detail can still be shown via tooltip when useful.

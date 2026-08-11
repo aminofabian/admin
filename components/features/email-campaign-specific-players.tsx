@@ -25,7 +25,20 @@ function toSelected(player: EmailBroadcastPlayerSearchResult): EmailCampaignSele
 }
 
 function exclusionReasonLabel(reason: string): string {
-  return reason.replace(/_/g, ' ');
+  const key = reason.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    unsubscribed: 'Unsubscribed',
+    missing_email: 'Missing email',
+    invalid_email: 'Invalid email',
+    bounced: 'Permanently bounced',
+    permanent_bounce: 'Permanently bounced',
+    spam_complaint: 'Spam complaint',
+    suppressed: 'Suppressed',
+    blocked: 'Blocked',
+    not_opted_in: 'Not opted in',
+    marketing_opt_out: 'Unsubscribed',
+  };
+  return labels[key] || reason.replace(/_/g, ' ');
 }
 
 export function EmailCampaignSpecificPlayers({
@@ -175,7 +188,7 @@ export function EmailCampaignSpecificPlayers({
                 disabled={disabled}
                 onClick={() => onChange([])}
               >
-                Clear
+                Clear All
               </Button>
             </div>
           ) : null}
@@ -205,13 +218,18 @@ export function EmailCampaignSpecificPlayers({
                 }
               >
                 <span className="truncate font-medium">{player.username}</span>
+                {player.exclusion_reason ? (
+                  <span className="truncate text-[10px] opacity-80">
+                    ({exclusionReasonLabel(player.exclusion_reason)})
+                  </span>
+                ) : null}
                 <span className="text-gray-400">×</span>
               </button>
             ))}
           </div>
         ) : (
           <div className="max-h-52 overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="w-full min-w-[280px] border-collapse text-xs">
+            <table className="w-full min-w-[320px] border-collapse text-xs">
               <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900">
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="px-2.5 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -219,6 +237,9 @@ export function EmailCampaignSpecificPlayers({
                   </th>
                   <th className="px-2.5 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Email
+                  </th>
+                  <th className="px-2.5 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    Eligibility
                   </th>
                   <th className="px-2.5 py-1.5 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     {' '}
@@ -236,6 +257,17 @@ export function EmailCampaignSpecificPlayers({
                     </td>
                     <td className="max-w-[140px] truncate px-2.5 py-1.5 text-[11px] text-gray-600 dark:text-gray-300">
                       {player.email || '—'}
+                    </td>
+                    <td className="px-2.5 py-1.5">
+                      {player.exclusion_reason ? (
+                        <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                          {exclusionReasonLabel(player.exclusion_reason)}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                          Eligible
+                        </span>
+                      )}
                     </td>
                     <td className="px-2.5 py-1.5 text-right">
                       <button

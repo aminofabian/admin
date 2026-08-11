@@ -15,6 +15,7 @@ export interface EmailTemplateVariable {
 export const EMAIL_TEMPLATE_VARIABLES: Record<string, EmailTemplateVariable> = {
   username: { key: 'username', label: 'Player username', sample: 'alex_player' },
   full_name: { key: 'full_name', label: 'Display name', sample: 'Alex Player' },
+  email: { key: 'email', label: 'Player email', sample: 'alex@example.com' },
   logo: { key: 'logo', label: 'Project logo URL', sample: 'https://cdn.example.com/logo.png' },
   email_support: { key: 'email_support', label: 'Support email', sample: 'support@example.com' },
   telegram_support: { key: 'telegram_support', label: 'Support telegram', sample: '@support_bot' },
@@ -44,6 +45,7 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<string, EmailTemplateVariable> = {
   receiver_role: { key: 'receiver_role', label: 'Receiver role', sample: 'manager' },
   receiver_username: { key: 'receiver_username', label: 'Receiver username', sample: 'ops_manager' },
   project_name: { key: 'project_name', label: 'Brand / project name', sample: 'SlotThing' },
+  subject: { key: 'subject', label: 'Email subject', sample: 'Your weekend reward is waiting' },
   unsubscribe_url: {
     key: 'unsubscribe_url',
     label: 'Unsubscribe link',

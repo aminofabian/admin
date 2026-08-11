@@ -28,7 +28,8 @@ export function createEmptyEmailCampaignDraft(): EmailCampaignComposerDraft {
   return {
     internal_name: '',
     subject: '',
-    html_body: '<p>Hi {{ username }},</p>',
+    html_body:
+      '<p>Hi {{ username }},</p>\n<p>Thanks for being part of {{ project_name }}.</p>\n<p><a href="{{ unsubscribe_url }}">Unsubscribe</a></p>',
     recipient_method: 'specific',
     selected_players: [],
     match_mode: 'all',
