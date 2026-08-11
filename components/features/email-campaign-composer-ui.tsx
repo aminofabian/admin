@@ -23,7 +23,7 @@ export function ComposerSection({
   return (
     <section
       id={id}
-      className={`overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
+      className={`overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
     >
       <div className="border-b border-gray-100 px-4 py-3.5 sm:px-5 dark:border-gray-700/80">
         <div className="flex items-start gap-3">

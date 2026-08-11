@@ -49,7 +49,24 @@ vi.mock('@/components/ui', () => {
   const Skeleton = ({ className, style }: { className?: string; style?: CSSProperties }) => (
     <div className={className} style={style} />
   );
-  return { Badge, Button, SearchInput, Skeleton };
+  const DropdownMenu = ({ trigger, children }: { trigger?: ReactNode; children?: ReactNode }) => (
+    <div>
+      {trigger}
+      <div data-testid="dropdown-menu">{children}</div>
+    </div>
+  );
+  const DropdownMenuItem = ({
+    children,
+    onClick,
+  }: {
+    children?: ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  );
+  return { Badge, Button, SearchInput, Skeleton, DropdownMenu, DropdownMenuItem };
 });
 
 const sampleBroadcasts: EmailBroadcast[] = [
@@ -123,13 +140,12 @@ describe('EmailBroadcastsSettingsPage', () => {
     expect(screen.getByText('Specific Players')).toBeInTheDocument();
     expect(screen.getByText('All Eligible Players')).toBeInTheDocument();
 
-    // Recipient count formatted
+    // Recipient count + delivery stats
     expect(screen.getByText('4,634')).toBeInTheDocument();
-    // Delivery stats
-    expect(screen.getByText('4,500 delivered')).toBeInTheDocument();
+    expect(screen.getByText('4,500')).toBeInTheDocument();
   });
 
-  it('filters the list by clicking a status group card', async () => {
+  it('filters the list by clicking a status group pill', async () => {
     const user = userEvent.setup();
     render(<EmailBroadcastsSettingsPage />);
 
@@ -157,7 +173,7 @@ describe('EmailBroadcastsSettingsPage', () => {
     expect(screen.queryByText('Brand update')).not.toBeInTheDocument();
   });
 
-  it('opens the composer from the Compose action and from Reuse/Edit draft', async () => {
+  it('opens the composer from the Compose action and from the Edit draft row action', async () => {
     const user = userEvent.setup();
     render(<EmailBroadcastsSettingsPage />);
 
@@ -166,7 +182,9 @@ describe('EmailBroadcastsSettingsPage', () => {
     await user.click(screen.getByText('Compose campaign'));
     expect(routerPushMock).toHaveBeenCalledWith('/dashboard/settings/email-broadcasts/compose');
 
-    await user.click(screen.getByText('Edit draft'));
+    // The draft (newest) is the first row — open its row action menu and edit it.
+    await user.click(screen.getAllByLabelText('Campaign actions')[0]);
+    await user.click(await screen.findByText('Edit draft'));
     expect(routerPushMock).toHaveBeenCalledWith('/dashboard/settings/email-broadcasts/compose');
   });
 

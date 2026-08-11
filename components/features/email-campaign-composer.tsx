@@ -432,13 +432,13 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-7xl space-y-5 pb-12">
-        <div className="rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 sm:p-7">
-          <div className="h-3 w-44 animate-pulse rounded bg-white/30" />
-          <div className="mt-3 h-7 w-56 animate-pulse rounded bg-white/30" />
-          <div className="mt-3 h-4 w-full max-w-xl animate-pulse rounded bg-white/20" />
+        <div>
+          <div className="h-3 w-44 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="mt-2 h-6 w-56 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="mt-2 h-4 w-full max-w-xl animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
         </div>
-        <div className="h-10 animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800" />
-        <div className="flex h-[300px] animate-pulse items-center justify-center rounded-2xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+        <div className="h-10 animate-pulse rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800" />
+        <div className="flex h-[300px] animate-pulse items-center justify-center rounded-xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
           Loading composer…
         </div>
       </div>
@@ -465,39 +465,27 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
     return (
       <div className="mx-auto max-w-5xl space-y-5 pb-28">
-        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 shadow-lg shadow-indigo-500/20 sm:p-7">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 85% 20%, rgba(255,255,255,0.9) 0, transparent 34%), radial-gradient(circle at 20% 100%, rgba(255,255,255,0.55) 0, transparent 28%)',
-            }}
-          />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-100/80">
-                Settings · Email campaigns
-              </p>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                Review & Send
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-indigo-100/90">
-                Confirm the summary, then queue the campaign. Nothing is sent until you press Send
-                Email.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/settings/email-broadcasts')}
-              className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-            >
-              <Icon
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                className="h-3.5 w-3.5"
-              />
-              Back to campaigns
-            </button>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+              Settings · Email campaigns
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-2xl">
+              Review & Send
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Confirm the summary, then queue the campaign. Nothing is sent until you press Send
+              Email.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard/settings/email-broadcasts')}
+            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          >
+            <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
+            Back to campaigns
+          </button>
         </header>
 
         {errors.length > 0 ? (
@@ -650,45 +638,36 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 pb-28">
-      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] p-6 shadow-lg shadow-indigo-500/20 sm:p-7">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 85% 20%, rgba(255,255,255,0.9) 0, transparent 34%), radial-gradient(circle at 20% 100%, rgba(255,255,255,0.55) 0, transparent 28%)',
-          }}
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-100/80">
-              Settings · Email campaigns
-            </p>
-            <h1 className="mt-1.5 flex flex-wrap items-center gap-2.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Compose campaign
-              {draft.broadcast_id ? (
-                <span className="rounded-full border border-white/30 bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white">
-                  Draft #{draft.broadcast_id}
-                </span>
-              ) : null}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-indigo-100/90">
-              Write the message, choose who gets it, preview on desktop or mobile, then review
-              before sending.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push('/dashboard/settings/email-broadcasts')}
-            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-          >
-            <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
-            Back to campaigns
-          </button>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            Settings · Email campaigns
+          </p>
+          <h1 className="mt-1 flex flex-wrap items-center gap-2.5 text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-2xl">
+            Compose campaign
+            {draft.broadcast_id ? (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                Draft #{draft.broadcast_id}
+              </span>
+            ) : null}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Write the message, choose who gets it, preview on desktop or mobile, then review before
+            sending.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/settings/email-broadcasts')}
+          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+        >
+          <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
+          Back to campaigns
+        </button>
       </header>
 
       {/* Progress stepper */}
-      <nav className="flex items-center gap-2 overflow-x-auto rounded-2xl border border-gray-200/80 bg-white px-4 py-3 shadow-sm sm:gap-3 sm:px-5 dark:border-gray-700/80 dark:bg-gray-800">
+      <nav className="flex items-center gap-2 overflow-x-auto rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-sm sm:gap-3 sm:px-5 dark:border-gray-700/80 dark:bg-gray-800">
         {COMPOSER_STEPS.map((stepDef, index) => {
           const complete =
             stepDef.n === 1 ? step1Complete : stepDef.n === 2 ? step2Complete : step3Complete;
