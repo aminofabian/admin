@@ -49,8 +49,6 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<string, EmailTemplateVariable> = {
     label: 'Unsubscribe link',
     sample: 'https://example.com/users/email/unsubscribe/?token=abc',
   },
-  email: { key: 'email', label: 'Player email', sample: 'alex@example.com' },
-  subject: { key: 'subject', label: 'Email subject', sample: 'Your weekend reward is waiting' },
 };
 
 /** Fallback labels when the API has not returned action_label yet. */
