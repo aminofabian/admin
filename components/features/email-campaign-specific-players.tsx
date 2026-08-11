@@ -106,7 +106,7 @@ export function EmailCampaignSpecificPlayers({
                       type="button"
                       disabled={already || disabled}
                       onClick={() => addPlayer(player)}
-                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800/80"
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6366f1]/40 disabled:opacity-50 dark:hover:bg-gray-800/80 dark:focus-visible:bg-gray-800/80"
                     >
                       <span className="min-w-0">
                         <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -193,7 +193,7 @@ export function EmailCampaignSpecificPlayers({
                 type="button"
                 disabled={disabled}
                 onClick={() => removePlayer(player.id)}
-                className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-sm transition-colors disabled:opacity-50 ${
+                className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 disabled:opacity-50 ${
                   player.exclusion_reason
                     ? 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'

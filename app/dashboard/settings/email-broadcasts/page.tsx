@@ -269,7 +269,7 @@ function DeliveryStats({ broadcast }: { broadcast: EmailBroadcast }) {
       </p>
       {delivered > 0 ? (
         <>
-          <div className="mt-1 flex h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+          <div className="mt-1 flex h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
             {ok > 0 ? (
               <span className="bg-emerald-500" style={{ width: `${(ok / delivered) * 100}%` }} />
             ) : null}
@@ -462,7 +462,7 @@ export default function EmailBroadcastsSettingsPage() {
             type="button"
             title="Refresh campaigns"
             onClick={() => void loadBroadcasts()}
-            className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 dark:border-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
           >
             <Icon
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
@@ -478,7 +478,7 @@ export default function EmailBroadcastsSettingsPage() {
 
       {/* Filter + search */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/60 p-1 shadow-sm dark:border-gray-700/80 dark:bg-gray-800/60">
           {STATUS_GROUPS.map((group) => {
             const active = activeGroup === group.key;
             return (
@@ -486,10 +486,10 @@ export default function EmailBroadcastsSettingsPage() {
                 key={group.key}
                 type="button"
                 onClick={() => setActiveGroup(group.key)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50 ${
                   active
                     ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-900'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/60'
+                    : 'text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                 }`}
               >
                 <span>{group.label}</span>
@@ -605,7 +605,7 @@ export default function EmailBroadcastsSettingsPage() {
                     >
                       <td className="max-w-[320px] py-3 pl-4 pr-3">
                         <p className="flex items-center gap-2">
-                          <span className="truncate text-[13px] font-medium text-gray-900 transition-colors group-hover:text-[#4f46e5] dark:text-gray-50 dark:group-hover:text-[#a5b4fc]">
+                          <span className="truncate text-[13px] font-medium text-gray-900 transition-colors group-hover:text-[#4f46e5] group-hover:underline group-hover:decoration-[#4f46e5]/30 group-hover:underline-offset-2 dark:text-gray-50 dark:group-hover:text-[#a5b4fc]">
                             {broadcast.subject}
                           </span>
                           <span className="shrink-0 text-[10px] tabular-nums text-gray-300 dark:text-gray-600">
@@ -659,7 +659,7 @@ export default function EmailBroadcastsSettingsPage() {
                               <button
                                 type="button"
                                 aria-label="Campaign actions"
-                                className="rounded-lg p-1.5 text-gray-400 opacity-0 transition-all hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 group-hover:opacity-100 dark:text-gray-500 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"
+                                className="rounded-lg p-1.5 text-gray-400 opacity-0 transition-all hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-gray-300 group-hover:opacity-100 group-focus-within:opacity-100 dark:text-gray-500 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"
                               >
                                 <Icon d="M12 5h.01M12 12h.01M12 19h.01" className="h-4 w-4" />
                               </button>
@@ -700,7 +700,7 @@ export default function EmailBroadcastsSettingsPage() {
 function EmptyState({ onCompose }: { onCompose: () => void }) {
   return (
     <div className="px-5 py-14 text-center">
-      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-500">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400 shadow-sm dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-500">
         <Icon
           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
           className="h-5 w-5"

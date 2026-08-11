@@ -545,7 +545,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
         <ComposerSection title="Campaign summary" description="What will be sent">
           <dl className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Internal name
               </dt>
@@ -553,7 +553,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 {draft.internal_name}
               </dd>
             </div>
-            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Subject
               </dt>
@@ -561,7 +561,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 {draft.subject}
               </dd>
             </div>
-            <div className="rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-gray-900/40">
+            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Recipient method
               </dt>
@@ -570,7 +570,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               </dd>
             </div>
             {draft.recipient_method === 'filtered' ? (
-              <div className="rounded-xl bg-gray-50 px-3.5 py-3 sm:col-span-2 dark:bg-gray-900/40">
+              <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 sm:col-span-2 dark:border-gray-700/60 dark:bg-gray-900/40">
                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                   Filters
                 </dt>
@@ -691,7 +691,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               <button
                 type="button"
                 onClick={() => scrollToSection(stepDef.sectionId)}
-                className="group flex min-w-0 items-center gap-1.5 text-left"
+                className="group flex min-w-0 items-center gap-1.5 rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
               >
                 <span
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
@@ -780,7 +780,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         completed={step2Complete}
         id="composer-step-recipients"
       >
-        <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/60 p-1 dark:border-gray-700 dark:bg-gray-900/30">
+        <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/60 p-1 shadow-sm dark:border-gray-700 dark:bg-gray-800/60">
           {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
             const active = draft.recipient_method === method.value;
             const icon = METHOD_ICONS[method.value];
@@ -792,7 +792,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 onClick={() =>
                   updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
                 }
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50 disabled:opacity-50 ${
                   active
                     ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-900'
                     : 'text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
@@ -923,7 +923,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                     onClick={() => insertVariable(emailPlaceholderToken(variable.key))}
                     disabled={busy}
                     title={variable.label}
-                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-mono text-[11px] text-gray-700 shadow-sm transition-colors hover:border-[#6366f1] hover:text-[#4f46e5] disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-mono text-[11px] text-gray-700 shadow-sm transition-all hover:-translate-y-px hover:border-[#6366f1] hover:text-[#4f46e5] hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 disabled:translate-y-0 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
                   >
                     {emailPlaceholderToken(variable.key)}
                   </button>
@@ -982,7 +982,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         </div>
       </ComposerSection>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-2.5 shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.12)] backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2">
             <span
