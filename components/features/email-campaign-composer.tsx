@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, useToast } from '@/components/ui';
+import { Button, ConfirmModal, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { EmailCampaignSpecificPlayers } from '@/components/features/email-campaign-specific-players';
 import { EmailCampaignFilterBuilder } from '@/components/features/email-campaign-filter-builder';
@@ -220,6 +220,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendConfirm, setSendConfirm] = useState('');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [recipientPreview, setRecipientPreview] =
     useState<EmailCampaignRecipientPreview>(EMPTY_PREVIEW);
@@ -796,11 +797,34 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               finalCount <= 0 ||
               (draft.recipient_method === 'all_eligible' && sendConfirm.trim() !== 'SEND')
             }
-            onClick={() => void handleSend()}
+            onClick={() => {
+              if (draft.recipient_method === 'all_eligible') {
+                void handleSend();
+              } else {
+                setIsConfirmOpen(true);
+              }
+            }}
           >
             Send Email
           </Button>
         </div>
+
+        <ConfirmModal
+          isOpen={isConfirmOpen}
+          onClose={() => setIsConfirmOpen(false)}
+          onConfirm={() => {
+            setIsConfirmOpen(false);
+            void handleSend();
+          }}
+          title="Send this campaign?"
+          description={`This will queue the email for ${finalCountLabel} recipient${
+            finalCount === 1 ? '' : 's'
+          } (${recipientLabel}). This cannot be undone.`}
+          confirmText="Send Email"
+          cancelText="Cancel"
+          variant="info"
+          isLoading={isSending}
+        />
       </div>
     );
   }

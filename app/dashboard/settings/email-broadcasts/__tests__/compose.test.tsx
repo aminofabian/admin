@@ -49,7 +49,24 @@ vi.mock('@/components/ui', () => {
     </button>
   );
   const useToast = () => ({ addToast: vi.fn() });
-  return { Button, useToast };
+  const ConfirmModal = ({
+    isOpen,
+    title,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    title: string;
+    onConfirm?: () => void;
+  }) =>
+    isOpen ? (
+      <div role="dialog">
+        <p>{title}</p>
+        <button type="button" onClick={onConfirm}>
+          Confirm send
+        </button>
+      </div>
+    ) : null;
+  return { Button, ConfirmModal, useToast };
 });
 
 vi.mock('@/components/ui/input', () => ({

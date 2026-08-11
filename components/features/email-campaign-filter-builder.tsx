@@ -72,6 +72,28 @@ export function EmailCampaignFilterBuilder({
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200/80 bg-gray-50/70 px-3 py-2 text-[11px] dark:border-gray-700 dark:bg-gray-900/40">
+        <span className="font-semibold uppercase tracking-wider text-gray-400">Live count</span>
+        <span className="text-gray-600 dark:text-gray-300">
+          Matched{' '}
+          <strong className="tabular-nums text-gray-900 dark:text-gray-100">
+            {preview.loading ? '…' : preview.matched == null ? '—' : preview.matched.toLocaleString()}
+          </strong>
+        </span>
+        <span className="text-gray-600 dark:text-gray-300">
+          Excluded{' '}
+          <strong className="tabular-nums text-amber-600 dark:text-amber-400">
+            {preview.excluded == null ? '—' : preview.excluded.toLocaleString()}
+          </strong>
+        </span>
+        <span className="text-gray-600 dark:text-gray-300">
+          Final{' '}
+          <strong className="tabular-nums text-emerald-600 dark:text-emerald-400">
+            {preview.loading ? '…' : preview.final == null ? '—' : preview.final.toLocaleString()}
+          </strong>
+        </span>
+      </div>
+
       {preview.error ? (
         <p className="text-[11px] text-amber-700 dark:text-amber-300">{preview.error}</p>
       ) : null}
