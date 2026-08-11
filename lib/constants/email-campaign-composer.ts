@@ -8,17 +8,17 @@ export const EMAIL_CAMPAIGN_RECIPIENT_METHODS: {
   {
     value: 'specific',
     label: 'Specific Players',
-    description: '',
+    description: 'Pick players by name or email',
   },
   {
     value: 'filtered',
     label: 'Filtered Players',
-    description: 'Build an audience with player filter conditions',
+    description: 'Audience from filter conditions',
   },
   {
     value: 'all_eligible',
     label: 'All Eligible Players',
-    description: 'Every eligible player in the current brand',
+    description: 'Everyone eligible in this brand',
   },
 ];
 

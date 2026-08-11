@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import {
   ComposerFieldLabel,
-  ComposerMetric,
 } from '@/components/features/email-campaign-composer-ui';
 import {
   EMAIL_CAMPAIGN_FILTER_FIELDS,
@@ -68,51 +67,19 @@ export function EmailCampaignFilterBuilder({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <ComposerMetric
-          label="Matched"
-          value={
-            preview.loading
-              ? '…'
-              : preview.matched == null
-                ? '—'
-                : preview.matched.toLocaleString()
-          }
-        />
-        <ComposerMetric
-          label="Auto-excluded"
-          value={
-            preview.excluded == null ? '—' : preview.excluded.toLocaleString()
-          }
-          tone="warning"
-        />
-        <ComposerMetric
-          label="Final recipients"
-          value={
-            preview.loading
-              ? '…'
-              : preview.final == null
-                ? '—'
-                : preview.final.toLocaleString()
-          }
-          tone="success"
-        />
-      </div>
-
+    <div className="space-y-3">
       {preview.error ? (
-        <p className="text-xs text-amber-700 dark:text-amber-300">{preview.error}</p>
+        <p className="text-[11px] text-amber-700 dark:text-amber-300">{preview.error}</p>
       ) : null}
       {preview.exclusion_counts && Object.keys(preview.exclusion_counts).length > 0 ? (
-        <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-          Automatically excluded: {exclusionCountsLabel(preview.exclusion_counts)}. These
-          exclusions cannot be overridden.
+        <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+          Automatically excluded: {exclusionCountsLabel(preview.exclusion_counts)}.
         </p>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] md:items-end">
-        <div>
-          <ComposerFieldLabel hint="All conditions (AND) matches everyone who satisfies every row; Any condition (OR) matches anyone who satisfies at least one.">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[200px] flex-1">
+          <ComposerFieldLabel hint="AND = every row · OR = any row">
             Match mode
           </ComposerFieldLabel>
           <Select
@@ -131,17 +98,16 @@ export function EmailCampaignFilterBuilder({
           size="sm"
           disabled={disabled}
           onClick={() => onChange([...rows, createFilterRow()])}
-          className="md:mb-0.5"
         >
           Add filter
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {rows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center dark:border-gray-700">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">No filters yet</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="rounded-lg border border-dashed border-gray-200 px-3 py-5 text-center dark:border-gray-700">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-200">No filters yet</p>
+            <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
               Add a condition to narrow who receives this email.
             </p>
           </div>
@@ -153,10 +119,10 @@ export function EmailCampaignFilterBuilder({
             return (
               <div
                 key={row.id}
-                className="rounded-xl border border-gray-200 bg-gray-50/40 p-3 dark:border-gray-700 dark:bg-gray-900/25"
+                className="rounded-lg border border-gray-200 bg-gray-50/40 p-2.5 dark:border-gray-700 dark:bg-gray-900/25"
               >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Condition {index + 1}
                   </p>
                   <Button
@@ -170,9 +136,9 @@ export function EmailCampaignFilterBuilder({
                   </Button>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                   <div>
-                    <p className="mb-1 text-[11px] font-medium text-gray-500">Field</p>
+                    <p className="mb-1 text-[10px] font-medium text-gray-500">Field</p>
                     <Select
                       value={row.field}
                       onChange={(value) => changeField(row.id, value as EmailCampaignFilterField)}
@@ -184,11 +150,16 @@ export function EmailCampaignFilterBuilder({
                     />
                   </div>
                   <div>
-                    <p className="mb-1 text-[11px] font-medium text-gray-500">Operator</p>
+                    <p className="mb-1 text-[10px] font-medium text-gray-500">Operator</p>
                     <Select
                       value={row.operator}
                       onChange={(value) =>
-                        changeOperator(row.id, value as EmailCampaignFilterOperator, row.value, row.value_to || '')
+                        changeOperator(
+                          row.id,
+                          value as EmailCampaignFilterOperator,
+                          row.value,
+                          row.value_to || '',
+                        )
                       }
                       options={operators.map((operator) => ({
                         value: operator,
@@ -198,9 +169,9 @@ export function EmailCampaignFilterBuilder({
                     />
                   </div>
                   <div className="sm:col-span-2 xl:col-span-1">
-                    <p className="mb-1 text-[11px] font-medium text-gray-500">Value</p>
+                    <p className="mb-1 text-[10px] font-medium text-gray-500">Value</p>
                     {row.operator === 'never' ? (
-                      <p className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+                      <p className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800">
                         No value needed
                       </p>
                     ) : def?.valueType === 'enum' ? (
@@ -215,8 +186,9 @@ export function EmailCampaignFilterBuilder({
                         disabled={disabled}
                       />
                     ) : row.operator === 'between' ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5">
                         <Input
+                          compact
                           type={numeric ? 'number' : 'date'}
                           value={row.value}
                           onChange={(e) => updateRow(row.id, { value: e.target.value })}
@@ -225,6 +197,7 @@ export function EmailCampaignFilterBuilder({
                           min={0}
                         />
                         <Input
+                          compact
                           type={numeric ? 'number' : 'date'}
                           value={row.value_to || ''}
                           onChange={(e) => updateRow(row.id, { value_to: e.target.value })}
@@ -235,6 +208,7 @@ export function EmailCampaignFilterBuilder({
                       </div>
                     ) : (
                       <Input
+                        compact
                         type={numeric ? 'number' : 'date'}
                         value={row.value}
                         onChange={(e) => updateRow(row.id, { value: e.target.value })}

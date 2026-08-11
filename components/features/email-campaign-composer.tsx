@@ -11,7 +11,9 @@ import {
   ComposerAlert,
   ComposerFieldLabel,
   ComposerMetric,
+  ComposerPanel,
   ComposerSection,
+  ReadinessItem,
 } from '@/components/features/email-campaign-composer-ui';
 
 const EmailCampaignHtmlEditor = dynamic(
@@ -22,7 +24,7 @@ const EmailCampaignHtmlEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[360px] items-center justify-center rounded-md border border-gray-300 text-sm text-gray-500 dark:border-gray-600">
+      <div className="flex h-[280px] items-center justify-center rounded-md border border-gray-300 text-sm text-gray-500 dark:border-gray-600">
         Loading HTML editor…
       </div>
     ),
@@ -63,6 +65,8 @@ interface EmailCampaignComposerProps {
   scopeKey: string;
   onSent?: () => void;
 }
+
+type EditPanel = 'setup' | 'write';
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === 'object') {
@@ -170,29 +174,18 @@ function Icon({ d, className = 'h-4 w-4' }: { d: string; className?: string }) {
   );
 }
 
-const METHOD_ICONS: Record<
-  EmailCampaignRecipientMethod,
-  { d: string; tint: string }
-> = {
-  specific: {
-    d: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-    tint: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300',
-  },
-  filtered: {
-    d: 'M22 3H2l8 9.46V19l4 2v-8.54L22 3z',
-    tint: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-300',
-  },
-  all_eligible: {
-    d: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    tint: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
-  },
+const METHOD_ICONS: Record<EmailCampaignRecipientMethod, string> = {
+  specific:
+    'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+  filtered: 'M22 3H2l8 9.46V19l4 2v-8.54L22 3z',
+  all_eligible:
+    'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
 };
 
-const COMPOSER_STEPS = [
-  { n: 1, label: 'Email details', sectionId: 'composer-step-details' },
-  { n: 2, label: 'Recipients', sectionId: 'composer-step-recipients' },
-  { n: 3, label: 'Content & preview', sectionId: 'composer-step-content' },
-] as const;
+const EDIT_PANELS: { id: EditPanel; n: number; label: string; hint: string }[] = [
+  { id: 'setup', n: 1, label: 'Setup', hint: 'Name, subject, audience' },
+  { id: 'write', n: 2, label: 'Write', hint: 'HTML body & preview' },
+];
 
 function exclusionCountsLabel(counts?: Record<string, number>): string {
   if (!counts || Object.keys(counts).length === 0) return '';
@@ -206,7 +199,9 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const { addToast } = useToast();
   const [draft, setDraft] = useState<EmailCampaignComposerDraft>(createEmptyEmailCampaignDraft);
   const [step, setStep] = useState<EmailCampaignComposerStep>('edit');
+  const [panel, setPanel] = useState<EditPanel>('setup');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [contentTab, setContentTab] = useState<'edit' | 'preview'>('edit');
   const [previewKey, setPreviewKey] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -223,7 +218,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   const previewRequest = useMemo(
     () => buildPreviewRequest(draft),
-    // Preview only depends on targeting; name/subject/html edits must not refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [draft.recipient_method, draft.filter_rows, draft.match_mode, draft.selected_players],
   );
@@ -318,6 +312,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       : draft.recipient_method === 'filtered'
         ? draft.filter_rows.length > 0 && validateFilterRows(draft.filter_rows).length === 0
         : true;
+  const setupComplete = step1Complete && step2Complete;
   const step3Complete =
     draft.html_body.trim().length > 0 &&
     findUnsupportedEmailVariables(draft.html_body).length === 0;
@@ -325,29 +320,12 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const activeMethod = EMAIL_CAMPAIGN_RECIPIENT_METHODS.find(
     (item) => item.value === draft.recipient_method,
   );
-  const activeMethodHint = [
-    activeMethod?.description,
-    draft.recipient_method === 'specific'
-      ? selectedCount > 0
-        ? `${selectedCount} selected`
-        : null
-      : recipientPreview.loading
-        ? 'Counting recipients…'
-        : recipientPreview.final != null
-          ? `${recipientPreview.final.toLocaleString()} eligible`
-          : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  const scrollToSection = (sectionId: string) => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const handleSaveDraft = async () => {
     setErrors([]);
     if (!draft.internal_name.trim()) {
       setErrors(['Internal email name is required to save a draft.']);
+      setPanel('setup');
       return;
     }
 
@@ -398,7 +376,23 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       nextErrors.push('No eligible recipients match this targeting. Adjust the recipients first.');
     }
     setErrors(nextErrors);
-    if (nextErrors.length > 0) return;
+    if (nextErrors.length > 0) {
+      if (
+        nextErrors.some(
+          (e) =>
+            e.includes('name') ||
+            e.includes('Subject') ||
+            e.includes('player') ||
+            e.includes('filter') ||
+            e.includes('Filtered'),
+        )
+      ) {
+        setPanel('setup');
+      } else {
+        setPanel('write');
+      }
+      return;
+    }
     setSendConfirm('');
     setStep('review');
   };
@@ -413,6 +407,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
     setErrors(nextErrors);
     if (nextErrors.length > 0) {
       setStep('edit');
+      setPanel('setup');
       return;
     }
 
@@ -449,19 +444,128 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   if (!hydrated) {
     return (
-      <div className="mx-auto max-w-7xl space-y-5 pb-12">
-        <div>
-          <div className="h-3 w-44 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="mt-2 h-6 w-56 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="mt-2 h-4 w-full max-w-xl animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-        </div>
-        <div className="h-10 animate-pulse rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800" />
-        <div className="flex h-[300px] animate-pulse items-center justify-center rounded-xl border border-gray-200 bg-white text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800">
-          Loading composer…
+      <div className="mx-auto max-w-7xl space-y-4 pb-8">
+        <div className="h-12 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+        <div className="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)_240px]">
+          <div className="h-40 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+          <div className="h-72 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+          <div className="h-56 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
         </div>
       </div>
     );
   }
+
+  const readinessRail = (
+    <aside className="space-y-3">
+      <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700/80">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Readiness
+          </p>
+        </div>
+        <div className="space-y-2.5 px-3 py-3">
+          <ReadinessItem
+            label="Email details"
+            done={step1Complete}
+            detail={
+              step1Complete
+                ? draft.internal_name.trim()
+                : 'Name and subject required'
+            }
+          />
+          <ReadinessItem
+            label="Recipients"
+            done={step2Complete}
+            detail={
+              draft.recipient_method === 'specific'
+                ? `${selectedCount} selected`
+                : draft.recipient_method === 'filtered'
+                  ? `${draft.filter_rows.length} filter${draft.filter_rows.length === 1 ? '' : 's'}`
+                  : 'All eligible'
+            }
+          />
+          <ReadinessItem
+            label="Content"
+            done={step3Complete}
+            detail={step3Complete ? 'HTML ready' : 'Write the email body'}
+          />
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700/80">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Audience
+          </p>
+        </div>
+        <div className="space-y-2 px-3 py-3">
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-100">{recipientLabel}</p>
+          <div className="grid grid-cols-3 gap-1.5">
+            <ComposerMetric
+              label="Matched"
+              value={
+                recipientPreview.loading
+                  ? '…'
+                  : recipientPreview.matched == null
+                    ? '—'
+                    : recipientPreview.matched.toLocaleString()
+              }
+            />
+            <ComposerMetric
+              label="Excluded"
+              value={
+                recipientPreview.excluded == null
+                  ? '—'
+                  : recipientPreview.excluded.toLocaleString()
+              }
+              tone="warning"
+            />
+            <ComposerMetric
+              label="Final"
+              value={
+                recipientPreview.loading
+                  ? '…'
+                  : finalCount == null
+                    ? '—'
+                    : finalCount.toLocaleString()
+              }
+              tone="success"
+            />
+          </div>
+          {recipientPreview.error ? (
+            <p className="text-[11px] text-red-500">{recipientPreview.error}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {panel === 'write' && draft.html_body.trim() ? (
+        <div className="hidden overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm xl:block dark:border-gray-700/80 dark:bg-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2 dark:border-gray-700/80">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              Mini preview
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setContentTab('preview');
+                setPreviewKey((k) => k + 1);
+              }}
+              className="text-[10px] font-medium text-[#4f46e5] hover:underline"
+            >
+              Open
+            </button>
+          </div>
+          <iframe
+            key={`mini-${previewKey}`}
+            title="Mini email preview"
+            srcDoc={previewHtml}
+            sandbox=""
+            className="h-40 w-full bg-white"
+          />
+        </div>
+      ) : null}
+    </aside>
+  );
 
   if (step === 'review') {
     const matchedLabel =
@@ -483,23 +587,19 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
     return (
       <div className="mx-auto max-w-5xl space-y-4 pb-24">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
               Settings · Email campaigns
             </p>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-2xl">
+            <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
               Review & Send
             </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Confirm the summary, then queue the campaign. Nothing is sent until you press Send
-              Email.
-            </p>
           </div>
           <button
             type="button"
             onClick={() => router.push('/dashboard/settings/email-broadcasts')}
-            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+            className="inline-flex items-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
             Back to campaigns
@@ -516,7 +616,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           </ComposerAlert>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-2.5 sm:grid-cols-3">
           <ComposerMetric size="lg" label="Matched / selected" value={matchedLabel} />
           <ComposerMetric size="lg" label="Auto-excluded" value={excludedLabel} tone="warning" />
           <ComposerMetric size="lg" label="Final recipients" value={finalCountLabel} tone="success" />
@@ -544,37 +644,37 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         ) : null}
 
         <ComposerSection title="Campaign summary" description="What will be sent">
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
+          <dl className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-lg border border-gray-200/60 bg-gray-50 px-3 py-2.5 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Internal name
               </dt>
-              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+              <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {draft.internal_name}
               </dd>
             </div>
-            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
+            <div className="rounded-lg border border-gray-200/60 bg-gray-50 px-3 py-2.5 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Subject
               </dt>
-              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+              <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {draft.subject}
               </dd>
             </div>
-            <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 dark:border-gray-700/60 dark:bg-gray-900/40">
+            <div className="rounded-lg border border-gray-200/60 bg-gray-50 px-3 py-2.5 dark:border-gray-700/60 dark:bg-gray-900/40">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Recipient method
               </dt>
-              <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+              <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {recipientLabel}
               </dd>
             </div>
             {draft.recipient_method === 'filtered' ? (
-              <div className="rounded-xl border border-gray-200/60 bg-gray-50 px-3.5 py-3 sm:col-span-2 dark:border-gray-700/60 dark:bg-gray-900/40">
+              <div className="rounded-lg border border-gray-200/60 bg-gray-50 px-3 py-2.5 sm:col-span-2 dark:border-gray-700/60 dark:bg-gray-900/40">
                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                   Filters
                 </dt>
-                <dd className="mt-1 text-sm text-gray-800 dark:text-gray-200">
+                <dd className="mt-0.5 text-sm text-gray-800 dark:text-gray-200">
                   {draft.match_mode === 'any' ? 'Any condition · ' : 'All conditions · '}
                   {summarizeFilterRows(draft.filter_rows)}
                 </dd>
@@ -582,6 +682,13 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
             ) : null}
           </dl>
         </ComposerSection>
+
+        {/* Hidden headings keep section vocabulary discoverable for tests / a11y */}
+        <div className="sr-only">
+          <h3>Email details</h3>
+          <h3>Recipients</h3>
+          <h3>Content & preview</h3>
+        </div>
 
         {draft.recipient_method === 'all_eligible' ? (
           <ComposerAlert tone="warning">
@@ -655,72 +762,70 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 pb-24">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-            Settings · Email campaigns
-          </p>
-          <h1 className="mt-1 flex flex-wrap items-center gap-2.5 text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-2xl">
-            Compose campaign
-            {draft.broadcast_id ? (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300">
-                Draft #{draft.broadcast_id}
-              </span>
-            ) : null}
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/settings/email-broadcasts')}
-          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-        >
-          <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
-          Back to campaigns
-        </button>
-      </header>
+    <div className="mx-auto max-w-7xl space-y-3 pb-20">
+      {/* Command bar */}
+      <header className="sticky top-0 z-20 -mx-1 rounded-xl border border-gray-200/80 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur dark:border-gray-700/80 dark:bg-gray-800/95 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard/settings/email-broadcasts')}
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+          >
+            <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Back to campaigns</span>
+            <span className="sm:hidden">Back</span>
+          </button>
 
-      {/* Progress stepper — borderless inline strip */}
-      <div className="flex items-center gap-2 overflow-x-auto px-1 sm:gap-3">
-        {COMPOSER_STEPS.map((stepDef, index) => {
-          const complete =
-            stepDef.n === 1 ? step1Complete : stepDef.n === 2 ? step2Complete : step3Complete;
-          const isLast = index === COMPOSER_STEPS.length - 1;
-          return (
-            <div key={stepDef.n} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-              <button
-                type="button"
-                onClick={() => scrollToSection(stepDef.sectionId)}
-                className="group flex min-w-0 items-center gap-1.5 rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
-              >
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
-                    complete
-                      ? 'bg-[#6366f1] text-white'
-                      : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
-                  }`}
-                >
-                  {complete ? (
-                    <Icon d="M5 13l4 4L19 7" className="h-2.5 w-2.5" />
-                  ) : (
-                    stepDef.n
-                  )}
+          <div className="mx-1 hidden h-4 w-px bg-gray-200 sm:block dark:bg-gray-700" />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-base">
+                Compose campaign
+              </h1>
+              {draft.broadcast_id ? (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                  Draft #{draft.broadcast_id}
                 </span>
-                <span className="truncate text-[11px] font-medium text-gray-500 transition-colors group-hover:text-[#4f46e5] dark:text-gray-400 dark:group-hover:text-[#a5b4fc]">
-                  {stepDef.label}
-                </span>
-              </button>
-              {!isLast ? (
-                <span
-                  className={`h-px flex-1 transition-colors ${
-                    complete ? 'bg-[#6366f1]/40' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
-                />
               ) : null}
             </div>
-          );
-        })}
-      </div>
+            <p className="mt-0.5 hidden text-[11px] text-gray-400 sm:block">
+              Settings · Email campaigns · {panel === 'setup' ? 'Setup' : 'Write'}
+            </p>
+          </div>
+
+          <div
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
+              finalCount != null && finalCount > 0
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                finalCount != null && finalCount > 0 ? 'bg-emerald-500' : 'bg-amber-500'
+              }`}
+            />
+            {finalCount != null && finalCount > 0
+              ? `${finalCount.toLocaleString()} ready`
+              : 'No recipients'}
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            isLoading={isSavingDraft}
+            disabled={busy}
+            onClick={() => void handleSaveDraft()}
+          >
+            Save Draft
+          </Button>
+          <Button type="button" size="sm" disabled={busy || !canReview} onClick={handleReview}>
+            Review & Send
+          </Button>
+        </div>
+      </header>
 
       {errors.length > 0 ? (
         <ComposerAlert>
@@ -732,299 +837,364 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         </ComposerAlert>
       ) : null}
 
-      <ComposerSection
-        step="1"
-        title="Email details"
-        completed={step1Complete}
-        id="composer-step-details"
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <ComposerFieldLabel
-              htmlFor="email-campaign-internal-name"
-              hint="Only visible to your team"
-            >
-              Internal email name
-            </ComposerFieldLabel>
-            <Input
-              id="email-campaign-internal-name"
-              value={draft.internal_name}
-              onChange={(e) => updateDraft({ internal_name: e.target.value })}
-              placeholder="Weekend Recharge Offer"
-              disabled={busy}
-              maxLength={120}
-            />
-          </div>
-          <div>
-            <ComposerFieldLabel
-              htmlFor="email-campaign-subject"
-              hint="Shown in the player inbox"
-            >
-              Subject
-            </ComposerFieldLabel>
-            <Input
-              id="email-campaign-subject"
-              value={draft.subject}
-              onChange={(e) => updateDraft({ subject: e.target.value })}
-              placeholder="Your weekend reward is waiting"
-              disabled={busy}
-              maxLength={255}
-            />
-          </div>
-        </div>
-      </ComposerSection>
-
-      <ComposerSection
-        step="2"
-        title="Recipients"
-        completed={step2Complete}
-        id="composer-step-recipients"
-      >
-        <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/60 p-1 shadow-sm dark:border-gray-700 dark:bg-gray-800/60">
-          {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
-            const active = draft.recipient_method === method.value;
-            const icon = METHOD_ICONS[method.value];
+      <div className="grid items-start gap-3 lg:grid-cols-[148px_minmax(0,1fr)] xl:grid-cols-[148px_minmax(0,1fr)_220px]">
+        {/* Vertical step rail */}
+        <nav
+          aria-label="Composer steps"
+          className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200/80 bg-white p-1.5 shadow-sm lg:flex-col lg:overflow-visible dark:border-gray-700/80 dark:bg-gray-800"
+        >
+          {EDIT_PANELS.map((item) => {
+            const active = panel === item.id;
+            const complete = item.id === 'setup' ? setupComplete : step3Complete;
             return (
               <button
-                key={method.value}
+                key={item.id}
                 type="button"
-                disabled={busy}
-                onClick={() =>
-                  updateDraft({ recipient_method: method.value as EmailCampaignRecipientMethod })
-                }
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50 disabled:opacity-50 ${
+                onClick={() => setPanel(item.id)}
+                className={`flex min-w-[140px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors lg:min-w-0 ${
                   active
-                    ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-900'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
                 }`}
               >
-                <Icon
-                  d={icon.d}
-                  className={`h-3.5 w-3.5 ${
-                    active ? '' : 'text-gray-400 dark:text-gray-500'
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                    active
+                      ? 'bg-white/15 text-white dark:bg-gray-900/10 dark:text-gray-900'
+                      : complete
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
                   }`}
-                />
-                {method.label}
+                >
+                  {complete && !active ? '✓' : item.n}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold">{item.label}</span>
+                  <span
+                    className={`block truncate text-[10px] ${
+                      active ? 'text-white/70 dark:text-gray-900/60' : 'text-gray-400'
+                    }`}
+                  >
+                    {item.hint}
+                  </span>
+                </span>
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {activeMethodHint ? (
-          <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{activeMethodHint}</p>
-        ) : null}
+        {/* Main panel */}
+        <div className="min-w-0 space-y-3">
+          {panel === 'setup' ? (
+            <>
+              <ComposerPanel
+                title="Email details"
+                description="Internal name for your team · subject for the player inbox"
+              >
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <ComposerFieldLabel htmlFor="email-campaign-internal-name" hint="Only visible to your team">
+                      Internal email name
+                    </ComposerFieldLabel>
+                    <Input
+                      id="email-campaign-internal-name"
+                      compact
+                      value={draft.internal_name}
+                      onChange={(e) => updateDraft({ internal_name: e.target.value })}
+                      placeholder="Weekend Recharge Offer"
+                      disabled={busy}
+                      maxLength={120}
+                    />
+                  </div>
+                  <div>
+                    <ComposerFieldLabel htmlFor="email-campaign-subject" hint="Shown in the player inbox">
+                      Subject
+                    </ComposerFieldLabel>
+                    <Input
+                      id="email-campaign-subject"
+                      compact
+                      value={draft.subject}
+                      onChange={(e) => updateDraft({ subject: e.target.value })}
+                      placeholder="Your weekend reward is waiting"
+                      disabled={busy}
+                      maxLength={255}
+                    />
+                  </div>
+                </div>
+              </ComposerPanel>
 
-        {draft.recipient_method === 'specific' ? (
-          <EmailCampaignSpecificPlayers
-            selected={draft.selected_players}
-            disabled={busy}
-            onChange={(selected_players) => updateDraft({ selected_players })}
-          />
-        ) : null}
-
-        {draft.recipient_method === 'filtered' ? (
-          <EmailCampaignFilterBuilder
-            matchMode={draft.match_mode}
-            rows={draft.filter_rows}
-            preview={recipientPreview}
-            disabled={busy}
-            onMatchModeChange={(match_mode) => updateDraft({ match_mode })}
-            onChange={(filter_rows) => updateDraft({ filter_rows })}
-          />
-        ) : null}
-
-        {draft.recipient_method === 'all_eligible' ? (
-          <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <ComposerMetric
-                label="Matched"
-                value={
-                  recipientPreview.loading
-                    ? '…'
-                    : recipientPreview.matched == null
-                      ? '—'
-                      : recipientPreview.matched.toLocaleString()
-                }
-              />
-              <ComposerMetric
-                label="Auto-excluded"
-                value={
-                  recipientPreview.excluded == null
-                    ? '—'
-                    : recipientPreview.excluded.toLocaleString()
-                }
-                tone="warning"
-              />
-              <ComposerMetric
-                label="Final recipients"
-                value={
-                  recipientPreview.loading
-                    ? '…'
-                    : recipientPreview.final == null
-                      ? '—'
-                      : recipientPreview.final.toLocaleString()
-                }
-                tone="success"
-              />
-            </div>
-            <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-4 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100">
-              <p className="font-medium">All eligible players in this brand</p>
-              <p className="mt-1 text-xs leading-relaxed opacity-90">
-                Marketing-ineligible addresses are excluded automatically. Review requires typing{' '}
-                <strong>SEND</strong> before final submission.
-              </p>
-              {recipientPreview.final_sample && recipientPreview.final_sample.length > 0 ? (
-                <details className="mt-3 rounded-lg border border-sky-200/70 bg-white/60 dark:border-sky-900/40 dark:bg-gray-900/40">
-                  <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-sky-900 dark:text-sky-200">
-                    View sample recipients
-                  </summary>
-                  <ul className="max-h-40 overflow-auto border-t border-sky-200/70 px-3 py-1 dark:border-sky-900/40">
-                    {recipientPreview.final_sample.map((row) => (
-                      <li
-                        key={row.user_id}
-                        className="flex items-center justify-between gap-3 py-1.5 text-xs text-sky-900 dark:text-sky-100"
+              <ComposerPanel
+                title="Recipients"
+                description={activeMethod?.description || 'Choose who should receive this campaign'}
+              >
+                <div className="mb-3 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                  {EMAIL_CAMPAIGN_RECIPIENT_METHODS.map((method) => {
+                    const active = draft.recipient_method === method.value;
+                    return (
+                      <button
+                        key={method.value}
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          updateDraft({
+                            recipient_method: method.value as EmailCampaignRecipientMethod,
+                          })
+                        }
+                        className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 disabled:opacity-50 ${
+                          active
+                            ? 'border-gray-900 bg-gray-900 text-white shadow-sm dark:border-white dark:bg-white dark:text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200'
+                        }`}
                       >
-                        <span className="font-medium">{row.username}</span>
-                        <span className="truncate opacity-70">{row.email}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </ComposerSection>
+                        <Icon
+                          d={METHOD_ICONS[method.value]}
+                          className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                            active ? '' : 'text-gray-400'
+                          }`}
+                        />
+                        <span className="min-w-0">
+                            <span className="block text-xs font-semibold">{method.label}</span>
+                            <span
+                              className={`mt-0.5 block text-[10px] leading-snug ${
+                                active
+                                  ? 'text-white/70 dark:text-gray-900/55'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {method.description}
+                            </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-      <ComposerSection
-        step="3"
-        title="Content & preview"
-        completed={step3Complete}
-        id="composer-step-content"
-      >
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div className="min-w-0 space-y-3">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">HTML content</p>
-            <EmailCampaignHtmlEditor
-              value={draft.html_body}
-              disabled={busy}
-              onChange={(html_body) => updateDraft({ html_body })}
-              onInsertReady={handleInsertReady}
-            />
-            <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                Insert variable
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {placeholders.map((variable) => (
-                  <button
-                    key={variable.key}
-                    type="button"
-                    onClick={() => insertVariable(emailPlaceholderToken(variable.key))}
+                {draft.recipient_method === 'specific' ? (
+                  <EmailCampaignSpecificPlayers
+                    selected={draft.selected_players}
                     disabled={busy}
-                    title={variable.label}
-                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-mono text-[11px] text-gray-700 shadow-sm transition-all hover:-translate-y-px hover:border-[#6366f1] hover:text-[#4f46e5] hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 disabled:translate-y-0 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
-                  >
-                    {emailPlaceholderToken(variable.key)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+                    onChange={(selected_players) => updateDraft({ selected_players })}
+                  />
+                ) : null}
 
-          <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Live preview</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
-                  {(['desktop', 'mobile'] as const).map((mode) => (
+                {draft.recipient_method === 'filtered' ? (
+                  <EmailCampaignFilterBuilder
+                    matchMode={draft.match_mode}
+                    rows={draft.filter_rows}
+                    preview={recipientPreview}
+                    disabled={busy}
+                    onMatchModeChange={(match_mode) => updateDraft({ match_mode })}
+                    onChange={(filter_rows) => updateDraft({ filter_rows })}
+                  />
+                ) : null}
+
+                {draft.recipient_method === 'all_eligible' ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <ComposerMetric
+                        label="Matched"
+                        value={
+                          recipientPreview.loading
+                            ? '…'
+                            : recipientPreview.matched == null
+                              ? '—'
+                              : recipientPreview.matched.toLocaleString()
+                        }
+                      />
+                      <ComposerMetric
+                        label="Auto-excluded"
+                        value={
+                          recipientPreview.excluded == null
+                            ? '—'
+                            : recipientPreview.excluded.toLocaleString()
+                        }
+                        tone="warning"
+                      />
+                      <ComposerMetric
+                        label="Final recipients"
+                        value={
+                          recipientPreview.loading
+                            ? '…'
+                            : recipientPreview.final == null
+                              ? '—'
+                              : recipientPreview.final.toLocaleString()
+                        }
+                        tone="success"
+                      />
+                    </div>
+                    <div className="rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-3 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100">
+                      <p className="text-xs font-medium">All eligible players in this brand</p>
+                      <p className="mt-1 text-[11px] leading-relaxed opacity-90">
+                        Marketing-ineligible addresses are excluded automatically. Review requires
+                        typing <strong>SEND</strong> before final submission.
+                      </p>
+                      {recipientPreview.final_sample &&
+                      recipientPreview.final_sample.length > 0 ? (
+                        <details className="mt-2 rounded-md border border-sky-200/70 bg-white/60 dark:border-sky-900/40 dark:bg-gray-900/40">
+                          <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] font-medium">
+                            View sample recipients
+                          </summary>
+                          <ul className="max-h-36 overflow-auto border-t border-sky-200/70 px-2.5 py-1 dark:border-sky-900/40">
+                            {recipientPreview.final_sample.map((row) => (
+                              <li
+                                key={row.user_id}
+                                className="flex items-center justify-between gap-3 py-1 text-[11px]"
+                              >
+                                <span className="font-medium">{row.username}</span>
+                                <span className="truncate opacity-70">{row.email}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </ComposerPanel>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!setupComplete}
+                  onClick={() => setPanel('write')}
+                >
+                  Continue to Write
+                  <Icon d="M14 5l7 7m0 0l-7 7m7-7H3" className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <ComposerPanel
+              title="Content & preview"
+              description="Author HTML, insert variables, then check the live preview"
+              actions={
+                <div className="flex rounded-md border border-gray-200 p-0.5 dark:border-gray-700">
+                  {(['edit', 'preview'] as const).map((tab) => (
                     <button
-                      key={mode}
+                      key={tab}
                       type="button"
-                      onClick={() => setPreviewMode(mode)}
-                      className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
-                        previewMode === mode
+                      onClick={() => setContentTab(tab)}
+                      className={`rounded px-2.5 py-1 text-[11px] font-medium capitalize ${
+                        contentTab === tab
                           ? 'bg-[#6366f1] text-white'
                           : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
                       }`}
                     >
-                      {mode}
+                      {tab}
                     </button>
                   ))}
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPreviewKey((key) => key + 1)}
-                >
-                  Refresh
-                </Button>
-              </div>
-            </div>
-            <div
-              className={`mx-auto overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all dark:border-gray-700 ${
-                previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'
-              }`}
+              }
             >
-              <div className="border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-700 dark:bg-gray-900">
-                {previewMode === 'mobile' ? 'Mobile frame · 375px' : 'Desktop frame'}
-              </div>
-              <iframe
-                key={previewKey}
-                title="Email preview"
-                srcDoc={previewHtml}
-                sandbox=""
-                className="h-[min(520px,60vh)] min-h-[320px] w-full bg-white"
-              />
-            </div>
-          </div>
+              {contentTab === 'edit' ? (
+                <div className="space-y-3">
+                  <EmailCampaignHtmlEditor
+                    value={draft.html_body}
+                    disabled={busy}
+                    onChange={(html_body) => updateDraft({ html_body })}
+                    onInsertReady={handleInsertReady}
+                  />
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      Insert variable
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {placeholders.map((variable) => (
+                        <button
+                          key={variable.key}
+                          type="button"
+                          onClick={() => insertVariable(emailPlaceholderToken(variable.key))}
+                          disabled={busy}
+                          title={variable.label}
+                          className="rounded-md border border-gray-200 bg-white px-2 py-0.5 font-mono text-[11px] text-gray-700 transition-colors hover:border-[#6366f1] hover:text-[#4f46e5] disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                        >
+                          {emailPlaceholderToken(variable.key)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-between gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPanel('setup')}
+                    >
+                      <Icon d="M10 19l-7-7m0 0l7-7m-7 7h18" className="mr-1.5 h-3.5 w-3.5" />
+                      Back to Setup
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy || !canReview}
+                      onClick={handleReview}
+                    >
+                      Review & Send
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Subject: <span className="text-gray-900 dark:text-gray-100">{draft.subject || '—'}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex rounded-md border border-gray-200 p-0.5 dark:border-gray-700">
+                        {(['desktop', 'mobile'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setPreviewMode(mode)}
+                            className={`rounded px-2.5 py-1 text-[11px] font-medium capitalize ${
+                              previewMode === mode
+                                ? 'bg-[#6366f1] text-white'
+                                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPreviewKey((key) => key + 1)}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+                  <div
+                    className={`mx-auto overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 ${
+                      previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'
+                    }`}
+                  >
+                    <div className="border-b border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-700 dark:bg-gray-900">
+                      {previewMode === 'mobile' ? 'Mobile · 375px' : 'Desktop'}
+                    </div>
+                    <iframe
+                      key={previewKey}
+                      title="Email preview"
+                      srcDoc={previewHtml}
+                      sandbox=""
+                      className="h-[min(480px,55vh)] min-h-[280px] w-full bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </ComposerPanel>
+          )}
         </div>
-      </ComposerSection>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 px-4 py-2.5 shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.12)] backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              className={`h-2 w-2 shrink-0 rounded-full ${
-                finalCount != null && finalCount > 0 ? 'bg-emerald-500' : 'bg-amber-500'
-              }`}
-            />
-            <p className="truncate text-xs text-gray-600 dark:text-gray-300">
-              {finalCount != null && finalCount > 0
-                ? `${finalCount.toLocaleString()} eligible recipient${finalCount === 1 ? '' : 's'}`
-                : 'No eligible recipients yet'}
-              {draft.broadcast_id ? ` · draft #${draft.broadcast_id}` : ''}
-              {draft.updated_at
-                ? ` · saved ${new Date(draft.updated_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}`
-                : ''}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              isLoading={isSavingDraft}
-              disabled={busy}
-              onClick={() => void handleSaveDraft()}
-            >
-              Save Draft
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy || !canReview}
-              onClick={handleReview}
-            >
-              Review & Send
-            </Button>
-          </div>
-        </div>
+        {/* Right readiness rail */}
+        <div className="hidden xl:block">{readinessRail}</div>
       </div>
+
+      {/* Mobile readiness strip */}
+      <div className="xl:hidden">{readinessRail}</div>
     </div>
   );
 }

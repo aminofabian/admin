@@ -2,70 +2,24 @@
 
 import type { ReactNode } from 'react';
 
-export function ComposerSection({
-  step,
-  title,
-  description,
-  completed = false,
-  id,
+export function ComposerAlert({
+  tone = 'error',
   children,
-  className = '',
 }: {
-  step?: string;
-  title: string;
-  description?: string;
-  /** Show the step badge as complete (indigo fill + check). */
-  completed?: boolean;
-  id?: string;
+  tone?: 'error' | 'warning' | 'info';
   children: ReactNode;
-  className?: string;
 }) {
+  const styles =
+    tone === 'warning'
+      ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200'
+      : tone === 'info'
+        ? 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200'
+        : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300';
+
   return (
-    <section
-      id={id}
-      className={`overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
-    >
-      <div className="border-b border-gray-100 px-4 py-2.5 sm:px-5 dark:border-gray-700/80">
-        <div className="flex items-center gap-2.5">
-          {step ? (
-            <span
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
-                completed
-                  ? 'bg-[#6366f1] text-white'
-                  : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
-              }`}
-            >
-              {completed ? (
-                <svg
-                  className="h-2.5 w-2.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                step
-              )}
-            </span>
-          ) : null}
-          <div className="min-w-0">
-            <h2 className="text-[13px] font-semibold text-gray-900 dark:text-gray-50">{title}</h2>
-            {description ? (
-              <p className="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                {description}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </div>
-      <div className="px-4 py-4 sm:px-5">{children}</div>
-    </section>
+    <div className={`rounded-lg border px-3 py-2.5 text-xs leading-relaxed ${styles}`}>
+      {children}
+    </div>
   );
 }
 
@@ -79,10 +33,10 @@ export function ComposerFieldLabel({
   hint?: string;
 }) {
   return (
-    <div className="mb-1.5">
+    <div className="mb-1">
       <label
         htmlFor={htmlFor}
-        className="block text-sm font-medium text-gray-800 dark:text-gray-100"
+        className="block text-xs font-medium text-gray-700 dark:text-gray-200"
       >
         {children}
       </label>
@@ -115,45 +69,125 @@ export function ComposerMetric({
 
   return (
     <div
-      className={`border border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40 ${
-        isLg ? 'rounded-2xl px-5 py-5' : 'rounded-xl px-3.5 py-3'
+      className={`border border-gray-200/80 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-900/40 ${
+        isLg ? 'rounded-xl px-4 py-4' : 'rounded-lg px-3 py-2.5'
       }`}
     >
-      <p
-        className={`font-semibold uppercase tracking-wider text-gray-400 ${
-          isLg ? 'text-[11px]' : 'text-[10px]'
-        }`}
-      >
-        {label}
-      </p>
-      <p
-        className={`mt-1 font-semibold tabular-nums ${valueClass} ${
-          isLg ? 'text-3xl' : 'text-lg'
-        }`}
-      >
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className={`mt-0.5 font-semibold tabular-nums ${valueClass} ${isLg ? 'text-2xl' : 'text-base'}`}>
         {value}
       </p>
     </div>
   );
 }
 
-export function ComposerAlert({
-  tone = 'error',
+/** Compact card used for the active compose panel. */
+export function ComposerPanel({
+  title,
+  description,
   children,
+  actions,
 }: {
-  tone?: 'error' | 'warning' | 'info';
+  title: string;
+  description?: string;
   children: ReactNode;
+  actions?: ReactNode;
 }) {
-  const styles =
-    tone === 'warning'
-      ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200'
-      : tone === 'info'
-        ? 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200'
-        : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300';
-
   return (
-    <div className={`rounded-xl border px-3.5 py-3 text-xs leading-relaxed ${styles}`}>
-      {children}
+    <section className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-gray-100 px-4 py-2.5 dark:border-gray-700/80">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">{title}</h2>
+          {description ? (
+            <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">{description}</p>
+          ) : null}
+        </div>
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      </div>
+      <div className="px-4 py-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Kept for review screen + tests that mock ComposerSection. */
+export function ComposerSection({
+  step,
+  title,
+  description,
+  completed = false,
+  id,
+  children,
+  className = '',
+}: {
+  step?: string;
+  title: string;
+  description?: string;
+  completed?: boolean;
+  id?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      id={id}
+      className={`overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
+    >
+      <div className="border-b border-gray-100 px-4 py-2.5 dark:border-gray-700/80">
+        <div className="flex items-center gap-2.5">
+          {step ? (
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+                completed
+                  ? 'bg-[#6366f1] text-white'
+                  : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
+              }`}
+            >
+              {completed ? '✓' : step}
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <h2 className="text-[13px] font-semibold text-gray-900 dark:text-gray-50">{title}</h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="px-4 py-3.5">{children}</div>
+    </section>
+  );
+}
+
+export function ReadinessItem({
+  label,
+  done,
+  detail,
+}: {
+  label: string;
+  done: boolean;
+  detail?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <span
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+          done
+            ? 'bg-emerald-500 text-white'
+            : 'border border-gray-300 text-transparent dark:border-gray-600'
+        }`}
+      >
+        ✓
+      </span>
+      <div className="min-w-0">
+        <p
+          className={`text-xs font-medium ${
+            done ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          {label}
+        </p>
+        {detail ? <p className="mt-0.5 truncate text-[10px] text-gray-400">{detail}</p> : null}
+      </div>
     </div>
   );
 }

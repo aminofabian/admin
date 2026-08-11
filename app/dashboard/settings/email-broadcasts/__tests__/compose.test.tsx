@@ -72,6 +72,18 @@ vi.mock('@/components/features/email-campaign-composer-ui', () => ({
   ComposerMetric: ({ label, value }: { label: string; value?: ReactNode }) => (
     <div data-metric={label}>{value}</div>
   ),
+  ComposerPanel: ({
+    title,
+    children,
+  }: {
+    title: string;
+    children?: ReactNode;
+  }) => (
+    <section>
+      <h3>{title}</h3>
+      {children}
+    </section>
+  ),
   ComposerSection: ({
     title,
     children,
@@ -84,6 +96,7 @@ vi.mock('@/components/features/email-campaign-composer-ui', () => ({
       {children}
     </section>
   ),
+  ReadinessItem: ({ label }: { label: string }) => <div>{label}</div>,
 }));
 
 const previewResponse = {
@@ -102,22 +115,21 @@ describe('EmailCampaignComposePage', () => {
     window.sessionStorage?.clear();
   });
 
-  it('renders the composer hero, stepper, and all three sections', async () => {
+  it('renders the cockpit command bar, setup panel, and readiness rail', async () => {
     render(<ComposePage />);
 
     expect(await screen.findByText('Compose campaign')).toBeInTheDocument();
-    // Stepper labels also match the section headings — both are expected.
+    expect(screen.getByText('Setup')).toBeInTheDocument();
+    expect(screen.getByText('Write')).toBeInTheDocument();
     expect(screen.getAllByText('Email details').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Recipients').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Content & preview').length).toBeGreaterThan(0);
 
     expect(screen.getByLabelText('Internal email name')).toBeInTheDocument();
     expect(screen.getByLabelText('Subject')).toBeInTheDocument();
 
-    // Bottom action bar
-    expect(screen.getByText('Save Draft')).toBeInTheDocument();
-    const reviewButton = screen.getByText('Review & Send');
-    expect(reviewButton).toBeDisabled();
+    expect(screen.getAllByText('Save Draft').length).toBeGreaterThan(0);
+    const reviewButtons = screen.getAllByText('Review & Send');
+    expect(reviewButtons[0]).toBeDisabled();
   });
 
   it('keeps Review & Send disabled until details are filled and recipients exist', async () => {
@@ -129,15 +141,13 @@ describe('EmailCampaignComposePage', () => {
     await user.type(screen.getByLabelText('Internal email name'), 'Weekend Recharge Offer');
     await user.type(screen.getByLabelText('Subject'), 'Your weekend reward is waiting');
 
-    // Specific players: nothing selected yet → still locked.
-    expect(screen.getByText('Review & Send')).toBeDisabled();
+    expect(screen.getAllByText('Review & Send')[0]).toBeDisabled();
 
-    // Switch to All Eligible Players — preview resolves to 95 final recipients.
     await user.click(screen.getByText('All Eligible Players'));
     await waitFor(() => {
-      expect(screen.getByText('95')).toBeInTheDocument();
+      expect(screen.getAllByText('95').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Review & Send')).not.toBeDisabled();
+    expect(screen.getAllByText('Review & Send')[0]).not.toBeDisabled();
   });
 
   it('shows live recipient metrics for the active method', async () => {
@@ -147,9 +157,29 @@ describe('EmailCampaignComposePage', () => {
     await screen.findByText('Compose campaign');
 
     await user.click(screen.getByText('All Eligible Players'));
-    expect(await screen.findByText('100')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('95')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('100').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('5').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('95').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('switches to the write panel from setup', async () => {
+    const user = userEvent.setup();
+    render(<ComposePage />);
+
+    await screen.findByText('Compose campaign');
+    await user.type(screen.getByLabelText('Internal email name'), 'Weekend Recharge Offer');
+    await user.type(screen.getByLabelText('Subject'), 'Your weekend reward is waiting');
+    await user.click(screen.getByText('All Eligible Players'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Continue to Write')).not.toBeDisabled();
+    });
+    await user.click(screen.getByText('Continue to Write'));
+
+    expect(await screen.findAllByText('Content & preview')).not.toHaveLength(0);
+    expect(screen.getByTestId('html-editor')).toBeInTheDocument();
   });
 
   it('navigates back to the campaigns list', async () => {
@@ -157,7 +187,7 @@ describe('EmailCampaignComposePage', () => {
     render(<ComposePage />);
 
     await screen.findByText('Compose campaign');
-    await user.click(screen.getByText('Back to campaigns'));
+    await user.click(screen.getByRole('button', { name: /Back to campaigns/i }));
 
     expect(routerPushMock).toHaveBeenCalledWith('/dashboard/settings/email-broadcasts');
   });
