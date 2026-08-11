@@ -25,11 +25,11 @@ export function ComposerSection({
       id={id}
       className={`overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800 ${className}`}
     >
-      <div className="border-b border-gray-100 px-4 py-3.5 sm:px-5 dark:border-gray-700/80">
-        <div className="flex items-start gap-3">
+      <div className="border-b border-gray-100 px-4 py-2.5 sm:px-5 dark:border-gray-700/80">
+        <div className="flex items-center gap-2.5">
           {step ? (
             <span
-              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
                 completed
                   ? 'bg-[#6366f1] text-white'
                   : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
@@ -37,7 +37,7 @@ export function ComposerSection({
             >
               {completed ? (
                 <svg
-                  className="h-3.5 w-3.5"
+                  className="h-2.5 w-2.5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -55,7 +55,7 @@ export function ComposerSection({
             </span>
           ) : null}
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">{title}</h2>
+            <h2 className="text-[13px] font-semibold text-gray-900 dark:text-gray-50">{title}</h2>
             {description ? (
               <p className="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
                 {description}

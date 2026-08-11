@@ -684,8 +684,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         </button>
       </header>
 
-      {/* Progress stepper */}
-      <nav className="flex items-center gap-2 overflow-x-auto rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 dark:border-gray-700/80 dark:bg-gray-800">
+      {/* Progress stepper — borderless inline strip */}
+      <div className="flex items-center gap-2 overflow-x-auto px-1 sm:gap-3">
         {COMPOSER_STEPS.map((stepDef, index) => {
           const complete =
             stepDef.n === 1 ? step1Complete : stepDef.n === 2 ? step2Complete : step3Complete;
@@ -695,22 +695,22 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               <button
                 type="button"
                 onClick={() => scrollToSection(stepDef.sectionId)}
-                className="group flex min-w-0 items-center gap-2 text-left"
+                className="group flex min-w-0 items-center gap-1.5 text-left"
               >
                 <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
                     complete
                       ? 'bg-[#6366f1] text-white'
                       : 'bg-[#6366f1]/10 text-[#4f46e5] dark:bg-[#6366f1]/20 dark:text-[#a5b4fc]'
                   }`}
                 >
                   {complete ? (
-                    <Icon d="M5 13l4 4L19 7" className="h-3 w-3" />
+                    <Icon d="M5 13l4 4L19 7" className="h-2.5 w-2.5" />
                   ) : (
                     stepDef.n
                   )}
                 </span>
-                <span className="truncate text-xs font-medium text-gray-700 transition-colors group-hover:text-[#4f46e5] dark:text-gray-200 dark:group-hover:text-[#a5b4fc]">
+                <span className="truncate text-[11px] font-medium text-gray-500 transition-colors group-hover:text-[#4f46e5] dark:text-gray-400 dark:group-hover:text-[#a5b4fc]">
                   {stepDef.label}
                 </span>
               </button>
@@ -724,7 +724,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
             </div>
           );
         })}
-      </nav>
+      </div>
 
       {errors.length > 0 ? (
         <ComposerAlert>
@@ -746,7 +746,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       <ComposerSection
         step="1"
         title="Email details"
-        description="Internal name for staff, subject line for players"
         completed={step1Complete}
         id="composer-step-details"
       >
@@ -789,7 +788,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       <ComposerSection
         step="2"
         title="Recipients"
-        description="Pick how this campaign should target players"
         completed={step2Complete}
         id="composer-step-recipients"
       >
@@ -912,7 +910,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       <ComposerSection
         step="3"
         title="Content & preview"
-        description="Edit HTML on the left, preview how it looks on the right"
         completed={step3Complete}
         id="composer-step-content"
       >
