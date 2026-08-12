@@ -7,7 +7,7 @@ describe('findUnsupportedEmailVariables', () => {
   it('returns [] for allowed placeholders', () => {
     expect(
       findUnsupportedEmailVariables(
-        '<p>Hi {{ username }}, {{ project_name }} {{ email }} {{ subject }}</p>',
+        '<p>Hi {{ username }}, you have {{ spins_left }} spins left. {{ unsubscribe_url }}</p>',
       ),
     ).toEqual([]);
   });

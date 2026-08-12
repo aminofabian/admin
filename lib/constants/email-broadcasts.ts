@@ -53,6 +53,7 @@ export const EMAIL_BROADCAST_PLACEHOLDER_KEYS = [
   'telegram_support',
   'unsubscribe_url',
   'balance',
+  'spins_left',
   'subject',
 ] as const;
 

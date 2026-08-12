@@ -34,6 +34,11 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<string, EmailTemplateVariable> = {
   currency: { key: 'currency', label: 'Currency code', sample: 'USD' },
   transaction_id: { key: 'transaction_id', label: 'Transaction reference', sample: 'TXN-10293847' },
   balance: { key: 'balance', label: 'Account balance', sample: '125.50' },
+  spins_left: {
+    key: 'spins_left',
+    label: 'Prize wheel spins remaining',
+    sample: '3',
+  },
   status: { key: 'status', label: 'Status', sample: 'completed' },
   date: { key: 'date', label: 'Date', sample: '2026-08-03' },
   referrer_username: { key: 'referrer_username', label: 'Referrer username', sample: 'referrer_one' },
