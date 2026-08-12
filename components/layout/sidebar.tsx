@@ -130,6 +130,18 @@ const PaymentSettingsIcon = () => (
   </svg>
 );
 
+const EmailTemplatesIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+);
+
+const EmailCampaignsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+  </svg>
+);
+
 const AffiliatesAgentIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -386,6 +398,8 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
+      { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplatesIcon /> },
+      { name: 'Email Campaigns', href: '/dashboard/settings/email-broadcasts', icon: <EmailCampaignsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
@@ -395,6 +409,8 @@ const MENU_CATEGORIES: MenuCategory[] = [
     roles: [USER_ROLES.STAFF],
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
+      { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplatesIcon /> },
+      { name: 'Email Campaigns', href: '/dashboard/settings/email-broadcasts', icon: <EmailCampaignsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
@@ -408,6 +424,8 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
+      { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplatesIcon /> },
+      { name: 'Email Campaigns', href: '/dashboard/settings/email-broadcasts', icon: <EmailCampaignsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },

@@ -5,6 +5,10 @@ export interface Company {
   project_name: string;
   project_domain: string;
   admin_project_domain: string;
+  /** Present when the companies API returns project scoping UUID. */
+  whitelabel_admin_uuid?: string | null;
+  project_uuid?: string | null;
+  uuid?: string | null;
   is_active: boolean;
   service_email?: string | null;
   service_name?: string | null;
