@@ -41,6 +41,10 @@ import {
   US_STATES,
 } from '@/components/dashboard/players/players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
+import {
+  PlayerBalanceCard,
+  PlayerBalanceTableValue,
+} from '@/components/dashboard/players/player-balance-hover';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
 import { buildPlayerDetailHref, playerListFilterStateFromSearchParams } from '@/lib/players/player-list-filter-params';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
@@ -1162,17 +1166,7 @@ function SuperAdminPlayerCard({
         )}
 
         <div className="grid grid-cols-2 gap-3 pt-1">
-          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <svg className="h-3 w-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-[10px] font-medium text-blue-700 dark:text-blue-300 uppercase">Balance</span>
-            </div>
-            <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(player.balance)}
-            </p>
-          </div>
+          <PlayerBalanceCard player={player} />
           <div className="rounded-md bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-2">
             <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Cashout limit</span>
             <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
@@ -1247,10 +1241,8 @@ function SuperAdminPlayersTableRow({
           {getPlayerReferredByDisplay(player)}
         </div>
       </TableCell>
-      <TableCell className="text-right">
-        <div className="text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
-          {formatCurrency(player.balance)}
-        </div>
+      <TableCell className="overflow-visible text-right">
+        <PlayerBalanceTableValue player={player} />
       </TableCell>
       <TableCell className="text-right">
         <div className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
