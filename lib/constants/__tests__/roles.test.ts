@@ -6,6 +6,7 @@ import {
   canEditPlayerVerification,
   canEditRouletteRewards,
   canSyncBinpayKycStatus,
+  canClearPlayerSsnHash,
 } from '@/lib/constants/roles';
 
 describe('canEditPlayerVerification', () => {
@@ -45,6 +46,21 @@ describe('canSyncBinpayKycStatus', () => {
   });
 });
 
+describe('canClearPlayerSsnHash', () => {
+  it('allows company, superadmin, and manager', () => {
+    expect(canClearPlayerSsnHash(USER_ROLES.COMPANY)).toBe(true);
+    expect(canClearPlayerSsnHash(USER_ROLES.SUPERADMIN)).toBe(true);
+    expect(canClearPlayerSsnHash(USER_ROLES.MANAGER)).toBe(true);
+  });
+
+  it('denies staff, agent, player, and missing role', () => {
+    expect(canClearPlayerSsnHash(USER_ROLES.STAFF)).toBe(false);
+    expect(canClearPlayerSsnHash(USER_ROLES.AGENT)).toBe(false);
+    expect(canClearPlayerSsnHash(USER_ROLES.PLAYER)).toBe(false);
+    expect(canClearPlayerSsnHash(undefined)).toBe(false);
+  });
+});
+
 describe('related admin-only player edits', () => {
   it('keep the same admin/manager allow list as verification', () => {
     for (const role of [
@@ -58,6 +74,7 @@ describe('related admin-only player edits', () => {
       expect(canEditPlayerCashoutLimit(role)).toBe(canEditPlayerVerification(role));
       expect(canEditPlayerRouletteAllowance(role)).toBe(canEditPlayerVerification(role));
       expect(canEditRouletteRewards(role)).toBe(canEditPlayerVerification(role));
+      expect(canClearPlayerSsnHash(role)).toBe(canEditPlayerVerification(role));
     }
   });
 });

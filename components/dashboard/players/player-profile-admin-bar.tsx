@@ -13,6 +13,7 @@ import { canRefreshBinpayKyc } from '@/lib/players/binpay-verification';
 import type { Player } from '@/types';
 import { PlayerBinpayKycRefreshButton } from '@/components/dashboard/players/player-binpay-kyc-refresh-button';
 import { PlayerVerificationActions } from '@/components/dashboard/players/player-verification-actions';
+import { PlayerClearSsnHashButton } from '@/components/dashboard/players/player-clear-ssn-hash-button';
 import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
 
 interface PlayerProfileAdminBarProps {
@@ -20,6 +21,8 @@ interface PlayerProfileAdminBarProps {
   canEditVerification: boolean;
   /** Sync from BinPay — staff/agents allowed; broader than manual mark/reset. */
   canSyncBinpay: boolean;
+  /** Clear stored SSN hash — admins and managers only. */
+  canClearSsnHash: boolean;
   onEdit: () => void;
   onUpdated: (player: Player) => void;
 }
@@ -71,6 +74,7 @@ export function PlayerProfileAdminBar({
   player,
   canEditVerification,
   canSyncBinpay,
+  canClearSsnHash,
   onEdit,
   onUpdated,
 }: PlayerProfileAdminBarProps) {
@@ -131,6 +135,20 @@ export function PlayerProfileAdminBar({
             </>
           }
         />
+
+        {canClearSsnHash && (
+          <AdminActionRow
+            title="SSN hash"
+            description="Clear the stored SSN hash after verifying an email-change request so the same SSN can be used on another player account."
+            trailing={
+              <PlayerClearSsnHashButton
+                player={player}
+                canClear={canClearSsnHash}
+                onUpdated={onUpdated}
+              />
+            }
+          />
+        )}
 
         <AdminActionRow
           title="Player details"

@@ -144,6 +144,13 @@ export const playersApi = {
     return apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
   },
 
+  /** Clear stored SSN hash so the same SSN can be used by another player. */
+  clearSsnHash: async (id: number): Promise<Player> => {
+    await apiClient.post(`api/admin/players/${id}/clear-ssn-hash`, {});
+    const refreshed = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id));
+    return { ...refreshed, has_ssn_hash: false };
+  },
+
   viewDetails: (id: number) => 
     apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(
       `api/view-player/${id}`

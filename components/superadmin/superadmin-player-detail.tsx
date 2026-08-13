@@ -46,6 +46,7 @@ import {
   canEditPlayerReferralOverride,
   canEditPlayerVerification,
   canSyncBinpayKycStatus,
+  canClearPlayerSsnHash,
 } from '@/lib/constants/roles';
 
 /**
@@ -590,6 +591,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.SUPERADMIN)}
           canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.SUPERADMIN)}
+          canClearSsnHash={canClearPlayerSsnHash(USER_ROLES.SUPERADMIN)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

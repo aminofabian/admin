@@ -44,6 +44,7 @@ import {
   canEditPlayerReferralOverride,
   canEditPlayerVerification,
   canSyncBinpayKycStatus,
+  canClearPlayerSsnHash,
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
@@ -587,6 +588,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.STAFF)}
           canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.STAFF)}
+          canClearSsnHash={canClearPlayerSsnHash(USER_ROLES.STAFF)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

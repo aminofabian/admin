@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerReferralOverride, canEditPlayerVerification, canSyncBinpayKycStatus } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance, canEditPlayerReferralOverride, canEditPlayerVerification, canSyncBinpayKycStatus, canClearPlayerSsnHash } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -1126,6 +1126,7 @@ export default function PlayerDetailPage() {
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(user?.role)}
           canSyncBinpay={canSyncBinpayKycStatus(user?.role)}
+          canClearSsnHash={canClearPlayerSsnHash(user?.role)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />

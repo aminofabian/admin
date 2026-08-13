@@ -121,6 +121,7 @@ export interface Player extends BaseUser {
   binpay_status?: string | null;
   kyc_manual_status?: string | null;
   ssn_last4?: string | null;
+  has_ssn_hash?: boolean | null;
   kyc_status?: PlayerKycStatus | null;
   total_purchases?: number;
   total_cashouts?: number;

@@ -64,6 +64,15 @@ export function canEditPlayerVerification(role: UserRole | undefined): boolean {
 }
 
 /**
+ * Who may clear a player's SSN hash so the same SSN can be reused on another account.
+ * Allowed: company (admin), superadmin, manager. Denied: staff, agent, player.
+ */
+export function canClearPlayerSsnHash(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
+/**
  * Who may sync BinPay KYC status from the provider (missed-webhook recovery).
  * Broader than manual mark/reset: staff and agents need this for stuck pending players.
  * Allowed: company, superadmin, manager, staff, agent. Denied: player.

@@ -46,6 +46,7 @@ import {
   canEditPlayerReferralOverride,
   canEditPlayerVerification,
   canSyncBinpayKycStatus,
+  canClearPlayerSsnHash,
 } from '@/lib/constants/roles';
 
 
@@ -587,6 +588,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
           player={selectedPlayer}
           canEditVerification={canEditPlayerVerification(USER_ROLES.MANAGER)}
           canSyncBinpay={canSyncBinpayKycStatus(USER_ROLES.MANAGER)}
+          canClearSsnHash={canClearPlayerSsnHash(USER_ROLES.MANAGER)}
           onEdit={() => setIsEditDrawerOpen(true)}
           onUpdated={setSelectedPlayer}
         />
