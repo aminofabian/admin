@@ -10,6 +10,11 @@ import {
   extractPlayerListFilterSearchParams,
   playerListApiParamsFromSearchParams,
 } from '@/lib/players/player-list-filter-params';
+import {
+  hasEnoughScannedContext,
+  pickAdjacentPlayerId,
+  type AdjacentPlayerResult,
+} from '@/lib/players/player-list-navigation';
 
 type NavDirection = 'previous' | 'next' | null;
 
@@ -20,8 +25,9 @@ interface UsePlayerAdjacentNavigationOptions {
 
 /**
  * Prev/next player navigation (paginated list scan) + keyboard shortcuts [, ], c.
- * When filter query params are present on the player detail URL, navigation stays
- * within that filtered players list.
+ * Steps through players in the order the list API returns them, so the buttons match
+ * the rows on screen. Filter query params on the detail URL keep navigation inside
+ * that filtered list.
  */
 export function usePlayerAdjacentNavigation({
   selectedPlayer,
@@ -42,14 +48,16 @@ export function usePlayerAdjacentNavigation({
     [filterSearchParams],
   );
 
+  const hasActiveFilters = filterSearchParams.toString().length > 0;
+
   const findAdjacentPlayerId = useCallback(
-    async (currentId: number, direction: 'previous' | 'next') => {
+    async (currentId: number, direction: 'previous' | 'next'): Promise<AdjacentPlayerResult> => {
       const PAGE_SIZE = 100;
       const MAX_PAGES_TO_SCAN = 100;
       let page = 1;
       let hasNext = true;
       let scannedPages = 0;
-      let adjacentId: number | null = null;
+      const orderedIds: number[] = [];
 
       while (hasNext && scannedPages < MAX_PAGES_TO_SCAN) {
         const response = await playersApi.list({
@@ -60,15 +68,13 @@ export function usePlayerAdjacentNavigation({
         const results = Array.isArray(response?.results) ? response.results : [];
 
         for (const player of results) {
-          if (typeof player.id !== 'number') {
-            continue;
+          if (typeof player.id === 'number') {
+            orderedIds.push(player.id);
           }
-          if (direction === 'next' && player.id > currentId) {
-            adjacentId = adjacentId == null ? player.id : Math.min(adjacentId, player.id);
-          }
-          if (direction === 'previous' && player.id < currentId) {
-            adjacentId = adjacentId == null ? player.id : Math.max(adjacentId, player.id);
-          }
+        }
+
+        if (hasEnoughScannedContext(orderedIds, currentId, direction)) {
+          break;
         }
 
         hasNext = Boolean(response?.next);
@@ -76,7 +82,7 @@ export function usePlayerAdjacentNavigation({
         scannedPages += 1;
       }
 
-      return adjacentId;
+      return pickAdjacentPlayerId(orderedIds, currentId, direction);
     },
     [listFilterApiParams],
   );
@@ -89,18 +95,31 @@ export function usePlayerAdjacentNavigation({
 
       setPlayerNavDirection(direction);
       try {
-        const adjacentId = await findAdjacentPlayerId(selectedPlayer.id, direction);
+        const result = await findAdjacentPlayerId(selectedPlayer.id, direction);
+        const listLabel = hasActiveFilters ? 'filtered players list' : 'players list';
 
-        if (adjacentId == null) {
+        if (result.status === 'not-in-list') {
           addToast({
             type: 'info',
-            title: 'No more players',
-            description: direction === 'next' ? 'No next player found.' : 'No previous player found.',
+            title: 'Player not in list',
+            description: `"${selectedPlayer.username}" is no longer part of the ${listLabel}, so there is nothing to move to.`,
           });
           return;
         }
 
-        router.push(buildPlayerDetailHref(adjacentId, filterSearchParams));
+        if (result.status === 'end') {
+          addToast({
+            type: 'info',
+            title: 'No more players',
+            description:
+              direction === 'next'
+                ? `You are on the last player of the ${listLabel}.`
+                : `You are on the first player of the ${listLabel}.`,
+          });
+          return;
+        }
+
+        router.push(buildPlayerDetailHref(result.id, filterSearchParams));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to load adjacent player';
         addToast({
@@ -119,6 +138,7 @@ export function usePlayerAdjacentNavigation({
       addToast,
       router,
       filterSearchParams,
+      hasActiveFilters,
     ],
   );
 
