@@ -30,6 +30,7 @@ import {
 import { PlayersFilters, type PlayersFiltersState } from './players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
+import { buildPlayerDetailHref, playerListFilterStateFromSearchParams } from '@/lib/players/player-list-filter-params';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -202,7 +203,16 @@ export default function PlayersDashboard(): ReactElement {
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}
-        onViewPlayer={user?.role !== USER_ROLES.AGENT ? (player) => router.push(`/dashboard/players/${player.id}`) : undefined}
+        onViewPlayer={
+          user?.role !== USER_ROLES.AGENT
+            ? (player) => router.push(buildPlayerDetailHref(player.id, filters.appliedFilters))
+            : undefined
+        }
+        getPlayerHref={
+          user?.role !== USER_ROLES.AGENT
+            ? (player) => buildPlayerDetailHref(player.id, filters.appliedFilters)
+            : undefined
+        }
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
@@ -228,6 +238,24 @@ function usePlayersPageContext(): PlayersPageContext {
 
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
+  const initialFiltersFromUrl = useMemo(() => {
+    const fromUrl = playerListFilterStateFromSearchParams(searchParams);
+    return {
+      username: fromUrl.username ?? '',
+      full_name: fromUrl.full_name ?? '',
+      email: fromUrl.email ?? '',
+      referred_by: fromUrl.referred_by ?? '',
+      agent: fromUrl.agent ?? '',
+      date_from: fromUrl.date_from ?? '',
+      date_to: fromUrl.date_to ?? '',
+      status: fromUrl.status ?? 'all',
+      state: fromUrl.state ?? 'all',
+      identity_verification_status: fromUrl.identity_verification_status ?? 'all',
+      first_deposit_done: fromUrl.first_deposit_done ?? 'all',
+    } satisfies FilterState;
+    // Intentionally only seed from the first URL on mount / remount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Check if user can assign agents to players (staff, managers, and agents cannot)
   const canAssignAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER && user?.role !== USER_ROLES.AGENT;
@@ -238,22 +266,31 @@ function usePlayersPageContext(): PlayersPageContext {
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
-  // Initialize filters with pagination and initial agent from URL (if present)
-  const filters = usePlayerFilters(pagination.setPage, agentFromUrl || undefined);
+  // Initialize filters with pagination and any filter params from the URL
+  const filters = usePlayerFilters(pagination.setPage, initialFiltersFromUrl);
 
-  // Clear all filters and set only agent filter when agent is in URL
+  // When navigated from agents with only ?agent=, force agent-only filter mode
   const hasInitializedAgentRef = useRef(false);
   useEffect(() => {
-    // Only initialize once when agent is in URL
     if (agentFromUrl && !hasInitializedAgentRef.current) {
-      console.log('🔄 Clearing previous filters and setting agent filter from URL:', agentFromUrl);
-      // Clear all filters first
-      filters.clearFilters();
-      // Then set only the agent filter and apply it immediately
-      filters.setFilterAndApply('agent', agentFromUrl);
+      const urlFilterKeys = Object.entries(initialFiltersFromUrl)
+        .filter(([key, value]) => {
+          if (key === 'status' || key === 'state' || key === 'identity_verification_status' || key === 'first_deposit_done') {
+            return value !== 'all' && String(value).trim() !== '';
+          }
+          return String(value).trim() !== '';
+        })
+        .map(([key]) => key);
+
+      const isAgentOnlyDeepLink =
+        urlFilterKeys.length === 0 || (urlFilterKeys.length === 1 && urlFilterKeys[0] === 'agent');
+
+      if (isAgentOnlyDeepLink) {
+        filters.clearFilters();
+        filters.setFilterAndApply('agent', agentFromUrl);
+      }
       hasInitializedAgentRef.current = true;
     } else if (!agentFromUrl && hasInitializedAgentRef.current) {
-      // Reset the ref when agent is removed from URL
       hasInitializedAgentRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -531,7 +568,7 @@ function usePlayersData({
 
 function usePlayerFilters(
   setPage: (page: number) => void,
-  initialAgent?: string,
+  initialFilters?: Partial<FilterState>,
 ): {
   applyFilters: () => void;
   clearFilters: () => void;
@@ -541,33 +578,23 @@ function usePlayerFilters(
   values: FilterState;
   hasActiveFilters: boolean;
 } {
-  const [filters, setFilters] = useState<FilterState>({
+  const defaultFilters: FilterState = {
     username: '',
     full_name: '',
     email: '',
     referred_by: '',
-    agent: initialAgent || '',
+    agent: '',
     date_from: '',
     date_to: '',
     status: 'all',
     state: 'all',
     identity_verification_status: 'all',
     first_deposit_done: 'all',
-  });
+    ...initialFilters,
+  };
 
-  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
-    username: '',
-    full_name: '',
-    email: '',
-    referred_by: '',
-    agent: initialAgent || '',
-    date_from: '',
-    date_to: '',
-    status: 'all',
-    state: 'all',
-    identity_verification_status: 'all',
-    first_deposit_done: 'all',
-  });
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilters);
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -1027,6 +1054,7 @@ type PlayersTableSectionProps = {
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
   onViewPlayer?: (player: Player) => void;
+  getPlayerHref?: (player: Player) => string;
   page: number;
   pageSize: number;
 };
@@ -1037,6 +1065,7 @@ function PlayersTableSection({
   onOpenChat,
   onPageChange,
   onViewPlayer,
+  getPlayerHref,
   page,
   pageSize,
 }: PlayersTableSectionProps): ReactElement {
@@ -1066,6 +1095,7 @@ function PlayersTableSection({
             players={data?.results ?? []}
             onOpenChat={onOpenChat}
             onViewPlayer={onViewPlayer}
+            getPlayerHref={getPlayerHref}
           />
           {totalCount > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -1102,12 +1132,14 @@ function PlayersTableSection({
 type PlayersTableProps = {
   onOpenChat: (player: Player) => void;
   onViewPlayer?: (player: Player) => void;
+  getPlayerHref?: (player: Player) => string;
   players: Player[];
 };
 
 function PlayersTable({
   onOpenChat,
   onViewPlayer,
+  getPlayerHref,
   players,
 }: PlayersTableProps): ReactElement {
   return (
@@ -1120,6 +1152,7 @@ function PlayersTable({
             player={player}
             onOpenChat={onOpenChat}
             onViewPlayer={onViewPlayer}
+            getPlayerHref={getPlayerHref}
           />
         ))}
       </div>
@@ -1146,6 +1179,7 @@ function PlayersTable({
                 player={player}
                 onOpenChat={onOpenChat}
                 onViewPlayer={onViewPlayer}
+                getPlayerHref={getPlayerHref}
               />
             ))}
           </TableBody>
@@ -1158,14 +1192,18 @@ function PlayersTable({
 type PlayerCardProps = {
   onOpenChat: (player: Player) => void;
   onViewPlayer?: (player: Player) => void;
+  getPlayerHref?: (player: Player) => string;
   player: Player;
 };
 
 function PlayerCard({
   onOpenChat,
   onViewPlayer,
+  getPlayerHref,
   player,
 }: PlayerCardProps): ReactElement {
+  const href = getPlayerHref?.(player) ?? `/dashboard/players/${player.id}`;
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
       {/* Top Section: Avatar, Name, Status */}
@@ -1173,7 +1211,7 @@ function PlayerCard({
         <div className="flex items-start gap-3">
           {onViewPlayer ? (
             <Link
-              href={`/dashboard/players/${player.id}`}
+              href={href}
               className="flex-shrink-0 touch-manipulation block"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md hover:opacity-90 transition-opacity">
@@ -1196,7 +1234,7 @@ function PlayerCard({
               <div className="flex-1 min-w-0">
                 {onViewPlayer ? (
                   <Link
-                    href={`/dashboard/players/${player.id}`}
+                    href={href}
                     className="text-left w-full block touch-manipulation group"
                   >
                     <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -1303,6 +1341,7 @@ function PlayerCard({
 type PlayersTableRowProps = {
   onOpenChat: (player: Player) => void;
   onViewPlayer?: (player: Player) => void;
+  getPlayerHref?: (player: Player) => string;
   player: Player;
 };
 
@@ -1310,11 +1349,13 @@ function PlayersTableRow({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onOpenChat,
   onViewPlayer,
+  getPlayerHref,
   player,
 }: PlayersTableRowProps): ReactElement {
+  const href = getPlayerHref?.(player) ?? `/dashboard/players/${player.id}`;
   const playerLink = onViewPlayer ? (
     <Link
-      href={`/dashboard/players/${player.id}`}
+      href={href}
       className="flex items-center gap-3 group cursor-pointer"
     >
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm group-hover:opacity-90 transition-opacity">

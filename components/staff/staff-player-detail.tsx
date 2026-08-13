@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Player } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
@@ -46,6 +46,7 @@ import {
   canSyncBinpayKycStatus,
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
+import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
 
 
 interface StaffPlayerDetailProps {
@@ -61,6 +62,7 @@ type EditableFields = EditablePlayerFields;
  */
 export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
 
   // Load player games
@@ -148,8 +150,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   }, [playerId]);
 
   const handleBack = useCallback(() => {
-    router.push('/dashboard/players');
-  }, [router]);
+    router.push(buildPlayersListHref(searchParams));
+  }, [router, searchParams]);
 
   const handleNavigateToChat = useCallback(() => {
     if (!selectedPlayer) return;
@@ -474,7 +476,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push('/dashboard/players')}
+        onRetry={() => router.push(buildPlayersListHref(searchParams))}
       />
     );
   }

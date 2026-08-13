@@ -23,6 +23,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: routerPushMock,
   }),
+  usePathname: () => '/dashboard/players',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('@/providers/auth-provider', () => ({
+  useAuth: () => ({
+    user: { id: 1, role: 'company', username: 'admin' },
+  }),
 }));
 
 vi.mock('@/lib/hooks', () => ({
@@ -101,6 +109,16 @@ vi.mock('@/components/ui', () => {
     TableRow: ({ children }: { children: ReactNode }) => <tr>{children}</tr>,
     TableHead: ({ children }: { children: ReactNode }) => <th>{children}</th>,
     TableCell: ({ children }: { children: ReactNode }) => <td>{children}</td>,
+    Skeleton: ({ className }: { className?: string }) => (
+      <div data-testid="skeleton" className={className} />
+    ),
+    Drawer: ({
+      children,
+      isOpen,
+    }: {
+      children: ReactNode;
+      isOpen: boolean;
+    }) => (isOpen ? <div data-testid="drawer">{children}</div> : null),
     useToast: () => ({ addToast: addToastMock }),
   };
 });
@@ -168,6 +186,9 @@ vi.mock('@/lib/api', () => ({
     list: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+  },
+  agentsApi: {
+    list: vi.fn().mockResolvedValue({ results: [], next: null }),
   },
 }));
 
