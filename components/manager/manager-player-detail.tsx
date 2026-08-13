@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Player } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
 import { playersApi, gameOperationsApi } from '@/lib/api';
@@ -11,6 +11,7 @@ import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, 
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
+import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
 import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
@@ -61,6 +62,7 @@ type EditableFields = EditablePlayerFields;
  */
 export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
 
   // Load player games
@@ -148,8 +150,8 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   }, [playerId]);
 
   const handleBack = useCallback(() => {
-    router.push('/dashboard/players');
-  }, [router]);
+    router.push(buildPlayersListHref(searchParams));
+  }, [router, searchParams]);
 
   const handleNavigateToChat = useCallback(() => {
     if (!selectedPlayer) return;
@@ -474,7 +476,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push('/dashboard/players')}
+        onRetry={() => router.push(buildPlayersListHref(searchParams))}
       />
     );
   }

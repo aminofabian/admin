@@ -42,6 +42,7 @@ import {
 } from '@/components/dashboard/players/players-filters';
 import { PlayerBinpayVerificationBadge } from '@/components/dashboard/players/player-binpay-verification-badge';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
+import { buildPlayerDetailHref, playerListFilterStateFromSearchParams } from '@/lib/players/player-list-filter-params';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -188,6 +189,7 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}
+        getPlayerHref={(player) => buildPlayerDetailHref(player.id, filters.appliedFilters)}
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
@@ -203,6 +205,25 @@ function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
 
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
+  const initialFiltersFromUrl = useMemo(() => {
+    const fromUrl = playerListFilterStateFromSearchParams(searchParams);
+    return {
+      username: fromUrl.username ?? '',
+      full_name: fromUrl.full_name ?? '',
+      email: fromUrl.email ?? '',
+      referred_by: fromUrl.referred_by ?? '',
+      agent: fromUrl.agent ?? '',
+      company: fromUrl.company ?? 'all',
+      date_from: fromUrl.date_from ?? '',
+      date_to: fromUrl.date_to ?? '',
+      status: fromUrl.status ?? 'all',
+      state: fromUrl.state ?? 'all',
+      identity_verification_status: fromUrl.identity_verification_status ?? 'all',
+      first_deposit_done: fromUrl.first_deposit_done ?? 'all',
+    } satisfies SuperAdminFilterState;
+    // Intentionally only seed from the first URL on mount / remount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load agents for filter dropdown
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -212,22 +233,37 @@ function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
-  // Initialize filters with pagination and initial agent from URL (if present)
-  const filters = useSuperAdminPlayerFilters(pagination.setPage, agentFromUrl || undefined);
+  // Initialize filters with pagination and any filter params from the URL
+  const filters = useSuperAdminPlayerFilters(pagination.setPage, initialFiltersFromUrl);
 
-  // Clear all filters and set only agent filter when agent is in URL
+  // When navigated from agents with only ?agent=, force agent-only filter mode
   const hasInitializedAgentRef = useRef(false);
   useEffect(() => {
-    // Only initialize once when agent is in URL
     if (agentFromUrl && !hasInitializedAgentRef.current) {
-      console.log('🔄 Clearing previous filters and setting agent filter from URL:', agentFromUrl);
-      // Clear all filters first
-      filters.clearFilters();
-      // Then set only the agent filter and apply it immediately
-      filters.setFilterAndApply('agent', agentFromUrl);
+      const urlFilterKeys = Object.entries(initialFiltersFromUrl)
+        .filter(([key, value]) => {
+          if (
+            key === 'status' ||
+            key === 'state' ||
+            key === 'identity_verification_status' ||
+            key === 'first_deposit_done' ||
+            key === 'company'
+          ) {
+            return value !== 'all' && String(value).trim() !== '';
+          }
+          return String(value).trim() !== '';
+        })
+        .map(([key]) => key);
+
+      const isAgentOnlyDeepLink =
+        urlFilterKeys.length === 0 || (urlFilterKeys.length === 1 && urlFilterKeys[0] === 'agent');
+
+      if (isAgentOnlyDeepLink) {
+        filters.clearFilters();
+        filters.setFilterAndApply('agent', agentFromUrl);
+      }
       hasInitializedAgentRef.current = true;
     } else if (!agentFromUrl && hasInitializedAgentRef.current) {
-      // Reset the ref when agent is removed from URL
       hasInitializedAgentRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -512,7 +548,7 @@ function useSuperAdminPlayersData({
 
 function useSuperAdminPlayerFilters(
   setPage: (page: number) => void,
-  initialAgent?: string,
+  initialFilters?: Partial<SuperAdminFilterState>,
 ): {
   applyFilters: () => void;
   clearFilters: () => void;
@@ -522,12 +558,12 @@ function useSuperAdminPlayerFilters(
   values: SuperAdminFilterState;
   hasActiveFilters: boolean;
 } {
-  const [filters, setFilters] = useState<SuperAdminFilterState>({
+  const defaultFilters: SuperAdminFilterState = {
     username: '',
     full_name: '',
     email: '',
     referred_by: '',
-    agent: initialAgent || '',
+    agent: '',
     company: 'all',
     date_from: '',
     date_to: '',
@@ -535,22 +571,11 @@ function useSuperAdminPlayerFilters(
     state: 'all',
     identity_verification_status: 'all',
     first_deposit_done: 'all',
-  });
+    ...initialFilters,
+  };
 
-  const [appliedFilters, setAppliedFilters] = useState<SuperAdminFilterState>({
-    username: '',
-    full_name: '',
-    email: '',
-    referred_by: '',
-    agent: initialAgent || '',
-    company: 'all',
-    date_from: '',
-    date_to: '',
-    status: 'all',
-    state: 'all',
-    identity_verification_status: 'all',
-    first_deposit_done: 'all',
-  });
+  const [filters, setFilters] = useState<SuperAdminFilterState>(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState<SuperAdminFilterState>(defaultFilters);
 
   const setFilter = useCallback((key: keyof SuperAdminFilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -933,6 +958,7 @@ type SuperAdminPlayersTableSectionProps = {
   hasActiveFilters: boolean;
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
+  getPlayerHref: (player: Player) => string;
   page: number;
   pageSize: number;
 };
@@ -942,6 +968,7 @@ function SuperAdminPlayersTableSection({
   hasActiveFilters,
   onOpenChat,
   onPageChange,
+  getPlayerHref,
   page,
   pageSize,
 }: SuperAdminPlayersTableSectionProps): ReactElement {
@@ -970,6 +997,7 @@ function SuperAdminPlayersTableSection({
           <SuperAdminPlayersTable
             players={data?.results ?? []}
             onOpenChat={onOpenChat}
+            getPlayerHref={getPlayerHref}
           />
           {totalCount > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -1005,11 +1033,13 @@ function SuperAdminPlayersTableSection({
 
 type SuperAdminPlayersTableProps = {
   onOpenChat: (player: Player) => void;
+  getPlayerHref: (player: Player) => string;
   players: Player[];
 };
 
 function SuperAdminPlayersTable({
   onOpenChat,
+  getPlayerHref,
   players,
 }: SuperAdminPlayersTableProps): ReactElement {
   return (
@@ -1021,6 +1051,7 @@ function SuperAdminPlayersTable({
             key={player.id}
             player={player}
             onOpenChat={onOpenChat}
+            getPlayerHref={getPlayerHref}
           />
         ))}
       </div>
@@ -1046,6 +1077,7 @@ function SuperAdminPlayersTable({
               <SuperAdminPlayersTableRow
                 key={player.id}
                 player={player}
+                getPlayerHref={getPlayerHref}
               />
             ))}
           </TableBody>
@@ -1057,19 +1089,23 @@ function SuperAdminPlayersTable({
 
 type SuperAdminPlayerCardProps = {
   onOpenChat: (player: Player) => void;
+  getPlayerHref: (player: Player) => string;
   player: Player;
 };
 
 function SuperAdminPlayerCard({
   onOpenChat,
+  getPlayerHref,
   player,
 }: SuperAdminPlayerCardProps): ReactElement {
+  const href = getPlayerHref(player);
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <Link
-            href={`/dashboard/players/${player.id}`}
+            href={href}
             className="flex-shrink-0 touch-manipulation block"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md hover:opacity-90 transition-opacity">
@@ -1080,7 +1116,7 @@ function SuperAdminPlayerCard({
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <Link
-                  href={`/dashboard/players/${player.id}`}
+                  href={href}
                   className="text-left w-full block touch-manipulation group"
                 >
                   <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -1169,16 +1205,18 @@ function SuperAdminPlayerCard({
 
 type SuperAdminPlayersTableRowProps = {
   player: Player;
+  getPlayerHref: (player: Player) => string;
 };
 
 function SuperAdminPlayersTableRow({
   player,
+  getPlayerHref,
 }: SuperAdminPlayersTableRowProps): ReactElement {
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <Link
-          href={`/dashboard/players/${player.id}`}
+          href={getPlayerHref(player)}
           className="flex items-center gap-3 group cursor-pointer"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm group-hover:opacity-90 transition-opacity">

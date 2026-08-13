@@ -7,7 +7,7 @@ import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-playe
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
@@ -42,6 +42,7 @@ import { PlayerReferralOverrideSection } from '@/components/dashboard/players/pl
 import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
+import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import { AddGameDrawer } from '@/components/chat/modals';
@@ -201,6 +202,7 @@ export default function PlayerDetailPage() {
   const { user } = useAuth();
   const playerId = params?.id ? parseInt(params.id as string, 10) : null;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS (Rules of Hooks)
@@ -729,8 +731,8 @@ export default function PlayerDetailPage() {
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {
-    router.push('/dashboard/players');
-  }, [router]);
+    router.push(buildPlayersListHref(searchParams));
+  }, [router, searchParams]);
 
   const handleNavigateToChat = useCallback(() => {
     if (selectedPlayer) {
@@ -1013,7 +1015,7 @@ export default function PlayerDetailPage() {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push('/dashboard/players')}
+        onRetry={() => router.push(buildPlayersListHref(searchParams))}
       />
     );
   }

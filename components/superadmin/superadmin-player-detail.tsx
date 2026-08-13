@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
@@ -20,6 +20,7 @@ import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
+import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerAccountOverview } from '@/components/dashboard/players/player-account-overview';
 import { PlayerQuickActionsBar } from '@/components/dashboard/players/player-quick-actions-bar';
@@ -93,6 +94,7 @@ interface SuperAdminPlayerDetailProps {
 
 export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -217,8 +219,8 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {
-    router.push('/dashboard/players');
-  }, [router]);
+    router.push(buildPlayersListHref(searchParams));
+  }, [router, searchParams]);
 
   const handleNavigateToChat = useCallback(() => {
     if (selectedPlayer) {
@@ -498,7 +500,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push('/dashboard/players')}
+        onRetry={() => router.push(buildPlayersListHref(searchParams))}
       />
     );
   }
