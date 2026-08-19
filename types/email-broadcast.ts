@@ -1,9 +1,8 @@
 /**
  * Marketing email broadcasts / scheduled campaigns (brand-scoped).
  *
- * Wire format (POST /api/v1/email/broadcasts/):
- * - audience: 'specific' (user_ids[]) | 'filtered' (filters[] + filter_match) | 'all_eligible'
- * - filters: [{ field, op, value }], filter_match: 'all' | 'any'
+ * GET /users/email/broadcasts/{id}/ (and list rows) — the broadcast object is the contract.
+ * BFF still proxies /api/v1/email/broadcasts/ which serves the same object.
  *
  * Legacy fields (deposit_min / deposit_max / ssn_verified / states) are kept
  * for backward compatibility with earlier backend versions.

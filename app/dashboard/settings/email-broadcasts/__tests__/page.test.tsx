@@ -138,7 +138,7 @@ const sampleBroadcasts: EmailBroadcast[] = [
     successful_deliveries: 4500,
     failed_deliveries: 134,
     skipped_deliveries: 0,
-    last_error: 'SMTP timeout on a subset of recipients',
+    last_error: "AttributeError: 'NoneType' object has no attribute 'admin'",
     matched_count: 4800,
     excluded_count: 166,
     exclusion_summary: { email_not_verified: 100, frequency_limit: 66 },
@@ -296,7 +296,9 @@ describe('EmailBroadcastsSettingsPage', () => {
     await screen.findByText('Your weekend reward is waiting');
     expect(screen.getByText(/4,500 sent, 134 failed/)).toBeInTheDocument();
     expect(screen.getAllByText(/Retry failed/).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/SMTP timeout/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Couldn’t finish sending/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Couldn't finish sending/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/NoneType/i)).not.toBeInTheDocument();
   });
 
   it('shows bounced and complaint counts only when greater than zero', async () => {

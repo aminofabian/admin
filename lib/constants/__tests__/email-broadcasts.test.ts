@@ -90,8 +90,18 @@ describe('emailBroadcastFailureNotice', () => {
   it('does not treat last_error as a total failure when some deliveries succeeded', () => {
     expect(
       emailBroadcastFailureNotice({
-        last_error: 'SMTP timeout on a subset of recipients',
-        successful_deliveries: 12,
+        last_error: "AttributeError: 'NoneType' object has no attribute 'admin'",
+        successful_deliveries: 161,
+        status: 'completed',
+      }),
+    ).toBeNull();
+  });
+
+  it('does not treat leftover last_error as a wipeout when completed counts are missing', () => {
+    expect(
+      emailBroadcastFailureNotice({
+        last_error: "AttributeError: 'NoneType' object has no attribute 'admin'",
+        status: 'completed',
       }),
     ).toBeNull();
   });
@@ -100,6 +110,7 @@ describe('emailBroadcastFailureNotice', () => {
     const notice = emailBroadcastFailureNotice({
       last_error: 'Provider rejected the campaign',
       successful_deliveries: 0,
+      status: 'failed',
     });
     expect(notice?.label).toMatch(/provider|rejected/i);
   });

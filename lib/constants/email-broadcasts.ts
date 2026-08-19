@@ -207,9 +207,14 @@ export function canRetryFailedEmailBroadcast(
  * Callers should show sent vs failed counts instead.
  */
 export function emailBroadcastFailureNotice(
-  broadcast: Pick<EmailBroadcast, 'last_error' | 'successful_deliveries'>,
+  broadcast: Pick<EmailBroadcast, 'last_error' | 'successful_deliveries' | 'status'>,
 ): { label: string; detail?: string } | null {
-  if ((broadcast.successful_deliveries ?? 0) > 0) return null;
+  const sent = Number(broadcast.successful_deliveries);
+  const sentCount = Number.isFinite(sent) ? sent : undefined;
+  if ((sentCount ?? 0) > 0) return null;
+  // GET contract: partial success is still status=completed. Leftover last_error
+  // must not render as a total failure when sent counts are missing.
+  if (String(broadcast.status) === 'completed' && sentCount !== 0) return null;
   return formatEmailBroadcastDeliveryError(broadcast.last_error);
 }
 
@@ -220,9 +225,9 @@ export function emailBroadcastFailureNotice(
 export function emailBroadcastPartialRetryNotice(
   broadcast: Pick<EmailBroadcast, 'successful_deliveries' | 'failed_deliveries'>,
 ): string | null {
-  const ok = broadcast.successful_deliveries ?? 0;
-  const fail = broadcast.failed_deliveries ?? 0;
-  if (ok <= 0 || fail <= 0) return null;
+  const ok = Number(broadcast.successful_deliveries);
+  const fail = Number(broadcast.failed_deliveries);
+  if (!Number.isFinite(ok) || !Number.isFinite(fail) || ok <= 0 || fail <= 0) return null;
   return `${ok.toLocaleString()} sent, ${fail.toLocaleString()} failed — Retry failed`;
 }
 
@@ -233,7 +238,7 @@ export function emailBroadcastPartialRetryNotice(
 export function formatEmailBroadcastDeliveryError(
   raw: string | null | undefined,
 ): { label: string; detail?: string } | null {
-  if (!raw || !raw.trim()) return null;
+  if (typeof raw !== 'string' || !raw.trim()) return null;
 
   const text = raw.trim();
   const lower = text.toLowerCase();
