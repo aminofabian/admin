@@ -8,6 +8,7 @@ import type {
   EmailBroadcastPreviewRequest,
   EmailBroadcastRecipientPreviewResponse,
   EmailBroadcastsListResponse,
+  RetryEmailBroadcastResponse,
 } from '@/types';
 
 type EmailBroadcastEnvelope =
@@ -59,6 +60,30 @@ export function extractEmailBroadcasts(response: EmailBroadcastEnvelope | null |
 
 function scopeParams(whitelabelAdminUuid?: string) {
   return whitelabelAdminUuid ? { whitelabel_admin_uuid: whitelabelAdminUuid } : undefined;
+}
+
+function unwrapBroadcastAction<T extends { success: boolean; message: string; broadcast: EmailBroadcast }>(
+  response: unknown,
+  fallbackMessage: string,
+  extras?: Omit<Partial<T>, 'success' | 'message' | 'broadcast'>,
+): T {
+  if (
+    response &&
+    typeof response === 'object' &&
+    'broadcast' in response &&
+    isEmailBroadcast((response as { broadcast: unknown }).broadcast)
+  ) {
+    return response as T;
+  }
+  if (isEmailBroadcast(response)) {
+    return {
+      success: true,
+      message: fallbackMessage,
+      broadcast: response,
+      ...extras,
+    } as T;
+  }
+  throw new Error('Unexpected response for email broadcast');
 }
 
 export const emailBroadcastsApi = {
@@ -115,11 +140,12 @@ export const emailBroadcastsApi = {
     throw new Error('Unexpected update response for email broadcast');
   },
 
-  /** Queue a saved draft for sending (POST /email/broadcasts/<id>/send/). */
+  /** Queue a saved draft only (POST /email/broadcasts/<id>/send/). Use retryFailed for failed recipients. */
   send: async (id: number) => {
-    return apiClient.post<CreateEmailBroadcastResponse | EmailBroadcast>(
+    const response = await apiClient.post<CreateEmailBroadcastResponse | EmailBroadcast>(
       `api/admin/email-broadcasts/${id}/send`,
     );
+    return unwrapBroadcastAction<CreateEmailBroadcastResponse>(response, 'Campaign queued.');
   },
 
   /** Stop a draft / queued / scheduled / sending campaign (POST /email/broadcasts/<id>/cancel/). */
@@ -127,33 +153,22 @@ export const emailBroadcastsApi = {
     const response = await apiClient.post<CancelEmailBroadcastResponse | EmailBroadcast>(
       `api/admin/email-broadcasts/${id}/cancel`,
     );
-    if (
-      response &&
-      typeof response === 'object' &&
-      'broadcast' in response &&
-      isEmailBroadcast(response.broadcast)
-    ) {
-      return response as CancelEmailBroadcastResponse;
-    }
-    if (isEmailBroadcast(response)) {
-      return {
-        success: true,
-        message: 'Campaign cancelled.',
-        skipped_queued: 0,
-        broadcast: response,
-      } satisfies CancelEmailBroadcastResponse;
-    }
-    throw new Error('Unexpected cancel response for email broadcast');
+    return unwrapBroadcastAction<CancelEmailBroadcastResponse>(response, 'Campaign cancelled.', {
+      skipped_queued: 0,
+    });
   },
 
   /**
-   * Re-queue failed recipients only (POST /email/broadcasts/<id>/retry-failed/).
-   * Already-sent recipients stay sent and are not emailed again.
+   * Re-queue failed recipients only (POST /email/broadcasts/<id>/retry/).
+   * Already-sent and skipped recipients are left untouched.
    */
   retryFailed: async (id: number) => {
-    return apiClient.post<CreateEmailBroadcastResponse | EmailBroadcast>(
-      `api/admin/email-broadcasts/${id}/retry-failed`,
+    const response = await apiClient.post<RetryEmailBroadcastResponse | EmailBroadcast>(
+      `api/admin/email-broadcasts/${id}/retry`,
     );
+    return unwrapBroadcastAction<RetryEmailBroadcastResponse>(response, 'Retry queued.', {
+      retried: 0,
+    });
   },
 
   /** Live recipient counts for the current targeting (POST /email/broadcasts/preview/). */

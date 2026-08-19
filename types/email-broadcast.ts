@@ -67,13 +67,24 @@ export interface EmailBroadcast extends EmailBroadcastAudienceCriteria {
   scheduled_at: string | null;
   sent_at: string | null;
   status: EmailBroadcastStatus | string;
+  /** Players who matched targeting before exclusions. */
+  matched_count?: number;
+  /** Players removed by suppression / eligibility rules. */
+  excluded_count?: number;
+  /** Eligible / final recipient count. */
   total_recipients?: number;
+  /** Reason code → count. */
+  exclusion_summary?: Record<string, number>;
+  /** Reason code → human-readable label for codes in exclusion_summary. */
+  exclusion_labels?: Record<string, string>;
   successful_deliveries?: number;
   failed_deliveries?: number;
   skipped_deliveries?: number;
   bounced_deliveries?: number;
   complaint_deliveries?: number;
   last_error?: string;
+  /** Template variables the backend will interpolate (includes spins_left). */
+  allowed_variables?: string[];
   created?: string;
   modified?: string;
 }
@@ -129,6 +140,15 @@ export interface CancelEmailBroadcastResponse {
   broadcast: EmailBroadcast;
 }
 
+/** POST /email/broadcasts/<id>/retry/ — re-queues failed recipients only. */
+export interface RetryEmailBroadcastResponse {
+  success: boolean;
+  message: string;
+  retried?: number;
+  task_id?: string;
+  broadcast: EmailBroadcast;
+}
+
 /** POST /email/broadcasts/preview/ request body. */
 export interface EmailBroadcastPreviewRequest {
   audience: EmailBroadcastAudience;
@@ -160,6 +180,8 @@ export interface EmailBroadcastRecipientPreviewResponse {
   exclusion_labels?: Record<string, string>;
   excluded_sample?: EmailBroadcastExcludedPlayerSample[];
   final_sample?: EmailBroadcastFinalPlayerSample[];
+  /** Template variables the backend will interpolate. */
+  allowed_variables?: string[];
 }
 
 /** GET /email/broadcasts/players/search/?q= result item. */

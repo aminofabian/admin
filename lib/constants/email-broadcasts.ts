@@ -6,7 +6,7 @@ import type {
   EmailBroadcastStatus,
 } from '@/types';
 import {
-  EMAIL_TEMPLATE_VARIABLES,
+  resolveEmailTemplateVariables,
   type EmailTemplateVariable,
 } from './email-templates';
 import {
@@ -57,10 +57,16 @@ export const EMAIL_BROADCAST_PLACEHOLDER_KEYS = [
   'subject',
 ] as const;
 
-export function getEmailBroadcastPlaceholders(): EmailTemplateVariable[] {
-  return EMAIL_BROADCAST_PLACEHOLDER_KEYS.map((key) => EMAIL_TEMPLATE_VARIABLES[key]).filter(
-    (variable): variable is EmailTemplateVariable => Boolean(variable),
-  );
+export function resolveEmailBroadcastAllowedVariables(
+  allowed?: readonly string[] | null,
+): readonly string[] {
+  return allowed && allowed.length > 0 ? allowed : EMAIL_BROADCAST_PLACEHOLDER_KEYS;
+}
+
+export function getEmailBroadcastPlaceholders(
+  allowed?: readonly string[] | null,
+): EmailTemplateVariable[] {
+  return resolveEmailTemplateVariables([...resolveEmailBroadcastAllowedVariables(allowed)]);
 }
 
 export function emailBroadcastStatusTone(
@@ -106,25 +112,30 @@ export function emailBroadcastAudienceLabel(
 }
 
 export const EMAIL_BROADCAST_EXCLUSION_REASON_LABELS: Record<string, string> = {
-  unsubscribed: 'Unsubscribed from marketing',
-  missing_email: 'Missing email address',
-  invalid_email: 'Invalid email address',
-  bounced: 'Permanently bounced',
-  permanent_bounce: 'Permanently bounced',
-  spam_complaint: 'Spam complaint recorded',
-  suppressed: 'Suppressed email address',
-  blocked: 'Blocked email address',
-  not_opted_in: 'Not opted in to marketing',
-  marketing_opt_out: 'Unsubscribed from marketing',
+  unsubscribed: 'Unsubscribed',
+  missing_email: 'Missing email',
+  invalid_email: 'Invalid email',
   email_not_verified: 'Email not verified',
+  bounced: 'Hard bounce',
+  spam_complaint: 'Spam complaint',
+  suppressed: 'Suppressed',
+  inactive: 'Inactive',
+  archived: 'Archived',
+  frequency_limit_reached: 'Frequency limit reached',
+  // Aliases the API may still send
+  permanent_bounce: 'Hard bounce',
+  marketing_opt_out: 'Unsubscribed',
   unverified_email: 'Email not verified',
   email_unverified: 'Email not verified',
   not_email_verified: 'Email not verified',
   frequency_limit: 'Frequency limit reached',
-  frequency_limit_reached: 'Frequency limit reached',
   frequency_capped: 'Frequency limit reached',
   cancelled: 'Cancelled',
 };
+
+/** Safety rules always apply; staff targeting is intersected with them. */
+export const EMAIL_BROADCAST_SAFETY_RULES_COPY =
+  'Safety rules always apply and cannot be turned off. The send list is your targeting intersected with verified email, marketing eligibility, and a frequency cap of 1 promotional email per 24 hours and 3 per 7 days. Unverified emails are excluded, not sent.';
 
 export function formatEmailBroadcastExclusionReason(
   reason: string | null | undefined,
@@ -200,6 +211,19 @@ export function emailBroadcastFailureNotice(
 ): { label: string; detail?: string } | null {
   if ((broadcast.successful_deliveries ?? 0) > 0) return null;
   return formatEmailBroadcastDeliveryError(broadcast.last_error);
+}
+
+/**
+ * Partial success is a warning, not a total failure.
+ * Example: "161 sent, 8 failed — Retry failed"
+ */
+export function emailBroadcastPartialRetryNotice(
+  broadcast: Pick<EmailBroadcast, 'successful_deliveries' | 'failed_deliveries'>,
+): string | null {
+  const ok = broadcast.successful_deliveries ?? 0;
+  const fail = broadcast.failed_deliveries ?? 0;
+  if (ok <= 0 || fail <= 0) return null;
+  return `${ok.toLocaleString()} sent, ${fail.toLocaleString()} failed — Retry failed`;
 }
 
 /**

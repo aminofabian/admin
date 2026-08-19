@@ -18,7 +18,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}${BACKEND_PATH}${encodeURIComponent(id)}/retry-failed/`;
+    const backendUrl = `${BACKEND_URL}${BACKEND_PATH}${encodeURIComponent(id)}/retry/`;
 
     const response = await fetch(backendUrl, {
       method: 'POST',
@@ -34,7 +34,7 @@ export async function POST(
     }
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Email-broadcast proxy (retry-failed) error:', error);
+    console.error('❌ Email-broadcast proxy (retry) error:', error);
     return NextResponse.json(
       {
         status: 'error',

@@ -5,6 +5,8 @@ import {
   canRetryFailedEmailBroadcast,
   canSendEmailBroadcast,
   emailBroadcastFailureNotice,
+  emailBroadcastPartialRetryNotice,
+  formatEmailBroadcastExclusionBreakdown,
   formatEmailBroadcastExclusionReason,
 } from '../email-broadcasts';
 
@@ -16,7 +18,12 @@ describe('formatEmailBroadcastExclusionReason', () => {
       'Frequency limit reached',
     );
     expect(formatEmailBroadcastExclusionReason('frequency_limit')).toBe('Frequency limit reached');
-    expect(formatEmailBroadcastExclusionReason('unsubscribed')).toBe('Unsubscribed from marketing');
+    expect(formatEmailBroadcastExclusionReason('unsubscribed')).toBe('Unsubscribed');
+    expect(formatEmailBroadcastExclusionReason('bounced')).toBe('Hard bounce');
+    expect(formatEmailBroadcastExclusionReason('inactive')).toBe('Inactive');
+    expect(formatEmailBroadcastExclusionReason('archived')).toBe('Archived');
+    expect(formatEmailBroadcastExclusionReason('spam_complaint')).toBe('Spam complaint');
+    expect(formatEmailBroadcastExclusionReason('missing_email')).toBe('Missing email');
   });
 
   it('prefers API-provided exclusion_labels over hardcoded English', () => {
@@ -35,6 +42,17 @@ describe('formatEmailBroadcastExclusionReason', () => {
   it('falls back for unknown codes and empty values', () => {
     expect(formatEmailBroadcastExclusionReason(null)).toBe('Excluded');
     expect(formatEmailBroadcastExclusionReason('custom_hold')).toBe('custom hold');
+  });
+});
+
+describe('formatEmailBroadcastExclusionBreakdown', () => {
+  it('joins API labels with counts', () => {
+    expect(
+      formatEmailBroadcastExclusionBreakdown(
+        { email_not_verified: 12, frequency_limit: 3 },
+        { email_not_verified: 'Email not verified (API)' },
+      ),
+    ).toBe('Email not verified (API) 12 · Frequency limit reached 3');
   });
 });
 
@@ -62,6 +80,8 @@ describe('campaign actions', () => {
     expect(canRetryFailedEmailBroadcast('cancelled', 4)).toBe(true);
     expect(canRetryFailedEmailBroadcast('completed', 0)).toBe(false);
     expect(canRetryFailedEmailBroadcast('sending', 3)).toBe(false);
+    expect(canRetryFailedEmailBroadcast('queued', 3)).toBe(false);
+    expect(canRetryFailedEmailBroadcast('scheduled', 3)).toBe(false);
     expect(canRetryFailedEmailBroadcast('draft', 1)).toBe(false);
   });
 });
@@ -82,5 +102,31 @@ describe('emailBroadcastFailureNotice', () => {
       successful_deliveries: 0,
     });
     expect(notice?.label).toMatch(/provider|rejected/i);
+  });
+});
+
+describe('emailBroadcastPartialRetryNotice', () => {
+  it('warns with sent/failed counts when some deliveries succeeded', () => {
+    expect(
+      emailBroadcastPartialRetryNotice({
+        successful_deliveries: 161,
+        failed_deliveries: 8,
+      }),
+    ).toBe('161 sent, 8 failed — Retry failed');
+  });
+
+  it('is null when there is no mix of sent and failed', () => {
+    expect(
+      emailBroadcastPartialRetryNotice({
+        successful_deliveries: 10,
+        failed_deliveries: 0,
+      }),
+    ).toBeNull();
+    expect(
+      emailBroadcastPartialRetryNotice({
+        successful_deliveries: 0,
+        failed_deliveries: 4,
+      }),
+    ).toBeNull();
   });
 });

@@ -139,6 +139,13 @@ const sampleBroadcasts: EmailBroadcast[] = [
     failed_deliveries: 134,
     skipped_deliveries: 0,
     last_error: 'SMTP timeout on a subset of recipients',
+    matched_count: 4800,
+    excluded_count: 166,
+    exclusion_summary: { email_not_verified: 100, frequency_limit: 66 },
+    exclusion_labels: {
+      email_not_verified: 'Email not verified',
+      frequency_limit: 'Frequency limit reached',
+    },
     created: '2026-07-30T09:00:00Z',
   },
   {
@@ -167,6 +174,7 @@ const sampleBroadcasts: EmailBroadcast[] = [
     successful_deliveries: 0,
     failed_deliveries: 1000,
     skipped_deliveries: 0,
+    last_error: 'Provider rejected the campaign',
     created: '2026-07-27T09:00:00Z',
   },
   {
@@ -228,7 +236,8 @@ describe('EmailBroadcastsSettingsPage', () => {
 
     // Recipient count + delivery stats
     expect(screen.getByText('4,634')).toBeInTheDocument();
-    expect(screen.getByText('4,500')).toBeInTheDocument();
+    expect(screen.getAllByText(/Eligible:/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Sent 4,500 \/ Failed 134 \/ Skipped 0/)).toBeInTheDocument();
   });
 
   it('filters the list by clicking a status group pill', async () => {
@@ -285,7 +294,8 @@ describe('EmailBroadcastsSettingsPage', () => {
     render(<EmailBroadcastsSettingsPage />);
 
     await screen.findByText('Your weekend reward is waiting');
-    expect(screen.getAllByText(/sent vs/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/4,500 sent, 134 failed/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Retry failed/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/SMTP timeout/i)).not.toBeInTheDocument();
   });
 
@@ -296,6 +306,13 @@ describe('EmailBroadcastsSettingsPage', () => {
     expect(screen.getByText(/bounced/)).toBeInTheDocument();
     expect(screen.getByText(/complaints/)).toBeInTheDocument();
     expect(screen.getAllByText('Cancelled').length).toBeGreaterThan(0);
+  });
+
+  it('shows an error banner when last_error is set and nothing was sent', async () => {
+    render(<EmailBroadcastsSettingsPage />);
+
+    await screen.findByText('Brand update');
+    expect(screen.getByText(/provider rejected/i)).toBeInTheDocument();
   });
 
   it('offers cancel on queued campaigns and retry failed on completed/cancelled', async () => {
@@ -322,5 +339,15 @@ describe('EmailBroadcastsSettingsPage', () => {
     expect(screen.getByText('Retry failed deliveries?')).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: 'Retry failed' }).at(-1)!);
     expect(retrySpy).toHaveBeenCalled();
+  });
+
+  it('shows matched/excluded counts and API exclusion labels', async () => {
+    render(<EmailBroadcastsSettingsPage />);
+
+    await screen.findByText('Your weekend reward is waiting');
+    expect(screen.getByText(/4,800/)).toBeInTheDocument();
+    expect(screen.getByText(/166/)).toBeInTheDocument();
+    expect(screen.getByText(/Email not verified 100/)).toBeInTheDocument();
+    expect(screen.getByText(/Frequency limit reached 66/)).toBeInTheDocument();
   });
 });

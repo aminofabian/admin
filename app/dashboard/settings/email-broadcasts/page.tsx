@@ -8,11 +8,13 @@ import { emailBroadcastsApi } from '@/lib/api';
 import {
   emailBroadcastAudienceLabel,
   emailBroadcastFailureNotice,
+  emailBroadcastPartialRetryNotice,
   canCancelEmailBroadcast,
   canEditEmailBroadcast,
   canRetryFailedEmailBroadcast,
   canSendEmailBroadcast,
   formatEmailBroadcastCriteria,
+  formatEmailBroadcastExclusionBreakdown,
   resolveEmailBroadcastCriteria,
 } from '@/lib/constants/email-broadcasts';
 import { createEmptyEmailCampaignDraft } from '@/lib/constants/email-campaign-composer';
@@ -228,6 +230,7 @@ function broadcastToComposerSeed(broadcast: EmailBroadcast): EmailCampaignCompos
     match_mode: broadcast.filter_match === 'any' ? 'any' : 'all',
     filter_rows: [...filterRows, ...migrated],
     template_id: broadcast.template_id ?? null,
+    allowed_variables: broadcast.allowed_variables ?? null,
     // Reopening a draft keeps the server draft id so Save Draft PATCHes it.
     broadcast_id: groupOf(broadcast.status) === 'drafts' ? broadcast.id : null,
   };
@@ -269,22 +272,48 @@ function DeliveryStats({ broadcast }: { broadcast: EmailBroadcast }) {
   const complaints = broadcast.complaint_deliveries ?? 0;
   const delivered = ok + fail + skip;
   const total = broadcast.total_recipients ?? 0;
-  const showSentVsFailed = ok > 0 && fail > 0;
+  const matched = broadcast.matched_count;
+  const excluded = broadcast.excluded_count;
+  const showMatch = matched != null || excluded != null;
+  const exclusionLabel = formatEmailBroadcastExclusionBreakdown(
+    broadcast.exclusion_summary,
+    broadcast.exclusion_labels,
+  );
 
   return (
     <div className="min-w-[180px]">
       <p className="text-xs text-gray-500 dark:text-gray-400">
         {total > 0 ? (
           <>
+            <span className="text-gray-400 dark:text-gray-500">Eligible:</span>{' '}
             <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
               {total.toLocaleString()}
-            </span>{' '}
-            <span className="text-gray-400 dark:text-gray-500">recipients</span>
+            </span>
           </>
         ) : (
           <span className="text-gray-400 dark:text-gray-500">—</span>
         )}
       </p>
+      {showMatch ? (
+        <p className="mt-0.5 text-[10px] leading-tight text-gray-400 dark:text-gray-500">
+          {matched != null ? (
+            <>
+              <span className="tabular-nums">{matched.toLocaleString()}</span> matched
+            </>
+          ) : null}
+          {matched != null && excluded != null ? ' · ' : null}
+          {excluded != null ? (
+            <>
+              <span className="tabular-nums">{excluded.toLocaleString()}</span> excluded
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {exclusionLabel ? (
+        <p className="mt-0.5 truncate text-[10px] leading-tight text-gray-400 dark:text-gray-500" title={exclusionLabel}>
+          {exclusionLabel}
+        </p>
+      ) : null}
       {delivered > 0 || bounced > 0 || complaints > 0 ? (
         <>
           {delivered > 0 ? (
@@ -301,37 +330,7 @@ function DeliveryStats({ broadcast }: { broadcast: EmailBroadcast }) {
             </div>
           ) : null}
           <p className="mt-1 text-[10px] leading-tight text-gray-400 dark:text-gray-500">
-            {showSentVsFailed ? (
-              <>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  {ok.toLocaleString()}
-                </span>{' '}
-                sent vs{' '}
-                <span className="font-medium text-red-500">{fail.toLocaleString()}</span> failed
-              </>
-            ) : (
-              <>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  {ok.toLocaleString()}
-                </span>{' '}
-                sent
-                {fail > 0 ? (
-                  <>
-                    {' · '}
-                    <span className="font-medium text-red-500">{fail.toLocaleString()}</span> failed
-                  </>
-                ) : null}
-              </>
-            )}
-            {skip > 0 ? (
-              <>
-                {' · '}
-                <span className="font-medium text-amber-600 dark:text-amber-400">
-                  {skip.toLocaleString()}
-                </span>{' '}
-                skipped
-              </>
-            ) : null}
+            Sent {ok.toLocaleString()} / Failed {fail.toLocaleString()} / Skipped {skip.toLocaleString()}
             {bounced > 0 ? (
               <>
                 {' · '}
@@ -394,28 +393,67 @@ type PendingCampaignAction = {
 };
 
 function actionErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message;
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.trim()) return message;
+  if (error && typeof error === 'object') {
+    const record = error as { message?: unknown; detail?: unknown; error?: unknown };
+    for (const value of [record.message, record.detail, record.error]) {
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
   }
+  if (error instanceof Error && error.message) return error.message;
   return fallback;
 }
 
+function errorStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object' || !('status' in error)) return undefined;
+  const status = (error as { status?: unknown }).status;
+  if (typeof status === 'number') return status;
+  if (typeof status === 'string' && /^\d{3}$/.test(status)) return Number(status);
+  return undefined;
+}
+
+function errorBlob(error: unknown): string {
+  return actionErrorMessage(error, '').toLowerCase();
+}
+
+function isHttpConflict(error: unknown): boolean {
+  const text = errorBlob(error);
+  const status = errorStatusCode(error);
+  return status === 409 || text.includes('409') || text.includes('conflict');
+}
+
+function isHttpBadRequest(error: unknown): boolean {
+  const text = errorBlob(error);
+  const status = errorStatusCode(error);
+  return status === 400 || text.includes('400') || text.includes('bad request') || text.includes('no failed');
+}
+
 function isCancelConflict(error: unknown): boolean {
-  const message = actionErrorMessage(error, '').toLowerCase();
-  const status =
-    error && typeof error === 'object' && 'status' in error
-      ? (error as { status?: unknown }).status
-      : undefined;
+  const message = errorBlob(error);
   return (
-    status === 409 ||
-    status === '409' ||
-    message.includes('409') ||
+    isHttpConflict(error) ||
     message.includes('already completed') ||
     message.includes('already failed') ||
-    message.includes('already cancelled') ||
-    (message.includes('conflict') && message.includes('cancel'))
+    message.includes('already cancelled')
+  );
+}
+
+function isSendNotDraftConflict(error: unknown): boolean {
+  const message = errorBlob(error);
+  return (
+    isHttpConflict(error) ||
+    (message.includes('draft') && message.includes('retry')) ||
+    message.includes('not draft') ||
+    (message.includes('only works for') && message.includes('draft'))
+  );
+}
+
+function isRetryInFlightConflict(error: unknown): boolean {
+  const message = errorBlob(error);
+  return (
+    isHttpConflict(error) ||
+    message.includes('queued') ||
+    message.includes('scheduled') ||
+    message.includes('sending')
   );
 }
 
@@ -499,30 +537,50 @@ export default function EmailBroadcastsSettingsPage() {
                   : 'This campaign will not send.'),
         });
       } else {
-        await emailBroadcastsApi.retryFailed(broadcast.id);
+        const result = await emailBroadcastsApi.retryFailed(broadcast.id);
+        const retried = result.retried ?? 0;
         addToast({
           type: 'success',
           title: 'Retry queued',
-          description: 'Only failed recipients will be retried. Recipients already marked sent will not be emailed again.',
+          description:
+            retried > 0
+              ? `${retried.toLocaleString()} failed recipients will be retried. Recipients already marked sent will not be emailed again.`
+              : result.message ||
+                'Only failed recipients will be retried. Recipients already marked sent will not be emailed again.',
         });
       }
       setPendingAction(null);
       await loadBroadcasts();
     } catch (err) {
+      const sendConflict = type === 'send' && isSendNotDraftConflict(err);
+      const retryEmpty = type === 'retry' && isHttpBadRequest(err);
+      const retryBusy = type === 'retry' && isRetryInFlightConflict(err);
       addToast({
         type: 'error',
         title:
           type === 'cancel' && isCancelConflict(err)
             ? 'Campaign already finished'
-            : type === 'send'
-              ? 'Could not send'
-              : type === 'cancel'
-                ? 'Could not cancel'
-                : 'Could not retry failed',
+            : sendConflict
+              ? 'Send is only for drafts'
+              : retryEmpty
+                ? 'Nothing to retry'
+                : retryBusy
+                  ? 'Campaign still sending'
+                  : type === 'send'
+                    ? 'Could not send'
+                    : type === 'cancel'
+                      ? 'Could not cancel'
+                      : 'Could not retry failed',
         description:
           type === 'cancel' && isCancelConflict(err)
             ? 'Cancel is only allowed while a campaign is draft, queued, scheduled, or sending.'
-            : actionErrorMessage(err, 'Please try again.'),
+            : sendConflict
+              ? 'Use Retry failed for failed recipients.'
+              : retryEmpty
+                ? 'There are no failed recipients to retry.'
+                : retryBusy
+                  ? 'Retry is only available after sending has finished.'
+                  : actionErrorMessage(err, 'Please try again.'),
       });
     } finally {
       setActionBusyId(null);
@@ -778,6 +836,7 @@ export default function EmailBroadcastsSettingsPage() {
                 {filtered.map((broadcast) => {
                   const criteriaLabel = formatEmailBroadcastCriteria(broadcast);
                   const deliveryIssue = emailBroadcastFailureNotice(broadcast);
+                  const partialRetry = emailBroadcastPartialRetryNotice(broadcast);
                   const isDraft = canEditEmailBroadcast(broadcast.status);
                   const canSend = canSendEmailBroadcast(broadcast.status);
                   const canCancel = canCancelEmailBroadcast(broadcast.status);
@@ -820,14 +879,35 @@ export default function EmailBroadcastsSettingsPage() {
                         ) : null}
                         {deliveryIssue ? (
                           <p
-                            className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-amber-50/90 px-1.5 py-0.5 text-[11px] text-amber-700 dark:bg-amber-950/35 dark:text-amber-300"
+                            className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] text-red-700 dark:bg-red-950/40 dark:text-red-300"
                             title={deliveryIssue.detail || deliveryIssue.label}
                           >
                             <Icon
-                              d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
                               className="h-3 w-3 shrink-0 opacity-80"
                             />
                             <span className="truncate">{deliveryIssue.label}</span>
+                          </p>
+                        ) : partialRetry ? (
+                          <p className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-amber-50/90 px-1.5 py-0.5 text-[11px] text-amber-800 dark:bg-amber-950/35 dark:text-amber-200">
+                            <span className="truncate">
+                              {(broadcast.successful_deliveries ?? 0).toLocaleString()} sent,{' '}
+                              {(broadcast.failed_deliveries ?? 0).toLocaleString()} failed
+                            </span>
+                            {canRetry ? (
+                              <button
+                                type="button"
+                                className="shrink-0 font-medium underline decoration-amber-400/70 underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setPendingAction({ type: 'retry', broadcast });
+                                }}
+                              >
+                                — Retry failed
+                              </button>
+                            ) : (
+                              <span className="shrink-0"> — Retry failed</span>
+                            )}
                           </p>
                         ) : null}
                       </td>
@@ -997,14 +1077,12 @@ export default function EmailBroadcastsSettingsPage() {
             ) : null}
             <DeliveryStats broadcast={liveDetail} />
             {emailBroadcastFailureNotice(liveDetail) ? (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200">
                 {emailBroadcastFailureNotice(liveDetail)?.label}
               </p>
-            ) : (liveDetail.successful_deliveries ?? 0) > 0 &&
-              (liveDetail.failed_deliveries ?? 0) > 0 ? (
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Partial send: {(liveDetail.successful_deliveries ?? 0).toLocaleString()} sent vs{' '}
-                {(liveDetail.failed_deliveries ?? 0).toLocaleString()} failed.
+            ) : emailBroadcastPartialRetryNotice(liveDetail) ? (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {emailBroadcastPartialRetryNotice(liveDetail)}
               </p>
             ) : null}
             {formatEmailBroadcastCriteria(liveDetail) ? (

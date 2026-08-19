@@ -68,6 +68,8 @@ export interface EmailCampaignComposerDraft {
   deposit_max?: string;
   template_id?: number | null;
   updated_at?: string;
+  /** API allowed_variables when known (source of truth for {{ }} tokens). */
+  allowed_variables?: string[] | null;
 }
 
 export type EmailCampaignComposerStep = 'edit' | 'review';
@@ -84,6 +86,8 @@ export interface EmailCampaignRecipientPreview {
   exclusion_counts?: Record<string, number>;
   /** API-provided UI labels for exclusion reason codes. */
   exclusion_labels?: Record<string, string>;
+  /** Template variables the backend will interpolate (includes spins_left). */
+  allowed_variables?: string[];
   /** Sample of excluded players returned by the preview API. */
   excluded_sample?: EmailBroadcastExcludedPlayerSample[];
   /** Sample of final (deliverable) players returned by the preview API. */

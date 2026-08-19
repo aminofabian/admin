@@ -32,7 +32,7 @@ const EmailCampaignHtmlEditor = dynamic(
   },
 );
 import { emailBroadcastsApi } from '@/lib/api';
-import { getEmailBroadcastPlaceholders, formatEmailBroadcastExclusionReason, formatEmailBroadcastExclusionBreakdown } from '@/lib/constants/email-broadcasts';
+import { getEmailBroadcastPlaceholders, formatEmailBroadcastExclusionReason, formatEmailBroadcastExclusionBreakdown, EMAIL_BROADCAST_SAFETY_RULES_COPY } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_RECIPIENT_METHODS,
   createEmptyEmailCampaignDraft,
@@ -52,7 +52,7 @@ import {
   summarizeFilterRows,
   validateFilterRows,
 } from '@/lib/utils/email-campaign-filters';
-import { findMissingRequiredEmailVariables, findUnsupportedEmailVariables } from '@/lib/utils/email-campaign-variables';
+import { findMissingRequiredEmailVariables, findUnsupportedCampaignVariables, formatUnsupportedVariablesMessage, unsupportedVariablesErrorMessage } from '@/lib/utils/email-campaign-variables';
 import type {
   CreateEmailBroadcastRequest,
   EmailBroadcastPreviewRequest,
@@ -70,6 +70,8 @@ interface EmailCampaignComposerProps {
 type EditPanel = 'setup' | 'write';
 
 function extractErrorMessage(err: unknown, fallback: string): string {
+  const unsupported = unsupportedVariablesErrorMessage(err, '');
+  if (unsupported) return unsupported;
   if (err && typeof err === 'object') {
     const record = err as Record<string, unknown>;
     const message = typeof record.message === 'string' ? record.message : '';
@@ -80,7 +82,10 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
-function validateDraft(draft: EmailCampaignComposerDraft): string[] {
+function validateDraft(
+  draft: EmailCampaignComposerDraft,
+  allowedVariables?: string[] | null,
+): string[] {
   const errors: string[] = [];
   if (!draft.internal_name.trim()) errors.push('Internal email name is required.');
   if (!draft.subject.trim()) errors.push('Subject is required.');
@@ -97,11 +102,10 @@ function validateDraft(draft: EmailCampaignComposerDraft): string[] {
     errors.push(...validateFilterRows(draft.filter_rows));
   }
 
-  const unsupported = findUnsupportedEmailVariables(draft.html_body);
+  const allowed = allowedVariables ?? draft.allowed_variables;
+  const unsupported = findUnsupportedCampaignVariables(draft.subject, draft.html_body, allowed);
   if (unsupported.length > 0) {
-    errors.push(
-      `Unsupported variables: ${unsupported.map((key) => `{{ ${key} }}`).join(', ')}.`,
-    );
+    errors.push(formatUnsupportedVariablesMessage(unsupported));
   }
 
   const missingRequired = findMissingRequiredEmailVariables(draft.html_body);
@@ -221,11 +225,15 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const [hydrated, setHydrated] = useState(false);
   const [recipientPreview, setRecipientPreview] =
     useState<EmailCampaignRecipientPreview>(EMPTY_PREVIEW);
+  const [allowedVariables, setAllowedVariables] = useState<string[] | null>(null);
   const [insertVariable, setInsertVariable] = useState<(token: string) => void>(
     () => () => undefined,
   );
 
-  const placeholders = useMemo(() => getEmailBroadcastPlaceholders(), []);
+  const placeholders = useMemo(
+    () => getEmailBroadcastPlaceholders(allowedVariables || draft.allowed_variables),
+    [allowedVariables, draft.allowed_variables],
+  );
 
   const previewRequest = useMemo(
     () => buildPreviewRequest(draft),
@@ -241,9 +249,13 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
     const seed = consumeComposerSeed();
     if (seed) {
       setDraft(seed);
+      if (seed.allowed_variables?.length) setAllowedVariables(seed.allowed_variables);
     } else {
       const saved = loadComposerDraft(scopeKey);
-      if (saved) setDraft(saved);
+      if (saved) {
+        setDraft(saved);
+        if (saved.allowed_variables?.length) setAllowedVariables(saved.allowed_variables);
+      }
     }
     setHydrated(true);
   }, [scopeKey]);
@@ -269,6 +281,9 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
       try {
         const response = await emailBroadcastsApi.preview(request);
         if (cancelled) return;
+        if (response.allowed_variables?.length) {
+          setAllowedVariables(response.allowed_variables);
+        }
         setRecipientPreview({
           matched: response.matched_count,
           excluded: response.excluded_count,
@@ -278,6 +293,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           unsupported: [],
           exclusion_counts: response.exclusion_counts,
           exclusion_labels: response.exclusion_labels,
+          allowed_variables: response.allowed_variables,
           excluded_sample: response.excluded_sample,
           final_sample: response.final_sample,
         });
@@ -313,7 +329,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   };
   const finalCount = resolveFinalCount();
 
-  const validationErrors = validateDraft(draft);
+  const validationErrors = validateDraft(draft, allowedVariables);
   const canReview = validationErrors.length === 0 && finalCount != null && finalCount > 0;
   const busy = isSavingDraft || isSending;
 
@@ -327,7 +343,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   const setupComplete = step1Complete && step2Complete;
   const step3Complete =
     draft.html_body.trim().length > 0 &&
-    findUnsupportedEmailVariables(draft.html_body).length === 0 &&
+    findUnsupportedCampaignVariables(draft.subject, draft.html_body, allowedVariables).length ===
+      0 &&
     findMissingRequiredEmailVariables(draft.html_body).length === 0;
 
   const activeMethod = EMAIL_CAMPAIGN_RECIPIENT_METHODS.find(
@@ -356,6 +373,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           : await emailBroadcastsApi.create(payload);
         broadcastId = result.broadcast.id;
         savedOnServer = true;
+        if (result.broadcast.allowed_variables?.length) {
+          setAllowedVariables(result.broadcast.allowed_variables);
+          savedLocally.allowed_variables = result.broadcast.allowed_variables;
+        }
       } catch (err) {
         const message = extractErrorMessage(err, 'Could not save draft on the server.');
         setErrors([message]);
@@ -383,7 +404,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
   };
 
   const handleReview = () => {
-    const nextErrors = validateDraft(draft);
+    const nextErrors = validateDraft(draft, allowedVariables);
     const reviewFinalCount = resolveFinalCount();
     if (nextErrors.length === 0 && reviewFinalCount != null && reviewFinalCount <= 0) {
       nextErrors.push('No eligible recipients match this targeting. Adjust the recipients first.');
@@ -412,7 +433,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
 
   const handleSend = async () => {
     if (isSending) return;
-    const nextErrors = validateDraft(draft);
+    const nextErrors = validateDraft(draft, allowedVariables);
     const sendFinalCount = resolveFinalCount();
     if (nextErrors.length === 0 && sendFinalCount != null && sendFinalCount <= 0) {
       nextErrors.push('No eligible recipients match this targeting. Adjust the recipients first.');
@@ -1043,6 +1064,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                     );
                   })}
                 </div>
+
+                <p className="mb-3 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                  {EMAIL_BROADCAST_SAFETY_RULES_COPY}
+                </p>
 
                 {draft.recipient_method === 'specific' ? (
                   <EmailCampaignSpecificPlayers

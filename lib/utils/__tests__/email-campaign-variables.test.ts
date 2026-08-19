@@ -1,6 +1,9 @@
 import {
   findMissingRequiredEmailVariables,
+  findUnsupportedCampaignVariables,
   findUnsupportedEmailVariables,
+  isUnsupportedVariablesError,
+  unsupportedVariablesErrorMessage,
 } from '../email-campaign-variables';
 
 describe('findUnsupportedEmailVariables', () => {
@@ -16,6 +19,34 @@ describe('findUnsupportedEmailVariables', () => {
     expect(
       findUnsupportedEmailVariables('<p>{{ username }} {{ foo_bar }} {{ amount }}</p>'),
     ).toEqual(['amount', 'foo_bar']);
+  });
+
+  it('uses API allowed_variables when provided', () => {
+    expect(findUnsupportedEmailVariables('{{ username }} {{ amount }}', ['username', 'amount'])).toEqual(
+      [],
+    );
+    expect(findUnsupportedEmailVariables('{{ spins_left }}', ['username'])).toEqual(['spins_left']);
+  });
+});
+
+describe('findUnsupportedCampaignVariables', () => {
+  it('checks subject and body', () => {
+    expect(
+      findUnsupportedCampaignVariables('Hello {{ amount }}', '<p>{{ username }}</p>'),
+    ).toEqual(['amount']);
+  });
+});
+
+describe('unsupported_variables errors', () => {
+  it('detects API code and lists keys', () => {
+    const error = {
+      code: 'unsupported_variables',
+      unsupported_variables: ['foo', 'amount'],
+    };
+    expect(isUnsupportedVariablesError(error)).toBe(true);
+    expect(unsupportedVariablesErrorMessage(error, 'fallback')).toBe(
+      'Unsupported variables: {{ foo }}, {{ amount }}.',
+    );
   });
 });
 

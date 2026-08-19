@@ -146,6 +146,9 @@ describe('EmailCampaignComposePage', () => {
     expect(screen.getByText('Write')).toBeInTheDocument();
     expect(screen.getAllByText('Email details').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Recipients').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/frequency cap of 1 promotional email per 24 hours/),
+    ).toBeInTheDocument();
 
     expect(screen.getByLabelText('Internal email name')).toBeInTheDocument();
     expect(screen.getByLabelText('Subject')).toBeInTheDocument();
