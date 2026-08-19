@@ -80,8 +80,10 @@ export interface EmailCampaignRecipientPreview {
   error: string | null;
   /** Filters that cannot be applied by the players list / broadcast API yet */
   unsupported: string[];
-  /** Breakdown of automatic exclusions by reason (unsubscribed, missing_email, …) */
+  /** Breakdown of automatic exclusions by reason (unsubscribed, email_not_verified, …) */
   exclusion_counts?: Record<string, number>;
+  /** API-provided UI labels for exclusion reason codes. */
+  exclusion_labels?: Record<string, string>;
   /** Sample of excluded players returned by the preview API. */
   excluded_sample?: EmailBroadcastExcludedPlayerSample[];
   /** Sample of final (deliverable) players returned by the preview API. */

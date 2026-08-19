@@ -121,6 +121,14 @@ export interface CreateEmailBroadcastResponse {
   broadcast: EmailBroadcast;
 }
 
+/** POST /email/broadcasts/<id>/cancel/ */
+export interface CancelEmailBroadcastResponse {
+  success: boolean;
+  message: string;
+  skipped_queued?: number;
+  broadcast: EmailBroadcast;
+}
+
 /** POST /email/broadcasts/preview/ request body. */
 export interface EmailBroadcastPreviewRequest {
   audience: EmailBroadcastAudience;
@@ -148,6 +156,8 @@ export interface EmailBroadcastRecipientPreviewResponse {
   excluded_count: number;
   final_count: number;
   exclusion_counts?: Record<string, number>;
+  /** Reason code → UI label. Prefer these over hardcoded English. */
+  exclusion_labels?: Record<string, string>;
   excluded_sample?: EmailBroadcastExcludedPlayerSample[];
   final_sample?: EmailBroadcastFinalPlayerSample[];
 }

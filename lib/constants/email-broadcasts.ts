@@ -123,12 +123,32 @@ export const EMAIL_BROADCAST_EXCLUSION_REASON_LABELS: Record<string, string> = {
   frequency_limit: 'Frequency limit reached',
   frequency_limit_reached: 'Frequency limit reached',
   frequency_capped: 'Frequency limit reached',
+  cancelled: 'Cancelled',
 };
 
-export function formatEmailBroadcastExclusionReason(reason: string | null | undefined): string {
+export function formatEmailBroadcastExclusionReason(
+  reason: string | null | undefined,
+  labels?: Record<string, string> | null,
+): string {
   if (!reason) return 'Excluded';
-  const key = reason.trim().toLowerCase().replace(/[\s-]+/g, '_');
-  return EMAIL_BROADCAST_EXCLUSION_REASON_LABELS[key] || reason.replace(/_/g, ' ');
+  const raw = reason.trim();
+  const key = raw.toLowerCase().replace(/[\s-]+/g, '_');
+  const fromApi = labels?.[raw] || labels?.[key] || labels?.[reason];
+  if (fromApi && fromApi.trim()) return fromApi.trim();
+  return EMAIL_BROADCAST_EXCLUSION_REASON_LABELS[key] || raw.replace(/_/g, ' ');
+}
+
+export function formatEmailBroadcastExclusionBreakdown(
+  counts?: Record<string, number> | null,
+  labels?: Record<string, string> | null,
+): string {
+  if (!counts || Object.keys(counts).length === 0) return '';
+  return Object.entries(counts)
+    .map(
+      ([reason, count]) =>
+        `${formatEmailBroadcastExclusionReason(reason, labels)} ${count.toLocaleString()}`,
+    )
+    .join(' · ');
 }
 
 /** Statuses that still have unsent work staff can stop. There is no paused status. */

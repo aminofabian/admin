@@ -402,6 +402,23 @@ function actionErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function isCancelConflict(error: unknown): boolean {
+  const message = actionErrorMessage(error, '').toLowerCase();
+  const status =
+    error && typeof error === 'object' && 'status' in error
+      ? (error as { status?: unknown }).status
+      : undefined;
+  return (
+    status === 409 ||
+    status === '409' ||
+    message.includes('409') ||
+    message.includes('already completed') ||
+    message.includes('already failed') ||
+    message.includes('already cancelled') ||
+    (message.includes('conflict') && message.includes('cancel'))
+  );
+}
+
 export default function EmailBroadcastsSettingsPage() {
   const router = useRouter();
   const { addToast } = useToast();
@@ -468,14 +485,18 @@ export default function EmailBroadcastsSettingsPage() {
         await emailBroadcastsApi.send(broadcast.id);
         addToast({ type: 'success', title: 'Campaign queued', description: 'The draft is now sending.' });
       } else if (type === 'cancel') {
-        await emailBroadcastsApi.cancel(broadcast.id);
+        const result = await emailBroadcastsApi.cancel(broadcast.id);
+        const skipped = result.skipped_queued ?? 0;
         addToast({
           type: 'success',
           title: 'Campaign cancelled',
           description:
-            broadcast.status === 'sending'
-              ? 'Already-sent recipients stay sent. Remaining queued recipients were skipped.'
-              : 'This campaign will not send.',
+            skipped > 0
+              ? `${skipped.toLocaleString()} queued recipients were skipped. Already-sent stay sent.`
+              : result.message ||
+                (broadcast.status === 'sending'
+                  ? 'Already-sent recipients stay sent. Remaining queued recipients were skipped.'
+                  : 'This campaign will not send.'),
         });
       } else {
         await emailBroadcastsApi.retryFailed(broadcast.id);
@@ -490,8 +511,18 @@ export default function EmailBroadcastsSettingsPage() {
     } catch (err) {
       addToast({
         type: 'error',
-        title: type === 'send' ? 'Could not send' : type === 'cancel' ? 'Could not cancel' : 'Could not retry failed',
-        description: actionErrorMessage(err, 'Please try again.'),
+        title:
+          type === 'cancel' && isCancelConflict(err)
+            ? 'Campaign already finished'
+            : type === 'send'
+              ? 'Could not send'
+              : type === 'cancel'
+                ? 'Could not cancel'
+                : 'Could not retry failed',
+        description:
+          type === 'cancel' && isCancelConflict(err)
+            ? 'Cancel is only allowed while a campaign is draft, queued, scheduled, or sending.'
+            : actionErrorMessage(err, 'Please try again.'),
       });
     } finally {
       setActionBusyId(null);

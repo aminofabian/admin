@@ -19,6 +19,19 @@ describe('formatEmailBroadcastExclusionReason', () => {
     expect(formatEmailBroadcastExclusionReason('unsubscribed')).toBe('Unsubscribed from marketing');
   });
 
+  it('prefers API-provided exclusion_labels over hardcoded English', () => {
+    expect(
+      formatEmailBroadcastExclusionReason('email_not_verified', {
+        email_not_verified: 'Email not verified (API)',
+      }),
+    ).toBe('Email not verified (API)');
+    expect(
+      formatEmailBroadcastExclusionReason('brand_hold', {
+        brand_hold: 'Held by brand policy',
+      }),
+    ).toBe('Held by brand policy');
+  });
+
   it('falls back for unknown codes and empty values', () => {
     expect(formatEmailBroadcastExclusionReason(null)).toBe('Excluded');
     expect(formatEmailBroadcastExclusionReason('custom_hold')).toBe('custom hold');

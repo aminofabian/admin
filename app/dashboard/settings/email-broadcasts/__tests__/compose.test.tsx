@@ -121,7 +121,12 @@ const previewResponse = {
   matched_count: 100,
   excluded_count: 5,
   final_count: 95,
-  exclusion_counts: { unsubscribed: 3, missing_email: 2 },
+  exclusion_counts: { unsubscribed: 3, missing_email: 2, email_not_verified: 4 },
+  exclusion_labels: {
+    unsubscribed: 'Unsubscribed from marketing',
+    missing_email: 'Missing email address',
+    email_not_verified: 'Email not verified',
+  },
 };
 
 describe('EmailCampaignComposePage', () => {
@@ -180,6 +185,7 @@ describe('EmailCampaignComposePage', () => {
       expect(screen.getAllByText('5').length).toBeGreaterThan(0);
       expect(screen.getAllByText('95').length).toBeGreaterThan(0);
     });
+    expect(screen.getByText(/Email not verified/)).toBeInTheDocument();
   });
 
   it('switches to the write panel from setup', async () => {

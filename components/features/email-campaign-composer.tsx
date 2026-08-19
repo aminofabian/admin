@@ -32,7 +32,7 @@ const EmailCampaignHtmlEditor = dynamic(
   },
 );
 import { emailBroadcastsApi } from '@/lib/api';
-import { getEmailBroadcastPlaceholders, formatEmailBroadcastExclusionReason } from '@/lib/constants/email-broadcasts';
+import { getEmailBroadcastPlaceholders, formatEmailBroadcastExclusionReason, formatEmailBroadcastExclusionBreakdown } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_RECIPIENT_METHODS,
   createEmptyEmailCampaignDraft,
@@ -197,14 +197,11 @@ const EDIT_PANELS: { id: EditPanel; n: number; label: string; hint: string }[] =
   { id: 'write', n: 2, label: 'Write', hint: 'HTML body & preview' },
 ];
 
-function exclusionCountsLabel(counts?: Record<string, number>): string {
-  if (!counts || Object.keys(counts).length === 0) return '';
-  return Object.entries(counts)
-    .map(
-      ([reason, count]) =>
-        `${formatEmailBroadcastExclusionReason(reason)} ${count.toLocaleString()}`,
-    )
-    .join(' · ');
+function exclusionCountsLabel(
+  counts?: Record<string, number>,
+  labels?: Record<string, string>,
+): string {
+  return formatEmailBroadcastExclusionBreakdown(counts, labels);
 }
 
 export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignComposerProps) {
@@ -280,6 +277,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           error: null,
           unsupported: [],
           exclusion_counts: response.exclusion_counts,
+          exclusion_labels: response.exclusion_labels,
           excluded_sample: response.excluded_sample,
           final_sample: response.final_sample,
         });
@@ -559,7 +557,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                 <ExcludedPlayersSample
                   rows={recipientPreview.excluded_sample.map((row) => ({
                     ...row,
-                    reason: formatEmailBroadcastExclusionReason(row.reason),
+                    reason: formatEmailBroadcastExclusionReason(
+                      row.reason,
+                      recipientPreview.exclusion_labels,
+                    ),
                   }))}
                 />
               </div>
@@ -657,7 +658,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           <ComposerAlert tone="warning">
             <p className="font-medium">Automatic exclusions applied</p>
             <p className="mt-1 opacity-90">
-              {exclusionCountsLabel(recipientPreview.exclusion_counts)}. These players cannot
+              {exclusionCountsLabel(
+                recipientPreview.exclusion_counts,
+                recipientPreview.exclusion_labels,
+              )}. These players cannot
               receive marketing email and are excluded automatically.
             </p>
             {recipientPreview.excluded_sample && recipientPreview.excluded_sample.length > 0 ? (
@@ -669,7 +673,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                   <ExcludedPlayersSample
                     rows={recipientPreview.excluded_sample.map((row) => ({
                       ...row,
-                      reason: formatEmailBroadcastExclusionReason(row.reason),
+                      reason: formatEmailBroadcastExclusionReason(
+                      row.reason,
+                      recipientPreview.exclusion_labels,
+                    ),
                     }))}
                   />
                 </div>
@@ -1096,6 +1103,19 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                         Marketing-ineligible addresses are excluded automatically. Review requires
                         typing <strong>SEND</strong> before final submission.
                       </p>
+                      {exclusionCountsLabel(
+                        recipientPreview.exclusion_counts,
+                        recipientPreview.exclusion_labels,
+                      ) ? (
+                        <p className="mt-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
+                          Automatically excluded:{' '}
+                          {exclusionCountsLabel(
+                            recipientPreview.exclusion_counts,
+                            recipientPreview.exclusion_labels,
+                          )}
+                          .
+                        </p>
+                      ) : null}
                       {recipientPreview.excluded_sample &&
                       recipientPreview.excluded_sample.length > 0 ? (
                         <details className="mt-2 rounded-md border border-amber-200/70 bg-white/60 dark:border-amber-900/40 dark:bg-gray-900/40">
@@ -1106,7 +1126,10 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
                             <ExcludedPlayersSample
                               rows={recipientPreview.excluded_sample.map((row) => ({
                                 ...row,
-                                reason: formatEmailBroadcastExclusionReason(row.reason),
+                                reason: formatEmailBroadcastExclusionReason(
+                      row.reason,
+                      recipientPreview.exclusion_labels,
+                    ),
                               }))}
                             />
                           </div>

@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/select';
 import {
   ComposerFieldLabel,
 } from '@/components/features/email-campaign-composer-ui';
-import { formatEmailBroadcastExclusionReason } from '@/lib/constants/email-broadcasts';
+import { formatEmailBroadcastExclusionBreakdown } from '@/lib/constants/email-broadcasts';
 import {
   EMAIL_CAMPAIGN_FILTER_FIELDS,
   EMAIL_CAMPAIGN_FILTER_OPERATOR_LABELS,
@@ -28,16 +28,6 @@ interface EmailCampaignFilterBuilderProps {
   disabled?: boolean;
   onMatchModeChange: (mode: EmailCampaignMatchMode) => void;
   onChange: (rows: EmailCampaignFilterRow[]) => void;
-}
-
-function exclusionCountsLabel(counts?: Record<string, number>): string {
-  if (!counts || Object.keys(counts).length === 0) return '';
-  return Object.entries(counts)
-    .map(
-      ([reason, count]) =>
-        `${formatEmailBroadcastExclusionReason(reason)} ${count.toLocaleString()}`,
-    )
-    .join(' · ');
 }
 
 export function EmailCampaignFilterBuilder({
@@ -99,7 +89,9 @@ export function EmailCampaignFilterBuilder({
       ) : null}
       {preview.exclusion_counts && Object.keys(preview.exclusion_counts).length > 0 ? (
         <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-          Automatically excluded: {exclusionCountsLabel(preview.exclusion_counts)}.
+          Automatically excluded:{' '}
+          {formatEmailBroadcastExclusionBreakdown(preview.exclusion_counts, preview.exclusion_labels)}
+          .
         </p>
       ) : null}
 

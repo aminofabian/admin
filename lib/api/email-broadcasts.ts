@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type {
+  CancelEmailBroadcastResponse,
   CreateEmailBroadcastRequest,
   CreateEmailBroadcastResponse,
   EmailBroadcast,
@@ -123,9 +124,26 @@ export const emailBroadcastsApi = {
 
   /** Stop a draft / queued / scheduled / sending campaign (POST /email/broadcasts/<id>/cancel/). */
   cancel: async (id: number) => {
-    return apiClient.post<CreateEmailBroadcastResponse | EmailBroadcast>(
+    const response = await apiClient.post<CancelEmailBroadcastResponse | EmailBroadcast>(
       `api/admin/email-broadcasts/${id}/cancel`,
     );
+    if (
+      response &&
+      typeof response === 'object' &&
+      'broadcast' in response &&
+      isEmailBroadcast(response.broadcast)
+    ) {
+      return response as CancelEmailBroadcastResponse;
+    }
+    if (isEmailBroadcast(response)) {
+      return {
+        success: true,
+        message: 'Campaign cancelled.',
+        skipped_queued: 0,
+        broadcast: response,
+      } satisfies CancelEmailBroadcastResponse;
+    }
+    throw new Error('Unexpected cancel response for email broadcast');
   },
 
   /**
