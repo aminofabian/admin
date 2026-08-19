@@ -22,12 +22,19 @@ async function readResponse(response: Response) {
   return NextResponse.json(data, { status: response.status });
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/api/v1/email-templates/${id}/`;
+function backendUrlFor(action: string, searchParams: URLSearchParams) {
+  const queryString = searchParams.toString();
+  return `${BACKEND_URL}/api/v1/email/templates/${encodeURIComponent(action)}/${queryString ? `?${queryString}` : ''}`;
+}
 
-    const response = await fetch(backendUrl, {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
+  try {
+    const { action } = await params;
+    const { searchParams } = new URL(request.url);
+    const response = await fetch(backendUrlFor(action, searchParams), {
       method: 'GET',
       headers: forwardHeaders(request),
     });
@@ -46,13 +53,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
   try {
-    const { id } = await params;
+    const { action } = await params;
     const body = await request.json();
-    const backendUrl = `${BACKEND_URL}/api/v1/email-templates/${id}/`;
-
-    const response = await fetch(backendUrl, {
+    const { searchParams } = new URL(request.url);
+    const response = await fetch(backendUrlFor(action, searchParams), {
       method: 'PATCH',
       headers: forwardHeaders(request),
       body: JSON.stringify(body),
@@ -61,6 +70,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return readResponse(response);
   } catch (error) {
     console.error('❌ Email-template proxy (PATCH) error:', error);
+
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update email template',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ action: string }> },
+) {
+  try {
+    const { action } = await params;
+    const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const response = await fetch(backendUrlFor(action, searchParams), {
+      method: 'PUT',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(body),
+    });
+
+    return readResponse(response);
+  } catch (error) {
+    console.error('❌ Email-template proxy (PUT) error:', error);
 
     return NextResponse.json(
       {

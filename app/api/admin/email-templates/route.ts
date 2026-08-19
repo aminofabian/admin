@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
+const BACKEND_PATH = '/api/v1/email/templates/';
 
 function forwardHeaders(request: NextRequest): HeadersInit {
   const authHeader = request.headers.get('authorization');
@@ -24,7 +25,9 @@ async function readResponse(response: Response) {
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = `${BACKEND_URL}/api/v1/email-templates/`;
+    const { searchParams } = new URL(request.url);
+    const queryString = searchParams.toString();
+    const backendUrl = `${BACKEND_URL}${BACKEND_PATH}${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -39,31 +42,6 @@ export async function GET(request: NextRequest) {
       {
         status: 'error',
         message: error instanceof Error ? error.message : 'Failed to fetch email templates',
-      },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const backendUrl = `${BACKEND_URL}/api/v1/email-templates/`;
-
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: forwardHeaders(request),
-      body: JSON.stringify(body),
-    });
-
-    return readResponse(response);
-  } catch (error) {
-    console.error('❌ Email-templates proxy (POST) error:', error);
-
-    return NextResponse.json(
-      {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to create email template',
       },
       { status: 500 },
     );

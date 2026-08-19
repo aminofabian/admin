@@ -287,24 +287,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
-    name: 'Phone Verification',
-    icon: <PhoneVerificationIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/verification',
-  },
-  {
-    name: 'Referral Settings',
-    icon: <AffiliatesAgentIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/referral',
-  },
-  {
-    name: 'Promo Codes',
-    icon: <AffiliatesAgentIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/referral-promo-codes',
-  },
-  {
     name: 'Players',
     icon: <PlayerIcon />,
     roles: [USER_ROLES.SUPERADMIN],
@@ -317,8 +299,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
-      { name: 'Prize Wheel', href: '/dashboard/history/roulette-rewards', icon: <HistoryGameActivityIcon /> },
-      { name: 'Meta CAPI', href: '/dashboard/history/meta-capi-events', icon: <HistoryTransactionIcon /> },
     ],
   },
   // Admin/Other roles menu items
