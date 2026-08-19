@@ -43,6 +43,25 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<string, EmailTemplateVariable> = {
     label: 'Campaign / promotion title',
     sample: 'Double Deposit Weekend',
   },
+  username: { key: 'username', label: 'Player username', sample: 'alex_player' },
+  full_name: { key: 'full_name', label: 'Display name', sample: 'Alex Player' },
+  email: { key: 'email', label: 'Player email', sample: 'alex@example.com' },
+  logo: { key: 'logo', label: 'Project logo URL', sample: 'https://cdn.example.com/logo.png' },
+  project_name: { key: 'project_name', label: 'Brand / project name', sample: 'SlotThing' },
+  email_support: { key: 'email_support', label: 'Support email', sample: 'support@example.com' },
+  telegram_support: { key: 'telegram_support', label: 'Support telegram', sample: '@support_bot' },
+  unsubscribe_url: {
+    key: 'unsubscribe_url',
+    label: 'Unsubscribe link',
+    sample: 'https://example.com/users/email/unsubscribe/?token=abc',
+  },
+  balance: { key: 'balance', label: 'Account balance', sample: '125.50' },
+  spins_left: {
+    key: 'spins_left',
+    label: 'Prize wheel spins remaining',
+    sample: '3',
+  },
+  subject: { key: 'subject', label: 'Email subject', sample: 'Your weekend reward is waiting' },
 };
 
 export interface EmailTemplateMeta {
@@ -420,14 +439,23 @@ export function mergeEmailTemplates(backendRows: EmailTemplate[]): EmailTemplate
   });
 }
 
+/** Format a Django-style placeholder token. */
+export function emailPlaceholderToken(key: string): string {
+  return `{{ ${key} }}`;
+}
+
 /**
  * Substitute sample values for every placeholder in a template body.
  * Used to render a realistic preview in the editor.
+ * Supports both `{{ key }}` and `{{key}}`.
  */
 export function renderEmailPreview(html: string, variables: EmailTemplateVariable[]): string {
   let rendered = html;
   for (const variable of variables) {
-    rendered = rendered.split(`{{${variable.key}}}`).join(variable.sample);
+    const spaced = emailPlaceholderToken(variable.key);
+    const compact = `{{${variable.key}}}`;
+    rendered = rendered.split(spaced).join(variable.sample);
+    rendered = rendered.split(compact).join(variable.sample);
   }
   return rendered;
 }

@@ -7,6 +7,7 @@ import {
   canEditRouletteRewards,
   canSyncBinpayKycStatus,
   canClearPlayerSsnHash,
+  canManageEmailBroadcasts,
 } from '@/lib/constants/roles';
 
 describe('canEditPlayerVerification', () => {
@@ -76,5 +77,20 @@ describe('related admin-only player edits', () => {
       expect(canEditRouletteRewards(role)).toBe(canEditPlayerVerification(role));
       expect(canClearPlayerSsnHash(role)).toBe(canEditPlayerVerification(role));
     }
+  });
+});
+
+describe('canManageEmailBroadcasts', () => {
+  it('allows company, manager, and staff', () => {
+    expect(canManageEmailBroadcasts(USER_ROLES.COMPANY)).toBe(true);
+    expect(canManageEmailBroadcasts(USER_ROLES.MANAGER)).toBe(true);
+    expect(canManageEmailBroadcasts(USER_ROLES.STAFF)).toBe(true);
+  });
+
+  it('denies superadmin, agent, player, and missing role', () => {
+    expect(canManageEmailBroadcasts(USER_ROLES.SUPERADMIN)).toBe(false);
+    expect(canManageEmailBroadcasts(USER_ROLES.AGENT)).toBe(false);
+    expect(canManageEmailBroadcasts(USER_ROLES.PLAYER)).toBe(false);
+    expect(canManageEmailBroadcasts(undefined)).toBe(false);
   });
 });

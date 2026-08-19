@@ -11,7 +11,9 @@
     "test:watch": "vitest watch"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "cloudinary": "^2.8.0",
+    "js-beautify": "^2.0.3",
     "lucide-react": "^0.545.0",
     "next": "15.5.7",
     "react": "19.1.0",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/js-beautify": "^1.14.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -14,6 +14,31 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/banners',
+    editable: false,
+  },
+  {
+    id: 'email-templates',
+    title: 'Email Templates',
+    description: 'Customize transactional event emails',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+    href: '/dashboard/settings/email-templates',
+    editable: true,
+  },
+  {
+    id: 'email-broadcasts',
+    title: 'Email Campaigns',
+    description: 'Compose and schedule marketing email broadcasts',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      </svg>
+    ),
+    href: '/dashboard/settings/email-broadcasts',
+    editable: true,
   },
   {
     id: 'payment',
@@ -25,12 +50,13 @@ const settingsCategories = [
       </svg>
     ),
     href: '/dashboard/settings/payment',
+    editable: false,
   },
 ];
 
 /**
- * Staff Settings Section - Read-only
- * Shows settings categories as links to sub-pages
+ * Staff Settings Section
+ * Most settings are read-only; email templates and campaigns are editable.
  */
 export default function StaffSettingsSection() {
   const pathname = usePathname();
@@ -42,7 +68,7 @@ export default function StaffSettingsSection() {
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          View platform settings and configurations (read-only)
+          View platform settings and manage email templates and campaigns
         </p>
       </div>
 
@@ -78,13 +104,13 @@ export default function StaffSettingsSection() {
                 </p>
                 <div className="mt-3">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    Read-only
+                    {category.editable ? 'Editable' : 'Read-only'}
                   </span>
                 </div>
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm text-[#6366f1] dark:text-[#6366f1] group-hover:text-[#5558e3] dark:group-hover:text-[#5558e3]">
-              <span>View Settings</span>
+              <span>{category.editable ? 'Manage' : 'View Settings'}</span>
               <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
