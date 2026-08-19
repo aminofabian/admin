@@ -35,6 +35,8 @@ export interface Company {
   tierlock_payout_client_secret?: string | null;
   meta_pixel_id?: string | null;
   meta_capi_token?: string | null;
+  meta_ads_account_id?: string | null;
+  meta_ads_access_token?: string | null;
   created: string;
   modified?: string;
 }
@@ -72,6 +74,8 @@ export interface CreateCompanyRequest {
   tierlock_payout_client_secret?: string;
   meta_pixel_id?: string;
   meta_capi_token?: string;
+  meta_ads_account_id?: string;
+  meta_ads_access_token?: string;
   logo?: File;
 }
 
@@ -107,5 +111,7 @@ export interface UpdateCompanyRequest {
   tierlock_payout_client_secret?: string;
   meta_pixel_id?: string;
   meta_capi_token?: string;
+  meta_ads_account_id?: string;
+  meta_ads_access_token?: string;
 }
 
