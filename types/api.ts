@@ -19,5 +19,7 @@ export interface ApiError {
   error?: string; // Alternative error message field
   code?: string; // Error code field (e.g., 'token_not_valid')
   kyc_link?: string; // KYC verification link returned by Binpay on withdrawal failure
+  /** Numeric HTTP status of the failed response, when available (e.g., 409, 400). */
+  statusCode?: number;
 }
 

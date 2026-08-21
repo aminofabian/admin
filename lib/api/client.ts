@@ -203,7 +203,9 @@ class ApiClient {
         throw authError;
       }
 
-      throw errorData;
+      // Attach the numeric HTTP status so callers can distinguish 400/409/etc.
+      // (the `status` field above is the backend's string status, e.g. 'error').
+      throw { ...errorData, statusCode: response.status };
     }
 
     // 204 / empty 200 bodies are valid for DELETE and some PATCH responses.

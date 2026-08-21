@@ -404,10 +404,12 @@ function actionErrorMessage(error: unknown, fallback: string): string {
 }
 
 function errorStatusCode(error: unknown): number | undefined {
-  if (!error || typeof error !== 'object' || !('status' in error)) return undefined;
-  const status = (error as { status?: unknown }).status;
-  if (typeof status === 'number') return status;
-  if (typeof status === 'string' && /^\d{3}$/.test(status)) return Number(status);
+  if (!error || typeof error !== 'object') return undefined;
+  const record = error as { status?: unknown; statusCode?: unknown; httpStatus?: unknown };
+  for (const value of [record.statusCode, record.httpStatus, record.status]) {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string' && /^\d{3}$/.test(value)) return Number(value);
+  }
   return undefined;
 }
 
