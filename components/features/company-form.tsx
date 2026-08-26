@@ -227,6 +227,8 @@ const buildFormData = (company?: Company): CreateCompanyRequest => ({
   tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
   meta_pixel_id: company?.meta_pixel_id ?? '',
   meta_capi_token: company?.meta_capi_token ?? '',
+  meta_ads_account_id: company?.meta_ads_account_id ?? '',
+  meta_ads_access_token: company?.meta_ads_access_token ?? '',
 });
 
 const buildOpenProviders = (formData: CreateCompanyRequest) => ({
@@ -253,7 +255,12 @@ const buildOpenProviders = (formData: CreateCompanyRequest) => ({
     formData.taparcaida_payout_api_key,
     formData.taparcaida_payout_api_secret,
   ),
-  meta: hasValue(formData.meta_pixel_id, formData.meta_capi_token),
+  meta: hasValue(
+    formData.meta_pixel_id,
+    formData.meta_capi_token,
+    formData.meta_ads_account_id,
+    formData.meta_ads_access_token,
+  ),
 });
 
 export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyFormProps) => {
@@ -372,6 +379,8 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
           tierlock_payout_client_secret: formData.tierlock_payout_client_secret,
           meta_pixel_id: formData.meta_pixel_id,
           meta_capi_token: formData.meta_capi_token,
+          meta_ads_account_id: formData.meta_ads_account_id,
+          meta_ads_access_token: formData.meta_ads_access_token,
         };
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
       } else {
@@ -582,7 +591,12 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
         title="Meta"
         isOpen={openProviders.meta}
         onToggle={() => toggleProvider('meta')}
-        configured={hasValue(formData.meta_pixel_id, formData.meta_capi_token)}
+        configured={hasValue(
+          formData.meta_pixel_id,
+          formData.meta_capi_token,
+          formData.meta_ads_account_id,
+          formData.meta_ads_access_token,
+        )}
       >
         <Input
           {...field}
@@ -596,6 +610,21 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
           label="CAPI token"
           value={formData.meta_capi_token}
           onChange={(v) => handleChange('meta_capi_token', v)}
+          placeholder="EAAxxxxx..."
+          disabled={isLoading}
+        />
+        <Input
+          {...field}
+          label="Ads account ID"
+          value={formData.meta_ads_account_id}
+          onChange={(e) => handleChange('meta_ads_account_id', e.target.value)}
+          placeholder="act_123456789012345"
+          disabled={isLoading}
+        />
+        <SecretInput
+          label="Ads access token"
+          value={formData.meta_ads_access_token}
+          onChange={(v) => handleChange('meta_ads_access_token', v)}
           placeholder="EAAxxxxx..."
           disabled={isLoading}
         />
