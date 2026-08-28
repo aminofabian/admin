@@ -48,6 +48,7 @@ import {
   formatPaymentMethod,
   getPlayerIpFromTransaction,
   getProviderDisplayName,
+  isCryptoPaymentMethod,
   resolvePayoutContactFromTransaction,
 } from '@/lib/utils/formatters';
 import { getTransactionAmountColorClass } from '@/lib/utils/transaction-display';
@@ -994,7 +995,26 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, [viewType, queueFilter, setTransactionsFilter, setQueuesFilter]);
 
 
-  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia';
+  type TransactionActionType =
+    | 'completed'
+    | 'cancelled'
+    | 'send_to_binpay'
+    | 'send_to_tierlock'
+    | 'send_to_taparcadia'
+    | 'send_to_btcpay';
+
+  const isSendToProviderAction = (
+    action: TransactionActionType
+  ): action is Exclude<TransactionActionType, 'completed' | 'cancelled'> =>
+    action === 'send_to_binpay' ||
+    action === 'send_to_tierlock' ||
+    action === 'send_to_taparcadia' ||
+    action === 'send_to_btcpay';
+
+  const requiresPayoutContact = (action: TransactionActionType): boolean =>
+    action === 'send_to_binpay' ||
+    action === 'send_to_tierlock' ||
+    action === 'send_to_taparcadia';
 
   const handleTransactionAction = async (
     transactionId: string,
@@ -1028,12 +1048,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia'> = {
+    const apiActionMap: Record<
+      TransactionActionType,
+      'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia' | 'send_to_btcpay'
+    > = {
       completed: 'complete',
       cancelled: 'cancel',
       send_to_binpay: 'send_to_binpay',
       send_to_tierlock: 'send_to_tierlock',
       send_to_taparcadia: 'send_to_taparcadia',
+      send_to_btcpay: 'send_to_btcpay',
     };
     const apiAction = apiActionMap[action];
     const successTitleMap: Record<TransactionActionType, string> = {
@@ -1042,6 +1066,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       send_to_binpay: 'Sent to Binpay',
       send_to_tierlock: 'Sent to Tierlock',
       send_to_taparcadia: 'Sent to Taparcadia',
+      send_to_btcpay: 'Sent to BTCPay',
     };
     const successDescriptionMap: Record<TransactionActionType, string> = {
       completed: 'Transaction completed successfully',
@@ -1049,17 +1074,18 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       send_to_binpay: 'Transaction sent to Binpay successfully',
       send_to_tierlock: 'Transaction sent to Tierlock successfully',
       send_to_taparcadia: 'Transaction sent to Taparcadia successfully',
+      send_to_btcpay: 'Transaction sent to BTCPay successfully',
     };
 
     try {
       setPendingTransactionId(internalId ?? transactionId);
 
-      const playerIp = (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction
+      const playerIp = requiresPayoutContact(action) && transaction
         ? getPlayerIpFromTransaction(transaction)
         : null;
 
       let actionOptions: TransactionActionOptions | undefined;
-      if ((action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction) {
+      if (requiresPayoutContact(action) && transaction) {
         let playerOverride: { email?: string; phone?: string } | undefined;
         if (typeof transaction.user_id === 'number' && transaction.user_id > 0) {
           const loaded = await fetchPlayerPayoutContact(transaction.user_id);
@@ -1279,7 +1305,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    if (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') {
+    if (isSendToProviderAction(action)) {
       void handleTransactionAction(
         selectedTransaction.id,
         action,
@@ -1293,22 +1319,25 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     handleTransactionActionClick(selectedTransaction, action);
   };
 
-  /** Map subcategory payment_method/provider_payment_method to API action string. Only Binpay, Tierlock, Taparcaida. */
+  /** Map subcategory payment_method/provider_payment_method to API action string. */
   const subcategoryToAction = (pm: string): string | null => {
     const lower = (pm ?? '').toLowerCase();
     if (lower === 'binpay') return 'send_to_binpay';
     if (lower === 'tierlock') return 'send_to_tierlock';
     if (lower === 'taparcaida' || lower === 'taparcadia' || lower === 'tap') return 'send_to_taparcadia';
+    if (lower === 'btcpay' || lower === 'btc_pay') return 'send_to_btcpay';
     return null;
   };
 
-  /** Build dynamic "Send to X" buttons from payment-methods subcategories. Shows BinPay, Taparcadia, Tierlock when enabled for the transaction's payment method. */
+  /** Build dynamic "Send to X" buttons from payment-methods subcategories, plus BTCPay for crypto cashouts. */
   const sendToProviderButtons = useMemo(() => {
     const txn = selectedTransaction;
     if (!txn || txn.type !== 'cashout' || txn.status !== 'pending') return [];
 
     const pm = (txn.payment_method ?? '').toLowerCase();
     const categories = cashoutCategories ?? [];
+    const seenActions = new Set<string>();
+    const buttons: { label: string; action: string }[] = [];
 
     // Find category by transaction payment_method (e.g. card, venmo, cashapp, chime, paypal, zelle, tierlock)
     let category = categories.find((c) => (c.payment_method ?? '').toLowerCase() === pm);
@@ -1324,23 +1353,27 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       );
     }
 
-    if (!category?.subcategories?.length) return [];
+    if (category?.subcategories?.length) {
+      for (const sub of category.subcategories) {
+        const providerKey = sub.provider_payment_method ?? sub.payment_method ?? '';
+        const action = subcategoryToAction(providerKey);
+        if (!action) continue;
+        if (sub.is_configured !== true || sub.id == null) continue;
+        if (sub.enabled_for_cashout_by_superadmin === false) continue;
+        if (sub.is_enabled_for_cashout !== true) continue;
+        if (seenActions.has(action)) continue;
 
-    const seenActions = new Set<string>();
-    const buttons: { label: string; action: string }[] = [];
+        seenActions.add(action);
+        const label = `Send to ${sub.provider_payment_method_display || sub.payment_method_display || sub.provider_payment_method || sub.payment_method || 'Provider'}`;
+        buttons.push({ label, action });
+      }
+    }
 
-    for (const sub of category.subcategories) {
-      const providerKey = sub.provider_payment_method ?? sub.payment_method ?? '';
-      const action = subcategoryToAction(providerKey);
-      if (!action) continue;
-      if (sub.is_configured !== true || sub.id == null) continue;
-      if (sub.enabled_for_cashout_by_superadmin === false) continue;
-      if (sub.is_enabled_for_cashout !== true) continue;
-      if (seenActions.has(action)) continue;
-
-      seenActions.add(action);
-      const label = `Send to ${sub.provider_payment_method_display || sub.payment_method_display || sub.provider_payment_method || sub.payment_method || 'Provider'}`;
-      buttons.push({ label, action });
+    // Crypto cashouts are paid via BTCPay (wallet is already on the transaction).
+    const isCryptoCashout =
+      isCryptoPaymentMethod(txn.payment_method) || isCryptoPaymentMethod(txn.provider);
+    if (isCryptoCashout && !seenActions.has('send_to_btcpay')) {
+      buttons.push({ label: 'Send to BTCPay', action: 'send_to_btcpay' });
     }
 
     return buttons;
