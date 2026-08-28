@@ -111,7 +111,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.some((o) => o.value === 'freeplay')).toBe(true);
   });
 
-  it('omits paypal from provider filter options', () => {
+  it('includes paypal in provider filter options when configured', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
         {
@@ -142,7 +142,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts.map((o) => o.value.toLowerCase())).not.toContain('paypal');
+    expect(opts.find((o) => o.value.toLowerCase() === 'paypal')?.label).toBe('Paypal');
     expect(opts.some((o) => o.value.toLowerCase() === 'binpay')).toBe(true);
   });
 
@@ -178,6 +178,32 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
     expect(opts.some((o) => o.value === 'banxa')).toBe(false);
     expect(opts.some((o) => o.value === 'stripe')).toBe(true);
+  });
+
+  it('includes coinbase as Coinbase Pay when configured', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'coinbasepay',
+              payment_method_display: 'Coinbase Pay',
+              provider_payment_method: 'coinbase',
+              provider_payment_method_display: 'Coinbase Pay',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
   });
 
   it('uses composite filter value for Cashapp Pay when bitcoin_lightning is configured', () => {
@@ -494,7 +520,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.map((o) => o.value).sort()).toEqual(['manual', 'signup'].sort());
   });
 
-  it('parent paypal category on payment list; provider list still omits paypal integrator slug', () => {
+  it('parent paypal category appears on payment list and paypal integrator on provider list', () => {
     const data: PaymentMethodsListResponseRaw = {
       purchase: [
         {
@@ -519,7 +545,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     const payment = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
     const providers = buildProviderFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
     expect(payment).toContain('paypal');
-    expect(providers).not.toContain('paypal');
+    expect(providers).toContain('paypal');
   });
 });
 
@@ -557,6 +583,10 @@ describe('buildStaticProviderFilterOptions', () => {
     expect(values).toContain('binpay');
     expect(values).toContain('tierlock');
     expect(values).toContain('stripe');
+    expect(values).toContain('paypal');
+    expect(values).toContain('coinbase');
+    expect(opts.find((o) => o.value === 'paypal')?.label).toBe('Paypal');
+    expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
     expect(values).toContain(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
     expect(values).not.toContain('freeplay');
     expect(values).not.toContain('external_deposit');

@@ -42,12 +42,6 @@ function sortFilterOptionsByLabel<T extends { label: string; value: string }>(op
 }
 
 /**
- * Omitted from the provider dropdown and not treated as an integrator slug when splitting
- * payment-method vs provider filters (e.g. PayPal is a rail, not Binpay/Tierlock-style provider).
- */
-const PROVIDER_FILTER_EXCLUDED_SLUGS = new Set(['paypal']);
-
-/**
  * Internal provider-filter value for history API: same integrator slug as Bitcoin Lightning
  * (`bitcoin_lightning`) but scoped to Cash App topups. The store expands this to
  * `provider=bitcoin_lightning&payment_method=cashapp` on fetch.
@@ -137,6 +131,8 @@ const PROVIDER_CANONICAL: Array<{
     matchKeys: ['bitcoin_lightning', 'cashapp_pay', 'cashapppay'],
     fixedFilterValue: CASHAPP_PAY_PROVIDER_FILTER_VALUE,
   },
+  { label: 'Coinbase Pay', matchKeys: ['coinbase', 'coinbasepay', 'coinbase_pay'] },
+  { label: 'Paypal', matchKeys: ['paypal'] },
   { label: 'Topper', matchKeys: ['topper'] },
   { label: 'Moonpay', matchKeys: ['moonpay'] },
   { label: 'Tap', matchKeys: ['tap', 'taparcadia'] },
@@ -318,7 +314,6 @@ function collectRawProviderMap(
     const v = raw?.trim();
     if (!v) return;
     const key = normKey(v);
-    if (PROVIDER_FILTER_EXCLUDED_SLUGS.has(key)) return;
     const label =
       displayHint?.trim() && displayHint.trim().length > 0
         ? displayHint.trim()
