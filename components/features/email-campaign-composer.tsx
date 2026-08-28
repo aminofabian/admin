@@ -534,8 +534,9 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
         </div>
         <div className="space-y-2 px-3 py-3">
           <p className="text-xs font-medium text-gray-800 dark:text-gray-100">{recipientLabel}</p>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="divide-y divide-gray-200/80 overflow-hidden rounded-lg border border-gray-200/80 bg-gray-50/70 dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-900/40">
             <ComposerMetric
+              layout="row"
               label="Matched"
               value={
                 recipientPreview.loading
@@ -546,6 +547,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               }
             />
             <ComposerMetric
+              layout="row"
               label="Excluded"
               value={
                 recipientPreview.excluded == null
@@ -555,6 +557,7 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
               tone="warning"
             />
             <ComposerMetric
+              layout="row"
               label="Final"
               value={
                 recipientPreview.loading
@@ -589,33 +592,6 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
           ) : null}
         </div>
       </div>
-
-      {panel === 'write' && draft.html_body.trim() ? (
-        <div className="hidden overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm xl:block dark:border-gray-700/80 dark:bg-gray-800">
-          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2 dark:border-gray-700/80">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              Mini preview
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setContentTab('preview');
-                setPreviewKey((k) => k + 1);
-              }}
-              className="text-[10px] font-medium text-[#4f46e5] hover:underline"
-            >
-              Open
-            </button>
-          </div>
-          <iframe
-            key={`mini-${previewKey}`}
-            title="Mini email preview"
-            srcDoc={previewHtml}
-            sandbox=""
-            className="h-40 w-full bg-white"
-          />
-        </div>
-      ) : null}
     </aside>
   );
 

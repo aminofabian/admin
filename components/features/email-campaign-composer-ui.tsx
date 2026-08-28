@@ -50,11 +50,13 @@ export function ComposerMetric({
   value,
   tone = 'default',
   size = 'sm',
+  layout = 'stack',
 }: {
   label: string;
   value: ReactNode;
   tone?: 'default' | 'success' | 'warning' | 'muted';
   size?: 'sm' | 'lg';
+  layout?: 'stack' | 'row';
 }) {
   const valueClass =
     tone === 'success'
@@ -67,14 +69,37 @@ export function ComposerMetric({
 
   const isLg = size === 'lg';
 
+  if (layout === 'row') {
+    return (
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <p className="min-w-0 text-[10px] font-semibold uppercase leading-none tracking-wide text-gray-400">
+          {label}
+        </p>
+        <p
+          className={`shrink-0 font-semibold tabular-nums leading-none ${valueClass} ${
+            isLg ? 'text-2xl' : 'text-sm'
+          }`}
+        >
+          {value}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`border border-gray-200/80 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-900/40 ${
+      className={`min-w-0 border border-gray-200/80 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-900/40 ${
         isLg ? 'rounded-xl px-4 py-4' : 'rounded-lg px-3 py-2.5'
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-      <p className={`mt-0.5 font-semibold tabular-nums ${valueClass} ${isLg ? 'text-2xl' : 'text-base'}`}>
+      <p className="text-[10px] font-semibold uppercase leading-none tracking-wide text-gray-400">
+        {label}
+      </p>
+      <p
+        className={`mt-1.5 font-semibold tabular-nums leading-none ${valueClass} ${
+          isLg ? 'text-2xl' : 'text-base'
+        }`}
+      >
         {value}
       </p>
     </div>
