@@ -454,6 +454,8 @@ export function EmailCampaignComposer({ scopeKey, onSent }: EmailCampaignCompose
     setErrors([]);
     try {
       if (draft.broadcast_id) {
+        const payload = buildCreatePayload(draft, true);
+        await emailBroadcastsApi.update(draft.broadcast_id, payload);
         await emailBroadcastsApi.send(draft.broadcast_id);
       } else {
         const payload = buildCreatePayload(draft, false);
