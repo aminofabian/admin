@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildHistoryPaymentMethodFilterOptionsFromPaymentMethodsRaw,
+  buildHistoryProviderFilterOptionsFromPaymentMethodsRaw,
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
   buildStaticPaymentMethodFilterOptions,
@@ -204,6 +206,32 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
     expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
+  });
+
+  it('appends unknown API providers that are not in the canonical list', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'alchemy',
+              payment_method_display: 'Alchemy',
+              provider_payment_method: 'alchemypay',
+              provider_payment_method_display: 'AlchemyPay',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.find((o) => o.value === 'alchemypay')?.label).toBe('AlchemyPay');
   });
 
   it('uses composite filter value for Cashapp Pay when bitcoin_lightning is configured', () => {
@@ -605,5 +633,83 @@ describe('buildStaticProviderFilterOptions', () => {
     expect(staticOpts).not.toContain('freeplay');
     expect(dynamic).not.toContain('binpay');
     expect(dynamic).not.toContain('moonpay');
+  });
+});
+
+describe('buildHistoryProviderFilterOptionsFromPaymentMethodsRaw', () => {
+  it('includes configured providers and omits ledger providers', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'paypal',
+              payment_method_display: 'Paypal',
+              provider_payment_method: 'paypal',
+              provider_payment_method_display: 'Paypal',
+            },
+            {
+              id: 2,
+              is_configured: true,
+              payment_method: 'coinbasepay',
+              payment_method_display: 'Coinbase Pay',
+              provider_payment_method: 'coinbase',
+              provider_payment_method_display: 'Coinbase Pay',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildHistoryProviderFilterOptionsFromPaymentMethodsRaw(data);
+    const values = opts.map((o) => o.value.toLowerCase());
+    expect(values).toContain('paypal');
+    expect(values).toContain('coinbase');
+    expect(values).not.toContain('freeplay');
+    expect(values).not.toContain('signup');
+  });
+
+  it('always returns Paypal and Coinbase Pay even when payment settings omit them', () => {
+    const opts = buildHistoryProviderFilterOptionsFromPaymentMethodsRaw({
+      cashout: [],
+      purchase: [],
+    });
+    expect(opts.find((o) => o.value === 'paypal')?.label).toBe('Paypal');
+    expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
+    expect(opts.map((o) => o.value)).not.toContain('freeplay');
+  });
+});
+
+describe('buildHistoryPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
+  it('includes configured payment methods and omits ledger rails', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'paypal',
+          payment_method_display: 'Paypal',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'paypal_wallet',
+              payment_method_display: 'PayPal',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildHistoryPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.map((o) => o.value.toLowerCase())).toContain('paypal');
+    expect(opts.map((o) => o.value.toLowerCase())).not.toContain('manual');
+    expect(opts.map((o) => o.value.toLowerCase())).not.toContain('signup');
   });
 });

@@ -366,17 +366,24 @@ function collectRawProviderMap(
 /**
  * Provider slugs for transaction history `provider` query param: superadmin-enabled integrators from
  * payment settings plus ledger providers always available; sorted A–Z by label.
+ * Unknown API providers (not in the canonical list) are appended so new rails appear without a
+ * frontend list update.
  */
 export function buildProviderFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,
 ): Array<{ value: string; label: string }> {
   const rawMap = collectRawProviderMap(data);
   const result: Array<{ value: string; label: string }> = [];
+  const consumedKeys = new Set<string>();
 
   for (const row of PROVIDER_CANONICAL) {
     const fromApi = row.matchKeys.map((k) => rawMap.get(normKey(k))).find(Boolean);
     const visible = row.alwaysVisible === true || fromApi != null;
     if (!visible) continue;
+
+    for (const k of row.matchKeys) {
+      if (rawMap.has(normKey(k))) consumedKeys.add(normKey(k));
+    }
 
     const value =
       row.fixedFilterValue ?? fromApi?.value ?? row.matchKeys[0].replace(/-/g, '_');
@@ -384,5 +391,45 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
     result.push({ value, label: row.label });
   }
 
+  for (const [key, entry] of rawMap) {
+    if (consumedKeys.has(key)) continue;
+    if (MANUAL_TXN_PROVIDER_MATCH_KEYS.has(key)) continue;
+    result.push({ value: entry.value, label: entry.label });
+  }
+
   return sortFilterOptionsByLabel(result);
+}
+
+/** Always shown on history Provider filters even if payment settings omit them. */
+const HISTORY_PROVIDER_ALWAYS_INCLUDED: Array<{ value: string; label: string }> = [
+  { value: 'paypal', label: 'Paypal' },
+  { value: 'coinbase', label: 'Coinbase Pay' },
+];
+
+/**
+ * History Provider dropdown: configured purchase/cashout integrators from payment settings,
+ * excluding ledger/manual providers. Paypal and Coinbase Pay are always included.
+ * Sorted A–Z by label.
+ */
+export function buildHistoryProviderFilterOptionsFromPaymentMethodsRaw(
+  data: PaymentMethodsListResponseRaw,
+): Array<{ value: string; label: string }> {
+  const fromApi = buildProviderFilterOptionsFromPaymentMethodsRaw(data).filter(
+    (o) => !MANUAL_TXN_PROVIDER_MATCH_KEYS.has(normKey(o.value)),
+  );
+  const seen = new Set(fromApi.map((o) => normKey(o.value)));
+  const extras = HISTORY_PROVIDER_ALWAYS_INCLUDED.filter((o) => !seen.has(normKey(o.value)));
+  return sortFilterOptionsByLabel([...fromApi, ...extras]);
+}
+
+/**
+ * History Payment method dropdown: configured purchase parents from payment settings,
+ * excluding ledger rails. Sorted A–Z by label.
+ */
+export function buildHistoryPaymentMethodFilterOptionsFromPaymentMethodsRaw(
+  data: PaymentMethodsListResponseRaw,
+): Array<{ value: string; label: string }> {
+  return buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).filter(
+    (o) => !MANUAL_TXN_PAYMENT_METHOD_QUERY_VALUES.has(normKey(o.value)),
+  );
 }

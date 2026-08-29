@@ -18,8 +18,6 @@ import {
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
 import {
-  STATIC_PAYMENT_METHOD_FILTER_OPTIONS,
-  STATIC_PROVIDER_FILTER_OPTIONS,
   normalizePaymentMethodFilterQueryValue,
   resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
@@ -38,6 +36,7 @@ import {
   applyListDateFilterChange,
   inferListDatePreset,
 } from '@/lib/utils/list-filter-date-preset';
+import { useHistoryPaymentFilterOptions } from '@/hooks/use-history-payment-filter-options';
 
 const TRANSACTIONS_SKELETON = (
   <div className="space-y-6">
@@ -186,6 +185,11 @@ export function TransactionsSection() {
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isOperatorLoading, setIsOperatorLoading] = useState(false);
+  const {
+    paymentMethodOptions,
+    providerOptions,
+    isLoading: isPaymentFilterLoading,
+  } = useHistoryPaymentFilterOptions(areFiltersOpen);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lastNotificationKeyRef = useRef<string>('');
 
@@ -757,6 +761,9 @@ export function TransactionsSection() {
         onPageChange={setPage}
         agentOptions={agentOptions}
         isAgentLoadingAgents={isAgentLoading}
+        paymentMethodOptions={paymentMethodOptions}
+        providerOptions={providerOptions}
+        isPaymentFilterLoading={isPaymentFilterLoading}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
@@ -780,6 +787,9 @@ interface TransactionsLayoutProps {
   onPageChange: (page: number) => void;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoadingAgents: boolean;
+  paymentMethodOptions: Array<{ value: string; label: string }>;
+  providerOptions: Array<{ value: string; label: string }>;
+  isPaymentFilterLoading: boolean;
   operatorOptions: Array<{ value: string; label: string }>;
   isOperatorLoading: boolean;
   isLoading: boolean;
@@ -800,6 +810,9 @@ function TransactionsLayout({
   onPageChange,
   agentOptions,
   isAgentLoadingAgents,
+  paymentMethodOptions,
+  providerOptions,
+  isPaymentFilterLoading,
   operatorOptions,
   isOperatorLoading,
   isLoading,
@@ -846,8 +859,10 @@ function TransactionsLayout({
         ]}
         agentOptions={agentOptions}
         isAgentLoading={isAgentLoadingAgents}
-        paymentMethodOptions={STATIC_PAYMENT_METHOD_FILTER_OPTIONS}
-        providerOptions={STATIC_PROVIDER_FILTER_OPTIONS}
+        paymentMethodOptions={paymentMethodOptions}
+        isPaymentMethodLoading={isPaymentFilterLoading}
+        providerOptions={providerOptions}
+        isProviderLoading={isPaymentFilterLoading}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}

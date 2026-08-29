@@ -7,8 +7,6 @@ import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, 
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
 import {
-    STATIC_PAYMENT_METHOD_FILTER_OPTIONS,
-    STATIC_PROVIDER_FILTER_OPTIONS,
     normalizePaymentMethodFilterQueryValue,
     resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
@@ -20,11 +18,12 @@ import {
 } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import {
-  applyListDateFilterChange,
-  inferListDatePreset,
+    applyListDateFilterChange,
+    inferListDatePreset,
 } from '@/lib/utils/list-filter-date-preset';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
 import { transactionsApi } from '@/lib/api/transactions';
+import { useHistoryPaymentFilterOptions } from '@/hooks/use-history-payment-filter-options';
 import type { Agent, Company, Transaction } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
@@ -111,6 +110,11 @@ export function SuperAdminHistoryTransactions() {
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const {
+        paymentMethodOptions,
+        providerOptions,
+        isLoading: isPaymentFilterLoading,
+    } = useHistoryPaymentFilterOptions(areFiltersOpen);
 
     // Initialize filter once and clear any previous filters (unless preserveFilters is set)
     useEffect(() => {
@@ -854,8 +858,10 @@ export function SuperAdminHistoryTransactions() {
                 onToggle={handleToggleFilters}
                 agentOptions={[]}
                 isAgentLoading={false}
-                paymentMethodOptions={STATIC_PAYMENT_METHOD_FILTER_OPTIONS}
-                providerOptions={STATIC_PROVIDER_FILTER_OPTIONS}
+                paymentMethodOptions={paymentMethodOptions}
+                isPaymentMethodLoading={isPaymentFilterLoading}
+                providerOptions={providerOptions}
+                isProviderLoading={isPaymentFilterLoading}
                 isLoading={isLoading}
             />
 
