@@ -317,7 +317,21 @@ const IDENTITY_PRIORITY: [string, string[]][] = [
   ['Username', ['username', 'venmo_username', 'venmo_handle', 'venmo_user', 'user_name']],
   ['Phone', ['phone', 'phone_number', 'phonenumber']],
   ['Cashtag', ['cashtag', 'cash_tag', 'chimetag', 'chimesign', 'chime_sign']],
-  ['Wallet', ['wallet_address', 'wallet', 'crypto_address', 'address', 'destination']],
+  [
+    'Wallet',
+    [
+      'wallet_address',
+      'wallet',
+      'crypto_address',
+      'address',
+      'destination',
+      'lightning_invoice',
+      'ln_invoice',
+      'lightning_address',
+      'bolt11',
+      'payment_request',
+    ],
+  ],
   ['Player IP', ['binpay_player_ip_address', 'player_ip_address', 'player_ip']],
 ];
 
@@ -408,6 +422,21 @@ function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string
 
 /** Crypto rails (and lightning): provider is tied to the method, unlike card cashouts where admins pick at send time. */
 const CRYPTO_PAYMENT_METHOD_SUBSTRINGS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'] as const;
+
+/** On-chain address plus Lightning invoice keys used by the player cashout form. */
+const CRYPTO_WALLET_KEYS = [
+  'wallet_address',
+  'wallet',
+  'crypto_address',
+  'address',
+  'destination',
+  'lightning_invoice',
+  'ln_invoice',
+  'lightning_address',
+  'bolt11',
+  'payment_request',
+  'invoice',
+] as const;
 
 export function isCryptoPaymentMethod(paymentMethod: string | null | undefined): boolean {
   const lower = (paymentMethod ?? '').trim().toLowerCase();
@@ -665,6 +694,16 @@ export function getPaymentDetailsForDisplay(
 
   const rawMethodForCrypto = transaction.payment_method ?? resolvedMethod;
   if (isCryptoPaymentMethod(rawMethodForCrypto)) {
+    if (paymentDetails && typeof paymentDetails === 'object') {
+      const alreadyHasWallet = entries.some(([label]) => label.toLowerCase() === 'wallet');
+      if (!alreadyHasWallet) {
+        const walletVal = pickValue(paymentDetails, [...CRYPTO_WALLET_KEYS]);
+        if (walletVal) {
+          entries.unshift(['Wallet', walletVal]);
+        }
+      }
+    }
+
     const providerRaw =
       transaction.provider ??
       (paymentDetails && typeof paymentDetails === 'object'

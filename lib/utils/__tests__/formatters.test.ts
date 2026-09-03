@@ -190,6 +190,30 @@ describe('formatters', () => {
       expect(rows.find(([label]) => label === 'Provider')?.[1]).toBe('Opennode');
     });
 
+    it('includes Wallet for bitcoin lightning cashout stored as lightning_invoice', () => {
+      const invoice = 'lnbc100u1pexampleinvoice00000000000000000000000000000';
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'crypto',
+        provider: 'bitcoin_lightning',
+        payment_details: {
+          lightning_invoice: invoice,
+        },
+      });
+      expect(rows.find(([label]) => label === 'Wallet')?.[1]).toBe(invoice);
+    });
+
+    it('includes Wallet for bitcoin lightning cashout stored as invoice', () => {
+      const invoice = 'lnbc100u1pexampleinvoice00000000000000000000000000000';
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'crypto',
+        provider: 'bitcoin_lightning',
+        payment_details: {
+          invoice,
+        },
+      });
+      expect(rows.find(([label]) => label === 'Wallet')?.[1]).toBe(invoice);
+    });
+
     it('does not add Provider row for card when identity fields already fill the panel', () => {
       const rows = getPaymentDetailsForDisplay({
         payment_method: 'card',
