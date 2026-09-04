@@ -265,17 +265,41 @@ export const transactionsApi = {
       }
     }
 
-    const response = await apiClient.post<{ status: string; message: string; kyc_link?: string }>(
-      'api/transaction-action',
-      formData
-    );
+    const response = await apiClient.post<{
+      status: string;
+      message: string;
+      code?: string;
+      error?: string;
+      kyc_link?: string;
+      requested_amount?: string;
+      cashout_24h_limit?: string | null;
+      cashout_24h_limit_source?: string;
+      cashout_24h_completed_amount?: string;
+      cashout_24h_reserved_amount?: string;
+      cashout_24h_remaining_amount?: string | null;
+      cashout_24h_window_started_at?: string;
+      cashout_24h_as_of?: string;
+    }>('api/transaction-action', formData);
     
-    // Check if the response contains an error (backend errors return 200 with error in body)
-    if (response.status === 'error') {
+    // Check if the response contains an error (backend may return 200 with error in body)
+    if (
+      response.status === 'error' ||
+      response.code === 'cashout_24h_limit_exceeded'
+    ) {
       throw {
         status: 'error',
-        message: response.message || 'Failed to process transaction action',
+        message: response.message || response.error || 'Failed to process transaction action',
+        error: response.error || response.message,
+        code: response.code,
         kyc_link: response.kyc_link,
+        requested_amount: response.requested_amount,
+        cashout_24h_limit: response.cashout_24h_limit,
+        cashout_24h_limit_source: response.cashout_24h_limit_source,
+        cashout_24h_completed_amount: response.cashout_24h_completed_amount,
+        cashout_24h_reserved_amount: response.cashout_24h_reserved_amount,
+        cashout_24h_remaining_amount: response.cashout_24h_remaining_amount,
+        cashout_24h_window_started_at: response.cashout_24h_window_started_at,
+        cashout_24h_as_of: response.cashout_24h_as_of,
       };
     }
     

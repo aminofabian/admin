@@ -39,6 +39,7 @@ import { PlayerAgentAssignmentSection } from '@/components/dashboard/players/pla
 import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
+import { PlayerCashout24hOverrideSection } from '@/components/dashboard/players/player-cashout-24h-override-section';
 import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
@@ -1344,6 +1345,11 @@ export default function PlayerDetailPage() {
               playerId={selectedPlayer.id}
               playerUsername={selectedPlayer.username}
               canEdit={canEditPlayerReferralOverride(user?.role)}
+            />
+            <PlayerCashout24hOverrideSection
+              player={selectedPlayer}
+              canEdit={canEditPlayerCashoutLimit(user?.role)}
+              onPlayerUpdated={(updated) => setSelectedPlayer(updated)}
             />
             <PlayerReferralDetailsSection player={selectedPlayer} />
           </div>

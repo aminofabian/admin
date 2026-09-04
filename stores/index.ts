@@ -15,6 +15,7 @@ export { useAffiliateSettingsStore } from './use-affiliate-settings-store';
 export { useReferralSettingsStore } from './use-referral-settings-store';
 export { useReferralPlayerOverrideStore } from './use-referral-player-override-store';
 export { useReferralPromoCodesStore } from './use-referral-promo-codes-store';
+export { useCashout24hSettingsStore } from './use-cashout-24h-settings-store';
 export { useGameSettingsStore } from './use-game-settings-store';
 export { usePaymentMethodsStore } from './use-payment-methods-store';
 export { useChatLinksStore } from './use-chat-links-store';

@@ -27,6 +27,7 @@ import { PlayerQuickActionsBar } from '@/components/dashboard/players/player-qui
 import { PlayerTransactionSummarySection } from '@/components/dashboard/players/player-transaction-summary-section';
 import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { PlayerReferralOverrideSection } from '@/components/dashboard/players/player-referral-override-section';
+import { PlayerCashout24hOverrideSection } from '@/components/dashboard/players/player-cashout-24h-override-section';
 import { PlayerReferralDetailsSection } from '@/components/dashboard/players/player-referral-details-section';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerProfileAdminBar } from '@/components/dashboard/players/player-profile-admin-bar';
@@ -815,6 +816,11 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
             playerId={selectedPlayer.id}
             playerUsername={selectedPlayer.username}
             canEdit={canEditPlayerReferralOverride(USER_ROLES.SUPERADMIN)}
+          />
+          <PlayerCashout24hOverrideSection
+            player={selectedPlayer}
+            canEdit={canEditPlayerCashoutLimit(USER_ROLES.SUPERADMIN)}
+            onPlayerUpdated={(updated) => setSelectedPlayer(updated)}
           />
           <PlayerReferralDetailsSection player={selectedPlayer} />
         </div>

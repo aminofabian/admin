@@ -107,6 +107,17 @@ export interface SaveReferralPlayerOverrideRequest {
   referred_player_bonus_amount: number;
 }
 
+/** Effective rolling 24h cashout policy resolved by the backend. */
+export interface EffectiveCashout24hLimit {
+  amount: string | null;
+  source: 'player_override' | 'company_default' | 'unlimited' | string;
+}
+
+/** Company default rolling 24-hour cashout cap. Null = unlimited. */
+export interface Cashout24hCompanyDefault {
+  cashout_24h_limit: string | null;
+}
+
 export interface ReferralPromoCode {
   id: number;
   code: string;

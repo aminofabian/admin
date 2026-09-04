@@ -137,7 +137,7 @@ export function PlayerAccountOverview({
           <StatCell label="Balance">{formatCurrency(balance ?? 0)}</StatCell>
 
           <StatCell
-            label="Cashout limit"
+            label="Wallet cashout limit"
             action={
               canEditCashoutLimit ? (
                 <button
@@ -187,7 +187,7 @@ export function PlayerAccountOverview({
       <Modal
         isOpen={modalOpen}
         onClose={() => !saving && setModalOpen(false)}
-        title="Edit cashout limit"
+        title="Edit wallet cashout limit"
         size="sm"
         footer={
           <>

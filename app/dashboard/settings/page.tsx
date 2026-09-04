@@ -57,6 +57,24 @@ const settingsCategories = [
     permissions: ['company', 'superadmin'],
   },
   {
+    id: 'cashout-24h',
+    title: '24-Hour Cashout Limit',
+    description:
+      'Company default rolling 24-hour cashout cap (separate from wallet cashout limit)',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+    href: '/dashboard/settings/cashout-24h',
+    permissions: ['company', 'superadmin', 'manager'],
+  },
+  {
     id: 'referral-promo-codes',
     title: 'Referral Promo Codes',
     description: 'Create and manage custom signup promo codes',

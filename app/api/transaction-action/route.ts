@@ -66,15 +66,37 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     console.log('📥 Backend response data:', data);
 
-    // If backend returned an error, forward it with detailed logging
-    if (data.status === 'error') {
+    const isLimitExceeded =
+      data &&
+      typeof data === 'object' &&
+      (data as { code?: unknown }).code === 'cashout_24h_limit_exceeded';
+    const isExplicitError =
+      data && typeof data === 'object' && (data as { status?: unknown }).status === 'error';
+
+    // Preserve structured limit-exceeded / error payloads for the client.
+    // Prefer forwarding the backend HTTP status for 4xx limit errors so callers can key off status+code.
+    if (isLimitExceeded || isExplicitError || !response.ok) {
       console.error('❌ Backend returned error:', {
         backendStatus: response.status,
         errorData: data,
       });
-      // Always return 200 with error in body so the client can handle it properly
-      // Don't use backend's HTTP status as it causes confusion (404 looks like route not found)
-      return NextResponse.json(data, { status: 200 });
+      const body =
+        data && typeof data === 'object'
+          ? {
+              status: 'error',
+              ...data,
+              code: (data as { code?: string }).code,
+              message:
+                (data as { message?: string }).message ||
+                (data as { error?: string }).error ||
+                'Failed to process transaction action',
+            }
+          : {
+              status: 'error',
+              message: 'Failed to process transaction action',
+            };
+      // Keep 200 for legacy clients that only inspect body.status, but always include status:'error'.
+      return NextResponse.json(body, { status: 200 });
     }
 
     // Return the success response

@@ -87,6 +87,16 @@ export interface Player extends BaseUser {
   balance: string;
   winning_balance: string;
   cashout_limit?: string;
+  /**
+   * Player-level rolling 24h cashout override. null = inherit company default.
+   * Do not confuse with cashout_limit (wallet withdrawable balance).
+   */
+  cashout_24h_limit_override?: string | null;
+  /** Backend-resolved effective rolling 24h limit for this player. */
+  effective_cashout_24h_limit?: {
+    amount: string | null;
+    source: string;
+  } | null;
   locked_balance?: string;
   first_name?: string | null;
   last_name?: string | null;
@@ -177,6 +187,8 @@ export interface UpdateUserRequest {
   country?: string;
   agent_id?: number;
   cashout_limit?: string;
+  /** null clears override and inherits company 24h default. Two-decimal string when set. */
+  cashout_24h_limit_override?: string | null;
   mobile_verified?: boolean;
   is_mobile_verified?: boolean;
   phone_verified?: boolean;

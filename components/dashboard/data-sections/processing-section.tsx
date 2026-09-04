@@ -59,6 +59,10 @@ import { storage } from '@/lib/utils/storage';
 import { requiresEntriesOnCompleteFromQueue } from '@/lib/utils/game-entries-on-complete';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
+import {
+  cashout24hExceededAdminMessage,
+  isCashout24hLimitExceeded,
+} from '@/lib/cashout-24h-limit';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
@@ -1163,15 +1167,31 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     } catch (error) {
       // Extract error message from ApiError object
       let errorMessage = 'Failed to update transaction status';
+      let errorTitle = 'Transaction Action Failed';
 
       if (error && typeof error === 'object') {
-        const apiError = error as ApiError;
-        errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+        const apiError = error as ApiError & {
+          code?: string;
+          cashout_24h_completed_amount?: string;
+          cashout_24h_reserved_amount?: string;
+          cashout_24h_remaining_amount?: string | null;
+          cashout_24h_limit?: string | null;
+        };
+
+        if (isCashout24hLimitExceeded(apiError)) {
+          errorTitle = '24-hour cashout limit';
+          errorMessage = cashout24hExceededAdminMessage(apiError);
+          // Leave request pending/failed — refresh queue so UI stays accurate.
+          void fetchTransactions();
+        } else {
+          errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+        }
 
         console.error('❌ Transaction Action Error:', {
           message: apiError.message,
           detail: apiError.detail,
           error: apiError.error,
+          code: apiError.code,
           status: apiError.status,
           kyc_link: apiError.kyc_link,
           fullError: JSON.stringify(error, null, 2),
@@ -1186,9 +1206,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       // Display error to user using toast notification
       addToast({
         type: 'error',
-        title: 'Transaction Action Failed',
+        title: errorTitle,
         description: errorMessage,
-        duration: 6000,
+        duration: 8000,
       });
       
       // Don't re-throw - error is already handled and displayed to user
