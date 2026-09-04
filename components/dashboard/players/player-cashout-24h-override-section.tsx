@@ -78,7 +78,14 @@ export function PlayerCashout24hOverrideSection({
     void loadUsage();
   }, [player.id, player.cashout_24h_limit_override, player.effective_cashout_24h_limit, loadUsage]);
 
+  const badgeLabel =
+    effective?.source === 'player_override'
+      ? 'Player override'
+      : effective?.source === 'unlimited'
+        ? 'Unlimited'
+        : 'Company default';
   const badgeIsOverride = effective?.source === 'player_override';
+  const badgeIsUnlimited = effective?.source === 'unlimited';
 
   const handleSave = async () => {
     setFormError(null);
@@ -149,10 +156,12 @@ export function PlayerCashout24hOverrideSection({
           className={`border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
             badgeIsOverride
               ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300'
-              : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+              : badgeIsUnlimited
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
           }`}
         >
-          {badgeIsOverride ? 'Player override' : 'Company default'}
+          {badgeLabel}
         </span>
       }
     >

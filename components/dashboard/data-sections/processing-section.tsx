@@ -1039,14 +1039,26 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    // Check if transaction is pending
-    if (transactionStatus && transactionStatus !== 'pending') {
+    // Pending: normal queue actions. Failed: allow send/complete retry (24h limit still enforced server-side).
+    const statusLower = (transactionStatus ?? '').toLowerCase();
+    const canActOnStatus = !transactionStatus || statusLower === 'pending' || statusLower === 'failed';
+    if (!canActOnStatus) {
       const actionLabel = action === 'completed' ? 'complete' : action === 'cancelled' ? 'cancel' : action;
-      console.error('❌ Transaction is not pending:', { transactionId, status: transactionStatus });
+      console.error('❌ Transaction status does not allow this action:', { transactionId, status: transactionStatus });
       addToast({
         type: 'error',
         title: 'Invalid Action',
         description: `Cannot ${actionLabel} a transaction that is already ${transactionStatus}.`,
+        duration: 5000,
+      });
+      return;
+    }
+    // Cancel only makes sense for pending (not failed retries).
+    if (action === 'cancelled' && statusLower === 'failed') {
+      addToast({
+        type: 'error',
+        title: 'Invalid Action',
+        description: 'Failed cashouts cannot be cancelled. Use send/complete to retry.',
         duration: 5000,
       });
       return;
@@ -1352,7 +1364,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   /** Build dynamic "Send to X" buttons from payment-methods subcategories, plus BTCPay for crypto cashouts. */
   const sendToProviderButtons = useMemo(() => {
     const txn = selectedTransaction;
-    if (!txn || txn.type !== 'cashout' || txn.status !== 'pending') return [];
+    const status = (txn?.status ?? '').toLowerCase();
+    // Pending queue + eligible failed retries (24h limit re-checked on send).
+    if (!txn || txn.type !== 'cashout' || (status !== 'pending' && status !== 'failed')) return [];
 
     // bitcoin_lightning / cashapp_lightning / on-chain crypto → BTCPay only (not Tap/Binpay under cashapp).
     const isCryptoCashout =
@@ -1741,11 +1755,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           onClose={handleCloseViewModal}
           navigation={transactionDrawerNavigation}
           onComplete={
-            selectedTransaction.status === 'pending' && !isTierlockCashoutRequest
+            (selectedTransaction.status?.toLowerCase() === 'pending' ||
+              selectedTransaction.status?.toLowerCase() === 'failed') &&
+            !isTierlockCashoutRequest
               ? () => handleTransactionDetailsAction('completed')
               : undefined
           }
-          onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
+          onCancel={
+            selectedTransaction.status?.toLowerCase() === 'pending'
+              ? () => handleTransactionDetailsAction('cancelled')
+              : undefined
+          }
           sendToProviderButtons={
             sendToProviderButtons.length > 0 ? sendToProviderButtons : undefined
           }
@@ -1756,14 +1776,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           }
           onSendToBinpay={
             sendToProviderButtons.length === 0 &&
-            selectedTransaction.status === 'pending' &&
+            (selectedTransaction.status?.toLowerCase() === 'pending' ||
+              selectedTransaction.status?.toLowerCase() === 'failed') &&
             /binpay/i.test(selectedTransaction.payment_method ?? '')
               ? () => handleTransactionDetailsAction('send_to_binpay')
               : undefined
           }
           onSendToTierlock={
             sendToProviderButtons.length === 0 &&
-            selectedTransaction.status === 'pending' &&
+            (selectedTransaction.status?.toLowerCase() === 'pending' ||
+              selectedTransaction.status?.toLowerCase() === 'failed') &&
             /tierlock/i.test(selectedTransaction.payment_method ?? '')
               ? () => handleTransactionDetailsAction('send_to_tierlock')
               : undefined

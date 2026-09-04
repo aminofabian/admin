@@ -238,7 +238,17 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     }
     return formatCurrency(parseNumericValue(transaction.amount) ?? 0);
   }, [transaction.amount, timelineAmountPreview]);
-  const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
+  const isPending = useMemo(
+    () => transaction.status?.toLowerCase() === 'pending',
+    [transaction.status],
+  );
+  const isFailedRetryable = useMemo(
+    () =>
+      transaction.type === 'cashout' &&
+      transaction.status?.toLowerCase() === 'failed',
+    [transaction.type, transaction.status],
+  );
+  const canActOnTransaction = isPending || isFailedRetryable;
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
   const hasDynamicSendButtons = Boolean(
@@ -349,10 +359,10 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const headerTypeLabel = isVerification
     ? 'IDENTITY VERIFICATION'
     : transaction.type.toUpperCase();
-  const showActions = isPending && (hasComplete || hasCancel || hasSendToProvider);
-  const disableComplete = isActionLoading || !isPending;
+  const showActions = canActOnTransaction && (hasComplete || hasCancel || hasSendToProvider);
+  const disableComplete = isActionLoading || !canActOnTransaction;
   const disableCancel = isActionLoading || !isPending;
-  const disableSendToProvider = isActionLoading || !isPending;
+  const disableSendToProvider = isActionLoading || !canActOnTransaction;
 
   const showNavigation =
     navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
