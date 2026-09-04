@@ -1334,6 +1334,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     const txn = selectedTransaction;
     if (!txn || txn.type !== 'cashout' || txn.status !== 'pending') return [];
 
+    // bitcoin_lightning / cashapp_lightning / on-chain crypto → BTCPay only (not Tap/Binpay under cashapp).
+    const isCryptoCashout =
+      isCryptoPaymentMethod(txn.payment_method) || isCryptoPaymentMethod(txn.provider);
+    if (isCryptoCashout) {
+      return [{ label: 'Send to BTCPay', action: 'send_to_btcpay' }];
+    }
+
     const pm = (txn.payment_method ?? '').toLowerCase();
     const categories = cashoutCategories ?? [];
     const seenActions = new Set<string>();
@@ -1367,13 +1374,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         const label = `Send to ${sub.provider_payment_method_display || sub.payment_method_display || sub.provider_payment_method || sub.payment_method || 'Provider'}`;
         buttons.push({ label, action });
       }
-    }
-
-    // Crypto cashouts are paid via BTCPay (wallet is already on the transaction).
-    const isCryptoCashout =
-      isCryptoPaymentMethod(txn.payment_method) || isCryptoPaymentMethod(txn.provider);
-    if (isCryptoCashout && !seenActions.has('send_to_btcpay')) {
-      buttons.push({ label: 'Send to BTCPay', action: 'send_to_btcpay' });
     }
 
     return buttons;

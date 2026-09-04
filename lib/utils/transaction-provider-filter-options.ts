@@ -65,6 +65,7 @@ const CRYPTO_PAYMENT_METHOD_KEYS = new Set([
   'ln',
   'lnbtc',
   'bitcoin_lightning',
+  'cashapp_lightning',
 ]);
 
 /**

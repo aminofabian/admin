@@ -6,6 +6,7 @@ import {
   getPaymentDetailsForDisplay,
   getProviderDisplayName,
   getPurchaseBonusPaymentLabel,
+  isCryptoPaymentMethod,
   parseApiTimestampToDate,
 } from '../formatters';
 
@@ -376,6 +377,22 @@ describe('formatters', () => {
           purchase_category_display: 'Crypto',
         }),
       ).toBe('Crypto (Ethereum)');
+    });
+  });
+
+  describe('isCryptoPaymentMethod', () => {
+    it('treats bitcoin_lightning as crypto', () => {
+      expect(isCryptoPaymentMethod('bitcoin_lightning')).toBe(true);
+    });
+
+    it('treats cashapp_lightning the same as bitcoin_lightning (BTCPay rail)', () => {
+      expect(isCryptoPaymentMethod('cashapp_lightning')).toBe(true);
+      expect(isCryptoPaymentMethod('Cashapp_Lightning')).toBe(true);
+    });
+
+    it('does not treat cashtag cashapp as crypto', () => {
+      expect(isCryptoPaymentMethod('cashapp')).toBe(false);
+      expect(isCryptoPaymentMethod('ecashapp')).toBe(false);
     });
   });
 });

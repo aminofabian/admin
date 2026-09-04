@@ -421,7 +421,14 @@ function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string
 }
 
 /** Crypto rails (and lightning): provider is tied to the method, unlike card cashouts where admins pick at send time. */
-const CRYPTO_PAYMENT_METHOD_SUBSTRINGS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'] as const;
+const CRYPTO_PAYMENT_METHOD_SUBSTRINGS = [
+  'bitcoin',
+  'litecoin',
+  'bitcoin_lightning',
+  'cashapp_lightning',
+  'lightning',
+  'crypto',
+] as const;
 
 /** On-chain address plus Lightning invoice keys used by the player cashout form. */
 const CRYPTO_WALLET_KEYS = [
