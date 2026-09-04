@@ -128,6 +128,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // Clean and process advanced filters
       const cleanedAdvancedFilters: Record<string, string | number> = {};
       let cashappPayProviderLocksPaymentMethod = false;
+      let cashappLightningProviderLocksPaymentMethod = false;
 
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
@@ -170,11 +171,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
                 cleanedAdvancedFilters.payment_method = normalizedPm;
               }
               cashappPayProviderLocksPaymentMethod = true;
+            } else if (trimmed === 'cashapp_lightning') {
+              // Cashouts store the rail on payment_method (not provider); Provider dropdown is UX.
+              cleanedAdvancedFilters.payment_method = 'cashapp_lightning';
+              cashappLightningProviderLocksPaymentMethod = true;
             } else if (trimmed) {
               cleanedAdvancedFilters[key] = trimmed;
             }
           } else if (key === 'payment_method') {
-            if (cashappPayProviderLocksPaymentMethod) {
+            if (
+              cashappPayProviderLocksPaymentMethod ||
+              cashappLightningProviderLocksPaymentMethod
+            ) {
               return;
             }
             const trimmed = String(value).trim();

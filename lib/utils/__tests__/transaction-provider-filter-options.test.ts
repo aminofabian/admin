@@ -263,6 +263,36 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(lightning?.value).toBe('bitcoin_lightning');
   });
 
+  it('includes Cashapp Lightning when cashapp is configured', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'cashapp',
+          payment_method_display: 'Cashapp',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'cashapp',
+              payment_method_display: 'Cashapp',
+              provider_payment_method: 'cashapp',
+              provider_payment_method_display: 'Cashapp',
+              enabled_for_cashout_by_superadmin: true,
+              is_enabled_for_cashout: true,
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    const cashappLightning = opts.find((o) => o.label === 'Cashapp Lightning');
+    expect(cashappLightning?.value).toBe('cashapp_lightning');
+    expect(opts.find((o) => o.label === 'Cashapp')?.value).toBe('cashapp');
+  });
+
   it('reads provider_payment_method from flat payment method rows', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
@@ -296,6 +326,15 @@ describe('resolveHistoryTransactionProviderFilterForUi', () => {
     expect(
       resolveHistoryTransactionProviderFilterForUi('bitcoin_lightning', 'cashapp'),
     ).toBe(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
+  });
+
+  it('maps cashapp_lightning payment method to Cashapp Lightning filter value', () => {
+    expect(resolveHistoryTransactionProviderFilterForUi('', 'cashapp_lightning')).toBe(
+      'cashapp_lightning',
+    );
+    expect(
+      resolveHistoryTransactionProviderFilterForUi('cashapp_lightning', 'cashapp_lightning'),
+    ).toBe('cashapp_lightning');
   });
 
   it('does not map bitcoin_lightning without cashapp payment method', () => {
@@ -616,6 +655,8 @@ describe('buildStaticProviderFilterOptions', () => {
     expect(opts.find((o) => o.value === 'paypal')?.label).toBe('Paypal');
     expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
     expect(values).toContain(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
+    expect(values).toContain('cashapp_lightning');
+    expect(opts.find((o) => o.value === 'cashapp_lightning')?.label).toBe('Cashapp Lightning');
     expect(values).not.toContain('freeplay');
     expect(values).not.toContain('external_deposit');
     expect(values).not.toContain('external_cashout');

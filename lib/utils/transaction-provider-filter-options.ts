@@ -128,6 +128,12 @@ const PROVIDER_CANONICAL: Array<{
   { label: 'Tierlock', matchKeys: ['tierlock'] },
   { label: 'Cashapp', matchKeys: ['cashapp', 'cash_app'] },
   {
+    label: 'Cashapp Lightning',
+    // Visible when cashapp (parent rail) or cashapp_lightning itself is configured.
+    matchKeys: ['cashapp_lightning', 'cashapp', 'cash_app'],
+    fixedFilterValue: 'cashapp_lightning',
+  },
+  {
     label: 'Cashapp Pay',
     matchKeys: ['bitcoin_lightning', 'cashapp_pay', 'cashapppay'],
     fixedFilterValue: CASHAPP_PAY_PROVIDER_FILTER_VALUE,
@@ -158,7 +164,8 @@ function rollupCryptoPaymentMethodKeys(keys: Set<string>): void {
  */
 /**
  * Provider dropdown value for history filters: maps API-style `bitcoin_lightning` + `cashapp`
- * payment method to the composite Cashapp Pay option.
+ * payment method to the composite Cashapp Pay option; maps `cashapp_lightning` rail to its
+ * Provider dropdown entry.
  */
 export function resolveHistoryTransactionProviderFilterForUi(
   rawProvider: string | null | undefined,
@@ -169,6 +176,9 @@ export function resolveHistoryTransactionProviderFilterForUi(
     return CASHAPP_PAY_PROVIDER_FILTER_VALUE;
   }
   const pm = normKey(normalizePaymentMethodFilterQueryValue(rawPaymentMethod ?? ''));
+  if (p === 'cashapp_lightning' || pm === 'cashapp_lightning') {
+    return 'cashapp_lightning';
+  }
   if (p === 'bitcoin_lightning' && pm === 'cashapp') {
     return CASHAPP_PAY_PROVIDER_FILTER_VALUE;
   }
