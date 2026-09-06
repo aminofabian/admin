@@ -169,6 +169,7 @@ export function PlayerCashout24hOverrideSection({
         <div className="space-y-3">
           {formError ? (
             <div
+              id={`cashout-24h-override-error-${player.id}`}
               className="border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
               role="alert"
             >
@@ -221,7 +222,12 @@ export function PlayerCashout24hOverrideSection({
               }}
               placeholder="e.g. 10000.00"
               disabled={isSaving || inherit}
-              aria-describedby={`cashout-24h-effective-${player.id}`}
+              aria-invalid={Boolean(formError)}
+              aria-describedby={
+                formError
+                  ? `cashout-24h-override-error-${player.id} cashout-24h-effective-${player.id}`
+                  : `cashout-24h-effective-${player.id}`
+              }
             />
           </div>
 

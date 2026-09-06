@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       data && typeof data === 'object' && (data as { status?: unknown }).status === 'error';
 
     // Preserve structured limit-exceeded / error payloads for the client.
-    // Prefer forwarding the backend HTTP status for 4xx limit errors so callers can key off status+code.
+    // Forward real backend HTTP status for 4xx (handoff expects 400 for limit exceeded).
     if (isLimitExceeded || isExplicitError || !response.ok) {
       console.error('❌ Backend returned error:', {
         backendStatus: response.status,
@@ -95,8 +95,14 @@ export async function POST(request: NextRequest) {
               status: 'error',
               message: 'Failed to process transaction action',
             };
-      // Keep 200 for legacy clients that only inspect body.status, but always include status:'error'.
-      return NextResponse.json(body, { status: 200 });
+      const clientStatus = isLimitExceeded
+        ? response.status >= 400
+          ? response.status
+          : 400
+        : response.status >= 400
+          ? response.status
+          : 200;
+      return NextResponse.json(body, { status: clientStatus });
     }
 
     // Return the success response

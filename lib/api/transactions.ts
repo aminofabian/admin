@@ -178,6 +178,9 @@ export const transactionsApi = {
     return normalizePaginatedResponse(response);
   },
 
+  get: (id: string) =>
+    apiClient.get<Transaction>(`api/admin/transactions/${id}/`),
+
   updateStatus: (id: string, payload: { status: string }) =>
     apiClient.patch<Transaction>(
       `api/admin/transactions/${id}/`,

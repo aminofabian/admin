@@ -62,6 +62,7 @@ import { useToast, ConfirmModal } from '@/components/ui';
 import {
   cashout24hExceededAdminMessage,
   isCashout24hLimitExceeded,
+  isProcessingCashoutStatus,
 } from '@/lib/cashout-24h-limit';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
@@ -1160,11 +1161,34 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       });
       const response = await transactionsApi.transactionAction(transactionId, apiAction, actionOptions);
       console.log(' Transaction Action - API call successful:', response);
-      
-      // Refresh transactions after successful action
+
+      // Always refetch this transaction before mutating UI — a successful claim may leave
+      // the cashout in processing (handoff: do not infer pending from a later HTTP failure).
+      let latest: Transaction | null = null;
+      try {
+        latest = await transactionsApi.get(transactionId);
+      } catch (refetchError) {
+        console.warn('⚠️ Could not refetch transaction after action:', refetchError);
+      }
+
       await fetchTransactions();
-      
-      // Show success toast
+
+      if (latest && selectedTransaction?.id === transactionId) {
+        setSelectedTransaction(latest);
+      }
+
+      const latestStatus = (latest?.status ?? '').toLowerCase();
+      if (isProcessingCashoutStatus(latestStatus)) {
+        addToast({
+          type: 'warning',
+          title: 'Processing — reconciliation required',
+          description:
+            'This cashout is processing and has reserved 24-hour allowance. Send actions stay disabled until an administrator reconciles the payout. Do not retry automatically.',
+          duration: 10000,
+        });
+        return;
+      }
+
       addToast({
         type: 'success',
         title: successTitleMap[action],
@@ -1184,10 +1208,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       if (error && typeof error === 'object') {
         const apiError = error as ApiError & {
           code?: string;
+          requested_amount?: string;
           cashout_24h_completed_amount?: string;
           cashout_24h_reserved_amount?: string;
           cashout_24h_remaining_amount?: string | null;
           cashout_24h_limit?: string | null;
+          cashout_24h_limit_source?: string;
         };
 
         if (isCashout24hLimitExceeded(apiError)) {
@@ -1197,6 +1223,22 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           void fetchTransactions();
         } else {
           errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+
+          // Ambiguous provider/network errors: refetch — cashout may already be processing.
+          try {
+            const latest = await transactionsApi.get(transactionId);
+            await fetchTransactions();
+            if (selectedTransaction?.id === transactionId) {
+              setSelectedTransaction(latest);
+            }
+            if (isProcessingCashoutStatus(latest.status)) {
+              errorTitle = 'Processing — reconciliation required';
+              errorMessage =
+                'The request may have been claimed already. Status is processing and send actions are disabled until an administrator reconciles. Do not assume it returned to pending.';
+            }
+          } catch (refetchError) {
+            console.warn('⚠️ Could not refetch transaction after action error:', refetchError);
+          }
         }
 
         console.error('❌ Transaction Action Error:', {
