@@ -1180,11 +1180,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       const latestStatus = (latest?.status ?? '').toLowerCase();
       if (isProcessingCashoutStatus(latestStatus)) {
         addToast({
-          type: 'warning',
-          title: 'Processing — reconciliation required',
+          type: 'info',
+          title: 'Cashout is processing',
           description:
-            'This cashout is processing and has reserved 24-hour allowance. Send actions stay disabled until an administrator reconciles the payout. Do not retry automatically.',
-          duration: 10000,
+            'It was sent to the provider. Send is disabled so it isn’t submitted twice.',
+          duration: 5000,
         });
         return;
       }
@@ -1232,9 +1232,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               setSelectedTransaction(latest);
             }
             if (isProcessingCashoutStatus(latest.status)) {
-              errorTitle = 'Processing — reconciliation required';
-              errorMessage =
-                'The request may have been claimed already. Status is processing and send actions are disabled until an administrator reconciles. Do not assume it returned to pending.';
+              addToast({
+                type: 'info',
+                title: 'Cashout is processing',
+                description:
+                  'It looks like this was already sent. Send is disabled so it isn’t submitted twice.',
+                duration: 5000,
+              });
+              return;
             }
           } catch (refetchError) {
             console.warn('⚠️ Could not refetch transaction after action error:', refetchError);

@@ -580,14 +580,15 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
             {isProcessingCashout ? (
               <div
-                className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
+                className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-300"
                 role="status"
               >
-                <p className="font-semibold">Processing — reconciliation required</p>
-                <p className="mt-1 text-[11px] leading-relaxed opacity-90">
-                  This cashout has reserved 24-hour allowance. Send and complete actions stay
-                  disabled until an administrator reconciles the payout. Do not retry from this
-                  screen based on a failed HTTP response alone.
+                <p className="font-medium text-gray-900 dark:text-gray-100">
+                  Already processing
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400">
+                  This payout was sent to the provider. Send is turned off here so it
+                  isn’t submitted twice.
                 </p>
               </div>
             ) : null}
