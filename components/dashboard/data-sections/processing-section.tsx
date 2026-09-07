@@ -1181,10 +1181,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       if (isProcessingCashoutStatus(latestStatus)) {
         addToast({
           type: 'info',
-          title: 'Cashout is processing',
-          description:
-            'It was sent to the provider. Send is disabled so it isn’t submitted twice.',
-          duration: 5000,
+          title: 'Still processing',
+          description: 'Send stays off until it finishes.',
+          duration: 3500,
         });
         return;
       }
@@ -1234,10 +1233,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             if (isProcessingCashoutStatus(latest.status)) {
               addToast({
                 type: 'info',
-                title: 'Cashout is processing',
-                description:
-                  'It looks like this was already sent. Send is disabled so it isn’t submitted twice.',
-                duration: 5000,
+                title: 'Still processing',
+                description: 'Send stays off until it finishes.',
+                duration: 3500,
               });
               return;
             }

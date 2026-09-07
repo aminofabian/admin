@@ -579,18 +579,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           {/* Metadata */}
           <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
             {isProcessingCashout ? (
-              <div
-                className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-300"
-                role="status"
-              >
-                <p className="font-medium text-gray-900 dark:text-gray-100">
-                  Already processing
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400">
-                  This payout was sent to the provider. Send is turned off here so it
-                  isn’t submitted twice.
-                </p>
-              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400" role="status">
+                Send is off while this payout is with the provider.
+              </p>
             ) : null}
             <DetailsRow>
               <DetailsField label="Created" value={formattedCreatedAt} />
