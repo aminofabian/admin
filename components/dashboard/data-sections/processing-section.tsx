@@ -1674,6 +1674,19 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     const confirmDescription = confirmTransaction
       ? `Are you sure you want to ${actionVerb} this ${transactionTypeLabel.toLowerCase()} for ${formatCurrency(confirmTransaction.amount || '0')}?`
       : '';
+    const isManualCashoutComplete =
+      confirmAction === 'completed' &&
+      confirmTransaction?.type?.toLowerCase() === 'cashout';
+    const confirmWarning = isManualCashoutComplete ? (
+      <>
+        <p className="font-medium">Overrides the 24-hour cashout limit</p>
+        <p className="mt-1 text-amber-800/90 dark:text-amber-100/90">
+          Manual complete is an admin override for special cases — for example when
+          provider send is unavailable or payment APIs are down. Prefer Send to
+          provider when that path works; it still enforces the 24-hour limit.
+        </p>
+      </>
+    ) : undefined;
     const confirmVariant = confirmAction === 'cancelled' ? 'warning' : 'info';
     const confirmButtonText = actionLabel;
 
@@ -1844,6 +1857,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           onConfirm={handleConfirmAction}
           title={confirmTitle}
           description={confirmDescription}
+          warning={confirmWarning}
           confirmText={confirmButtonText}
           cancelText="Go Back"
           variant={confirmVariant}

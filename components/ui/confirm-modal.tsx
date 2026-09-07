@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Button } from './button';
 
 interface ConfirmModalProps {
@@ -7,7 +8,9 @@ interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  description: string;
+  description: ReactNode;
+  /** Optional callout shown under the description (e.g. override warnings). */
+  warning?: ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';
@@ -20,6 +23,7 @@ export function ConfirmModal({
   onConfirm,
   title,
   description,
+  warning,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   variant = 'danger',
@@ -80,9 +84,17 @@ export function ConfirmModal({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               {title}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <div className={`text-sm text-gray-600 dark:text-gray-400 ${warning ? 'mb-3' : 'mb-6'}`}>
               {description}
-            </p>
+            </div>
+            {warning ? (
+              <div
+                role="note"
+                className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100"
+              >
+                {warning}
+              </div>
+            ) : null}
             
             <div className="flex gap-3 justify-end">
               <Button
