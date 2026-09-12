@@ -486,6 +486,7 @@ function resolvePaymentMethod(transaction: {
 const PROVIDER_STATUS_KEYS: [string, string[]][] = [
   ['Binpay status', ['binpay_status', 'binpayStatus']],
   ['Tierlock status', ['tierlock_status', 'tierlockStatus']],
+  ['PayAPI status', ['payapi_status', 'payapiStatus']],
 ];
 
 const BINPAY_ORDER_ID_KEYS = ['binpay_order_id', 'binpayOrderId'] as const;
@@ -493,6 +494,8 @@ const BINPAY_ORDER_ID_KEYS = ['binpay_order_id', 'binpayOrderId'] as const;
 const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const;
 
 const TAP_TICKET_ID_KEYS = ['taparcaida_ticket_id', 'taparcadia_ticket_id', 'tapTicketId'] as const;
+
+const PAYAPI_ORDER_ID_KEYS = ['payapi_order_id', 'payapiOrderId', 'mch_order_no'] as const;
 
 const BRENZI_REFERENCE_KEYS = ['brenzi_reference', 'brenziReference'] as const;
 
@@ -559,6 +562,27 @@ function getTapTicketIdEntry(
   return null;
 }
 
+function getPayapiOrderIdEntry(
+  transaction: Pick<Transaction, 'payapi_order_id' | 'payment_details'>
+): [string, string] | null {
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  let val: unknown = null;
+  for (const key of PAYAPI_ORDER_ID_KEYS) {
+    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+    if (val != null && String(val).trim() !== '') break;
+  }
+
+  const str = formatDetailValue(val);
+  if (str !== '—' && String(str).trim() !== '') {
+    return ['PayAPI order ID', str];
+  }
+  return null;
+}
+
 function getBrenziReferenceEntry(
   transaction: Pick<Transaction, 'brenzi_reference' | 'payment_details'>
 ): [string, string] | null {
@@ -581,7 +605,10 @@ function getBrenziReferenceEntry(
 }
 
 function getProviderStatusEntries(
-  transaction: Pick<Transaction, 'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'>
+  transaction: Pick<
+    Transaction,
+    'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status' | 'payapi_status'
+  >
 ): [string, string][] {
   const out: [string, string][] = [];
   const tx = transaction as Record<string, unknown>;
@@ -616,6 +643,8 @@ export function getPaymentDetailsForDisplay(
     | 'tierlock_order_id'
     | 'taparcadia_status'
     | 'taparcaida_ticket_id'
+    | 'payapi_status'
+    | 'payapi_order_id'
     | 'brenzi_reference'
     | 'user_username'
   >
@@ -746,6 +775,12 @@ export function getPaymentDetailsForDisplay(
     if (!alreadyHasTapTicket) entries.push(tapTicketEntry);
   }
 
+  const payapiOrderEntry = getPayapiOrderIdEntry(transaction);
+  if (payapiOrderEntry) {
+    const alreadyHasPayapiOrder = entries.some(([label]) => label.toLowerCase() === 'payapi order id');
+    if (!alreadyHasPayapiOrder) entries.push(payapiOrderEntry);
+  }
+
   const brenziReferenceEntry = getBrenziReferenceEntry(transaction);
   if (brenziReferenceEntry) {
     const alreadyHasBrenziReference = entries.some(
@@ -823,6 +858,9 @@ export const formatPaymentMethod = (method: string | null | undefined): string =
   const normalizedKey = method.trim().toLowerCase().replace(/-/g, '_');
   if (normalizedKey === 'free_play' || normalizedKey === 'freeplay') {
     return 'Freeplay';
+  }
+  if (normalizedKey === 'payapi' || normalizedKey === 'pay_api') {
+    return 'PayAPI';
   }
 
   // Handle common methods that should be fully capitalized

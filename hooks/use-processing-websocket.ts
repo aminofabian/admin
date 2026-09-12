@@ -177,6 +177,10 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
     payment_url: rawPurchase.payment_url || nestedData?.payment_url || null,
     invoice_url: rawPurchase.invoice_url || nestedData?.invoice_url,
     payment_details: paymentDetails,
+    payapi_status:
+      rawPurchase.payapi_status ?? nestedData?.payapi_status ?? undefined,
+    payapi_order_id:
+      rawPurchase.payapi_order_id ?? nestedData?.payapi_order_id ?? undefined,
   };
 }
 
@@ -316,6 +320,10 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
       nestedData?.taparcaida_ticket_id ??
       nestedData?.taparcadia_ticket_id ??
       undefined,
+    payapi_status:
+      rawCashout.payapi_status ?? nestedData?.payapi_status ?? undefined,
+    payapi_order_id:
+      rawCashout.payapi_order_id ?? nestedData?.payapi_order_id ?? undefined,
   };
 }
 

@@ -33,6 +33,11 @@ export interface Company {
   tierlock_withdrawal_secret?: string | null;
   tierlock_payout_shared_secret?: string | null;
   tierlock_payout_client_secret?: string | null;
+  payapi_gateway_url?: string | null;
+  payapi_mch_no?: string | null;
+  payapi_api_key?: string | null;
+  payapi_payin_way_code?: string | null;
+  payapi_payout_way_code?: string | null;
   meta_pixel_id?: string | null;
   meta_capi_token?: string | null;
   meta_ads_account_id?: string | null;
@@ -72,6 +77,11 @@ export interface CreateCompanyRequest {
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  payapi_gateway_url?: string;
+  payapi_mch_no?: string;
+  payapi_api_key?: string;
+  payapi_payin_way_code?: string;
+  payapi_payout_way_code?: string;
   meta_pixel_id?: string;
   meta_capi_token?: string;
   meta_ads_account_id?: string;
@@ -109,6 +119,11 @@ export interface UpdateCompanyRequest {
   tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
+  payapi_gateway_url?: string;
+  payapi_mch_no?: string;
+  payapi_api_key?: string;
+  payapi_payin_way_code?: string;
+  payapi_payout_way_code?: string;
   meta_pixel_id?: string;
   meta_capi_token?: string;
   meta_ads_account_id?: string;

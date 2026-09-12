@@ -59,6 +59,10 @@ export interface Transaction {
   taparcadia_status?: string | null;
   /** Taparcaida payout ticket reference returned by the API after send-to-taparcadia. */
   taparcaida_ticket_id?: string | null;
+  /** PayAPI provider status after send-to-payapi / webhook updates. */
+  payapi_status?: string | number | null;
+  /** PayAPI order id returned after send-to-payapi. */
+  payapi_order_id?: string | null;
   /** Brenzi purchase order ID (also commonly nested under payment_details). */
   brenzi_order_id?: string | null;
   /** Brenzi purchase reference sent with each Brenzi transaction. */

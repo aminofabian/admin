@@ -143,6 +143,7 @@ const PROVIDER_CANONICAL: Array<{
   { label: 'Topper', matchKeys: ['topper'] },
   { label: 'Moonpay', matchKeys: ['moonpay'] },
   { label: 'Tap', matchKeys: ['tap', 'taparcadia'] },
+  { label: 'PayAPI', matchKeys: ['payapi', 'pay_api'] },
   { label: 'Freeplay', matchKeys: ['freeplay', 'free_play'], alwaysVisible: true },
   { label: 'External Deposit', matchKeys: ['external_deposit'], alwaysVisible: true },
   { label: 'External Cashout', matchKeys: ['external_cashout'], alwaysVisible: true },

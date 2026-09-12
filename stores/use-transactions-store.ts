@@ -771,7 +771,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         && Object.keys(updatedTransaction.payment_details).length > 0;
       const hasWsPaymentMethod = updatedTransaction.payment_method != null
         && String(updatedTransaction.payment_method).trim() !== '';
-      const hasWsProviderStatus = (key: 'binpay_status' | 'tierlock_status' | 'taparcadia_status') => {
+      const hasWsProviderStatus = (
+        key: 'binpay_status' | 'tierlock_status' | 'taparcadia_status' | 'payapi_status'
+      ) => {
         const v = updatedTransaction[key];
         return v != null && String(v).trim() !== '';
       };
@@ -781,6 +783,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       const hasWsTapTicketId =
         updatedTransaction.taparcaida_ticket_id != null &&
         String(updatedTransaction.taparcaida_ticket_id).trim() !== '';
+      const hasWsPayapiOrderId =
+        updatedTransaction.payapi_order_id != null &&
+        String(updatedTransaction.payapi_order_id).trim() !== '';
       const mergedDescription = mergeTransactionTextSnapshot(
         existingTransaction.description,
         updatedTransaction.description,
@@ -808,6 +813,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         taparcaida_ticket_id: hasWsTapTicketId
           ? updatedTransaction.taparcaida_ticket_id
           : existingTransaction.taparcaida_ticket_id,
+        payapi_status: hasWsProviderStatus('payapi_status')
+          ? updatedTransaction.payapi_status
+          : existingTransaction.payapi_status,
+        payapi_order_id: hasWsPayapiOrderId
+          ? updatedTransaction.payapi_order_id
+          : existingTransaction.payapi_order_id,
       };
 
       if (

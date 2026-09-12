@@ -225,6 +225,11 @@ const buildFormData = (company?: Company): CreateCompanyRequest => ({
   tierlock_withdrawal_secret: company?.tierlock_withdrawal_secret ?? '',
   tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
   tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
+  payapi_gateway_url: company?.payapi_gateway_url ?? '',
+  payapi_mch_no: company?.payapi_mch_no ?? '',
+  payapi_api_key: company?.payapi_api_key ?? '',
+  payapi_payin_way_code: company?.payapi_payin_way_code ?? '',
+  payapi_payout_way_code: company?.payapi_payout_way_code ?? '',
   meta_pixel_id: company?.meta_pixel_id ?? '',
   meta_capi_token: company?.meta_capi_token ?? '',
   meta_ads_account_id: company?.meta_ads_account_id ?? '',
@@ -254,6 +259,13 @@ const buildOpenProviders = (formData: CreateCompanyRequest) => ({
     formData.taparcaida_vendor_id,
     formData.taparcaida_payout_api_key,
     formData.taparcaida_payout_api_secret,
+  ),
+  payapi: hasValue(
+    formData.payapi_gateway_url,
+    formData.payapi_mch_no,
+    formData.payapi_api_key,
+    formData.payapi_payin_way_code,
+    formData.payapi_payout_way_code,
   ),
   meta: hasValue(
     formData.meta_pixel_id,
@@ -377,6 +389,11 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
           tierlock_withdrawal_secret: formData.tierlock_withdrawal_secret,
           tierlock_payout_shared_secret: formData.tierlock_payout_shared_secret,
           tierlock_payout_client_secret: formData.tierlock_payout_client_secret,
+          payapi_gateway_url: formData.payapi_gateway_url,
+          payapi_mch_no: formData.payapi_mch_no,
+          payapi_api_key: formData.payapi_api_key,
+          payapi_payin_way_code: formData.payapi_payin_way_code,
+          payapi_payout_way_code: formData.payapi_payout_way_code,
           meta_pixel_id: formData.meta_pixel_id,
           meta_capi_token: formData.meta_capi_token,
           meta_ads_account_id: formData.meta_ads_account_id,
@@ -585,6 +602,59 @@ const [formData, setFormData] = useState<CreateCompanyRequest>(() => buildFormDa
         <Input {...field} label="Vendor ID" value={formData.taparcaida_vendor_id} onChange={(e) => handleChange('taparcaida_vendor_id', e.target.value)} placeholder="tap_vendor_..." disabled={isLoading} />
         <SecretInput label="Payout API key" value={formData.taparcaida_payout_api_key} onChange={(v) => handleChange('taparcaida_payout_api_key', v)} placeholder="tap_payout_..." disabled={isLoading} />
         <SecretInput label="Payout API secret" value={formData.taparcaida_payout_api_secret} onChange={(v) => handleChange('taparcaida_payout_api_secret', v)} placeholder="tap_secret_..." disabled={isLoading} />
+      </Provider>
+
+      <Provider
+        title="PayAPI"
+        isOpen={openProviders.payapi}
+        onToggle={() => toggleProvider('payapi')}
+        configured={hasValue(
+          formData.payapi_gateway_url,
+          formData.payapi_mch_no,
+          formData.payapi_api_key,
+          formData.payapi_payin_way_code,
+          formData.payapi_payout_way_code,
+        )}
+      >
+        <Input
+          {...field}
+          label="Gateway URL"
+          value={formData.payapi_gateway_url}
+          onChange={(e) => handleChange('payapi_gateway_url', e.target.value)}
+          placeholder="https://pay.provider.com"
+          disabled={isLoading}
+        />
+        <Input
+          {...field}
+          label="Merchant number"
+          value={formData.payapi_mch_no}
+          onChange={(e) => handleChange('payapi_mch_no', e.target.value)}
+          placeholder="mchNo"
+          disabled={isLoading}
+        />
+        <SecretInput
+          label="API key"
+          value={formData.payapi_api_key}
+          onChange={(v) => handleChange('payapi_api_key', v)}
+          placeholder="payapi_key_..."
+          disabled={isLoading}
+        />
+        <Input
+          {...field}
+          label="Pay-in way code"
+          value={formData.payapi_payin_way_code}
+          onChange={(e) => handleChange('payapi_payin_way_code', e.target.value)}
+          placeholder="cashapp"
+          disabled={isLoading}
+        />
+        <Input
+          {...field}
+          label="Payout way code"
+          value={formData.payapi_payout_way_code}
+          onChange={(e) => handleChange('payapi_payout_way_code', e.target.value)}
+          placeholder="ecashapp"
+          disabled={isLoading}
+        />
       </Provider>
 
       <Provider

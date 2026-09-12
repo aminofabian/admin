@@ -35,6 +35,11 @@ type CleanableFields = {
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
   taparcaida_payout_api_secret?: string;
+  payapi_gateway_url?: string;
+  payapi_mch_no?: string;
+  payapi_api_key?: string;
+  payapi_payin_way_code?: string;
+  payapi_payout_way_code?: string;
   meta_pixel_id?: string;
   meta_capi_token?: string;
   meta_ads_account_id?: string;
@@ -68,6 +73,11 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'taparcaida_vendor_id',
     'taparcaida_payout_api_key',
     'taparcaida_payout_api_secret',
+    'payapi_gateway_url',
+    'payapi_mch_no',
+    'payapi_api_key',
+    'payapi_payin_way_code',
+    'payapi_payout_way_code',
     'meta_pixel_id',
     'meta_capi_token',
     'meta_ads_account_id',

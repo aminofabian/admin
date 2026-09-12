@@ -237,7 +237,7 @@ export const transactionsApi = {
 
   transactionAction: async (
     txnId: string,
-    type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia' | 'send_to_btcpay',
+    type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia' | 'send_to_btcpay' | 'send_to_payapi',
     options?: TransactionActionOptions
   ) => {
     const formData = new FormData();

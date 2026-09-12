@@ -1006,7 +1006,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     | 'send_to_binpay'
     | 'send_to_tierlock'
     | 'send_to_taparcadia'
-    | 'send_to_btcpay';
+    | 'send_to_btcpay'
+    | 'send_to_payapi';
 
   const isSendToProviderAction = (
     action: TransactionActionType
@@ -1014,7 +1015,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     action === 'send_to_binpay' ||
     action === 'send_to_tierlock' ||
     action === 'send_to_taparcadia' ||
-    action === 'send_to_btcpay';
+    action === 'send_to_btcpay' ||
+    action === 'send_to_payapi';
 
   const requiresPayoutContact = (action: TransactionActionType): boolean =>
     action === 'send_to_binpay' ||
@@ -1067,7 +1069,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     const apiActionMap: Record<
       TransactionActionType,
-      'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia' | 'send_to_btcpay'
+      'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia' | 'send_to_btcpay' | 'send_to_payapi'
     > = {
       completed: 'complete',
       cancelled: 'cancel',
@@ -1075,6 +1077,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       send_to_tierlock: 'send_to_tierlock',
       send_to_taparcadia: 'send_to_taparcadia',
       send_to_btcpay: 'send_to_btcpay',
+      send_to_payapi: 'send_to_payapi',
     };
     const apiAction = apiActionMap[action];
     const successTitleMap: Record<TransactionActionType, string> = {
@@ -1084,6 +1087,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       send_to_tierlock: 'Sent to Tierlock',
       send_to_taparcadia: 'Sent to Taparcadia',
       send_to_btcpay: 'Sent to BTCPay',
+      send_to_payapi: 'Sent to PayAPI',
     };
     const successDescriptionMap: Record<TransactionActionType, string> = {
       completed: 'Transaction completed successfully',
@@ -1092,6 +1096,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       send_to_tierlock: 'Transaction sent to Tierlock successfully',
       send_to_taparcadia: 'Transaction sent to Taparcadia successfully',
       send_to_btcpay: 'Transaction sent to BTCPay successfully',
+      send_to_payapi: 'Transaction sent to PayAPI successfully',
     };
 
     try {
@@ -1403,6 +1408,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     if (lower === 'tierlock') return 'send_to_tierlock';
     if (lower === 'taparcaida' || lower === 'taparcadia' || lower === 'tap') return 'send_to_taparcadia';
     if (lower === 'btcpay' || lower === 'btc_pay') return 'send_to_btcpay';
+    if (lower === 'payapi' || lower === 'pay_api') return 'send_to_payapi';
     return null;
   };
 
@@ -1452,6 +1458,18 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         seenActions.add(action);
         const label = `Send to ${sub.provider_payment_method_display || sub.payment_method_display || sub.provider_payment_method || sub.payment_method || 'Provider'}`;
         buttons.push({ label, action });
+      }
+    }
+
+    // Fallback when payment-settings subcategories are missing (same idea as BinPay/Tierlock dedicated props)
+    if (buttons.length === 0) {
+      const pd =
+        txn.payment_details && typeof txn.payment_details === 'object'
+          ? (txn.payment_details as Record<string, unknown>)
+          : null;
+      const providerHint = String(pd?.provider_payment_method ?? pd?.provider ?? '').toLowerCase();
+      if (/payapi/.test(pm) || /payapi/.test(providerHint)) {
+        buttons.push({ label: 'Send to PayAPI', action: 'send_to_payapi' });
       }
     }
 

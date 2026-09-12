@@ -20,6 +20,8 @@ const PAYMENT_LOGOS: Record<string, string> = {
   moonpay: '/payment-logos/moonpay.png',
   paypal: '/payment-logos/paypal.png',
   pay_pal: '/payment-logos/paypal.png',
+  payapi: '/payment-logos/payapi.png',
+  pay_api: '/payment-logos/payapi.png',
   rampnetwork: '/payment-logos/ramp network.png',
   ramp: '/payment-logos/ramp network.png',
   robinhood: '/payment-logos/robinhood.png',
