@@ -44,6 +44,7 @@ import { PlayerReferralDetailsSection } from '@/components/dashboard/players/pla
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import { resolvePlayerDetailBackHref } from '@/lib/players/player-list-filter-params';
+import { usePlayerListFiltersStore } from '@/stores/use-player-list-filters-store';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import { AddGameDrawer } from '@/components/chat/modals';
@@ -732,7 +733,13 @@ export default function PlayerDetailPage() {
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {
-    router.push(resolvePlayerDetailBackHref(selectedPlayer?.id ?? playerId ?? '', searchParams));
+    router.push(
+      resolvePlayerDetailBackHref(
+        selectedPlayer?.id ?? playerId ?? '',
+        searchParams,
+        usePlayerListFiltersStore.getState().appliedFilters,
+      ),
+    );
   }, [router, searchParams, selectedPlayer?.id, playerId]);
 
   const handleNavigateToChat = useCallback(() => {
@@ -1016,7 +1023,15 @@ export default function PlayerDetailPage() {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push(resolvePlayerDetailBackHref(playerId ?? '', searchParams))}
+        onRetry={() =>
+          router.push(
+            resolvePlayerDetailBackHref(
+              playerId ?? '',
+              searchParams,
+              usePlayerListFiltersStore.getState().appliedFilters,
+            ),
+          )
+        }
       />
     );
   }

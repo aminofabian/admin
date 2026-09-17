@@ -6,6 +6,7 @@ import {
   extractPlayerListFilterSearchParams,
   playerListApiParamsFromSearchParams,
   playerListFilterStateFromSearchParams,
+  playerListFiltersHaveActiveValues,
   resolvePlayerDetailBackHref,
 } from '../player-list-filter-params';
 
@@ -108,5 +109,20 @@ describe('player-list-filter-params', () => {
     });
     expect(resolvePlayerDetailBackHref(42, search)).toBe('/dashboard/players?agent=bob');
     expect(resolvePlayerDetailBackHref(42)).toBe('/dashboard/players');
+  });
+
+  it('resolves back href from fallback filters when detail URL has none', () => {
+    const search = new URLSearchParams({ from: 'elsewhere' });
+    expect(
+      resolvePlayerDetailBackHref(42, search, {
+        username: 'john',
+        status: 'active',
+      }),
+    ).toBe('/dashboard/players?username=john&status=active');
+  });
+
+  it('detects active filter values', () => {
+    expect(playerListFiltersHaveActiveValues({ username: 'john' })).toBe(true);
+    expect(playerListFiltersHaveActiveValues({ status: 'all' })).toBe(false);
   });
 });

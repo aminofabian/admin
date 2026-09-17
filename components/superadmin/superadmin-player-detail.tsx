@@ -21,6 +21,7 @@ import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { isPlayerIdentityVerified, isPlayerPhoneVerified } from '@/lib/players/player-verification';
 import { resolvePlayerDetailBackHref } from '@/lib/players/player-list-filter-params';
+import { usePlayerListFiltersStore } from '@/stores/use-player-list-filters-store';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
 import { PlayerAccountOverview } from '@/components/dashboard/players/player-account-overview';
 import { PlayerQuickActionsBar } from '@/components/dashboard/players/player-quick-actions-bar';
@@ -221,7 +222,13 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {
-    router.push(resolvePlayerDetailBackHref(selectedPlayer?.id ?? playerId, searchParams));
+    router.push(
+      resolvePlayerDetailBackHref(
+        selectedPlayer?.id ?? playerId,
+        searchParams,
+        usePlayerListFiltersStore.getState().appliedFilters,
+      ),
+    );
   }, [router, searchParams, selectedPlayer?.id, playerId]);
 
   const handleNavigateToChat = useCallback(() => {
@@ -502,7 +509,15 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push(resolvePlayerDetailBackHref(playerId, searchParams))}
+        onRetry={() =>
+          router.push(
+            resolvePlayerDetailBackHref(
+              playerId,
+              searchParams,
+              usePlayerListFiltersStore.getState().appliedFilters,
+            ),
+          )
+        }
       />
     );
   }

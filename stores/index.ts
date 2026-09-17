@@ -1,5 +1,6 @@
 export { useCompaniesStore } from './use-companies-store';
 export { usePlayersStore } from './use-players-store';
+export { usePlayerListFiltersStore } from './use-player-list-filters-store';
 export { useManagersStore } from './use-managers-store';
 export { useGamesStore } from './use-games-store';
 export { useGameActivitiesStore } from './use-game-activities-store';

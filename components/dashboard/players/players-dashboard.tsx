@@ -38,7 +38,9 @@ import {
   buildPlayerDetailHref,
   buildPlayersListHref,
   playerListFilterStateFromSearchParams,
+  playerListFiltersHaveActiveValues,
 } from '@/lib/players/player-list-filter-params';
+import { usePlayerListFiltersStore } from '@/stores/use-player-list-filters-store';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -211,15 +213,11 @@ export default function PlayersDashboard(): ReactElement {
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}
-        onViewPlayer={
-          user?.role !== USER_ROLES.AGENT
-            ? (player) => router.push(buildPlayerDetailHref(player.id, filters.appliedFilters))
-            : undefined
+        onViewPlayer={(player) =>
+          router.push(buildPlayerDetailHref(player.id, filters.appliedFilters))
         }
-        getPlayerHref={
-          user?.role !== USER_ROLES.AGENT
-            ? (player) => buildPlayerDetailHref(player.id, filters.appliedFilters)
-            : undefined
+        getPlayerHref={(player) =>
+          buildPlayerDetailHref(player.id, filters.appliedFilters)
         }
         page={pagination.page}
         pageSize={pagination.pageSize}
@@ -245,22 +243,26 @@ function usePlayersPageContext(): PlayersPageContext {
 
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
+  // Prefer URL filters when present; otherwise restore last applied filters from
+  // the session store (list remount after detail often lands with an empty query).
   const initialFiltersFromUrl = useMemo(() => {
     const fromUrl = playerListFilterStateFromSearchParams(searchParams);
+    const stored = usePlayerListFiltersStore.getState().appliedFilters;
+    const source = playerListFiltersHaveActiveValues(fromUrl) ? fromUrl : stored;
     return {
-      username: fromUrl.username ?? '',
-      full_name: fromUrl.full_name ?? '',
-      email: fromUrl.email ?? '',
-      referred_by: fromUrl.referred_by ?? '',
-      agent: fromUrl.agent ?? '',
-      date_from: fromUrl.date_from ?? '',
-      date_to: fromUrl.date_to ?? '',
-      status: fromUrl.status ?? 'all',
-      state: fromUrl.state ?? 'all',
-      identity_verification_status: fromUrl.identity_verification_status ?? 'all',
-      first_deposit_done: fromUrl.first_deposit_done ?? 'all',
+      username: source.username ?? '',
+      full_name: source.full_name ?? '',
+      email: source.email ?? '',
+      referred_by: source.referred_by ?? '',
+      agent: source.agent ?? '',
+      date_from: source.date_from ?? '',
+      date_to: source.date_to ?? '',
+      status: source.status ?? 'all',
+      state: source.state ?? 'all',
+      identity_verification_status: source.identity_verification_status ?? 'all',
+      first_deposit_done: source.first_deposit_done ?? 'all',
     } satisfies FilterState;
-    // Intentionally only seed from the first URL on mount / remount.
+    // Seed once per mount / remount from the URL or store at that moment.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -275,6 +277,18 @@ function usePlayersPageContext(): PlayersPageContext {
 
   // Initialize filters with pagination and any filter params from the URL
   const filters = usePlayerFilters(pagination.setPage, initialFiltersFromUrl);
+
+  // If we restored from the session store (URL was empty), put filters back on
+  // the list URL so further back/forward navigation stays consistent.
+  useEffect(() => {
+    if (
+      !playerListFiltersHaveActiveValues(searchParams) &&
+      playerListFiltersHaveActiveValues(initialFiltersFromUrl)
+    ) {
+      router.replace(buildPlayersListHref(initialFiltersFromUrl), { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When navigated from agents with only ?agent=, force agent-only filter mode
   const hasInitializedAgentRef = useRef(false);
@@ -586,6 +600,7 @@ function usePlayerFilters(
 
   const syncFiltersToUrl = useCallback(
     (nextFilters: FilterState) => {
+      usePlayerListFiltersStore.getState().setAppliedFilters(nextFilters);
       router.replace(buildPlayersListHref(nextFilters), { scroll: false });
     },
     [router],

@@ -187,16 +187,39 @@ export function buildPlayersListHref(
 /**
  * Resolve where player-detail Back should go.
  * Chat opens profiles with `?from=chat` so operators return to that thread.
+ * When the detail URL has no filter query, `fallbackFilters` (session store)
+ * rebuilds the list URL so operators keep their last applied filters.
  */
 export function resolvePlayerDetailBackHref(
   playerId: number | string,
   searchParams?: URLSearchParams | { get: (key: string) => string | null } | null,
+  fallbackFilters?: PlayerListFilterValues | null,
 ): string {
   const from = searchParams?.get('from');
   if (from === 'chat') {
     return `/dashboard/chat?playerId=${playerId}`;
   }
+  if (searchParams && playerListFiltersHaveActiveValues(searchParams)) {
+    return buildPlayersListHref(searchParams);
+  }
+  if (fallbackFilters && playerListFiltersHaveActiveValues(fallbackFilters)) {
+    return buildPlayersListHref(fallbackFilters);
+  }
   return buildPlayersListHref(searchParams ?? undefined);
+}
+
+/**
+ * True when any whitelist filter is non-default (same rules as URL serialization).
+ */
+export function playerListFiltersHaveActiveValues(
+  filters: PlayerListFilterValues | URLSearchParams | { get: (key: string) => string | null },
+): boolean {
+  if (typeof (filters as { get?: unknown }).get === 'function') {
+    return extractPlayerListFilterSearchParams(
+      filters as { get: (key: string) => string | null },
+    ).toString().length > 0;
+  }
+  return buildPlayerListFilterSearchParams(filters as PlayerListFilterValues).toString().length > 0;
 }
 
 /**

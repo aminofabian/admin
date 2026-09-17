@@ -49,6 +49,7 @@ import {
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import { resolvePlayerDetailBackHref } from '@/lib/players/player-list-filter-params';
+import { usePlayerListFiltersStore } from '@/stores/use-player-list-filters-store';
 
 
 interface StaffPlayerDetailProps {
@@ -152,7 +153,13 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   }, [playerId]);
 
   const handleBack = useCallback(() => {
-    router.push(resolvePlayerDetailBackHref(selectedPlayer?.id ?? playerId, searchParams));
+    router.push(
+      resolvePlayerDetailBackHref(
+        selectedPlayer?.id ?? playerId,
+        searchParams,
+        usePlayerListFiltersStore.getState().appliedFilters,
+      ),
+    );
   }, [router, searchParams, selectedPlayer?.id, playerId]);
 
   const handleNavigateToChat = useCallback(() => {
@@ -478,7 +485,15 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push(resolvePlayerDetailBackHref(playerId, searchParams))}
+        onRetry={() =>
+          router.push(
+            resolvePlayerDetailBackHref(
+              playerId,
+              searchParams,
+              usePlayerListFiltersStore.getState().appliedFilters,
+            ),
+          )
+        }
       />
     );
   }
