@@ -48,7 +48,7 @@ import {
   canClearPlayerSsnHash,
 } from '@/lib/constants/roles';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
-import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
+import { resolvePlayerDetailBackHref } from '@/lib/players/player-list-filter-params';
 
 
 interface StaffPlayerDetailProps {
@@ -152,8 +152,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   }, [playerId]);
 
   const handleBack = useCallback(() => {
-    router.push(buildPlayersListHref(searchParams));
-  }, [router, searchParams]);
+    router.push(resolvePlayerDetailBackHref(selectedPlayer?.id ?? playerId, searchParams));
+  }, [router, searchParams, selectedPlayer?.id, playerId]);
 
   const handleNavigateToChat = useCallback(() => {
     if (!selectedPlayer) return;
@@ -478,7 +478,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push(buildPlayersListHref(searchParams))}
+        onRetry={() => router.push(resolvePlayerDetailBackHref(playerId, searchParams))}
       />
     );
   }

@@ -6,6 +6,7 @@ import {
   extractPlayerListFilterSearchParams,
   playerListApiParamsFromSearchParams,
   playerListFilterStateFromSearchParams,
+  resolvePlayerDetailBackHref,
 } from '../player-list-filter-params';
 
 describe('player-list-filter-params', () => {
@@ -90,5 +91,22 @@ describe('player-list-filter-params', () => {
       status: 'all',
       first_deposit_done: 'all',
     });
+  });
+
+  it('resolves back href to chat when from=chat', () => {
+    const search = new URLSearchParams({
+      from: 'chat',
+      username: 'ignored-for-chat',
+    });
+    expect(resolvePlayerDetailBackHref(42, search)).toBe('/dashboard/chat?playerId=42');
+  });
+
+  it('resolves back href to filtered players list otherwise', () => {
+    const search = new URLSearchParams({
+      agent: 'bob',
+      from: 'elsewhere',
+    });
+    expect(resolvePlayerDetailBackHref(42, search)).toBe('/dashboard/players?agent=bob');
+    expect(resolvePlayerDetailBackHref(42)).toBe('/dashboard/players');
   });
 });

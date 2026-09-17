@@ -11,7 +11,7 @@ import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, 
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
-import { buildPlayersListHref } from '@/lib/players/player-list-filter-params';
+import { resolvePlayerDetailBackHref } from '@/lib/players/player-list-filter-params';
 import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
@@ -152,8 +152,8 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   }, [playerId]);
 
   const handleBack = useCallback(() => {
-    router.push(buildPlayersListHref(searchParams));
-  }, [router, searchParams]);
+    router.push(resolvePlayerDetailBackHref(selectedPlayer?.id ?? playerId, searchParams));
+  }, [router, searchParams, selectedPlayer?.id, playerId]);
 
   const handleNavigateToChat = useCallback(() => {
     if (!selectedPlayer) return;
@@ -478,7 +478,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
     return (
       <ErrorState
         message={error || 'Player not found'}
-        onRetry={() => router.push(buildPlayersListHref(searchParams))}
+        onRetry={() => router.push(resolvePlayerDetailBackHref(playerId, searchParams))}
       />
     );
   }

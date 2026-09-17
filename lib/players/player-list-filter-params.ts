@@ -185,6 +185,21 @@ export function buildPlayersListHref(
 }
 
 /**
+ * Resolve where player-detail Back should go.
+ * Chat opens profiles with `?from=chat` so operators return to that thread.
+ */
+export function resolvePlayerDetailBackHref(
+  playerId: number | string,
+  searchParams?: URLSearchParams | { get: (key: string) => string | null } | null,
+): string {
+  const from = searchParams?.get('from');
+  if (from === 'chat') {
+    return `/dashboard/chat?playerId=${playerId}`;
+  }
+  return buildPlayersListHref(searchParams ?? undefined);
+}
+
+/**
  * Build PlayersFiltersState (plus optional company) from URL search params.
  */
 export function playerListFilterStateFromSearchParams(

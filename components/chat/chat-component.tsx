@@ -1630,7 +1630,7 @@ export function ChatComponent() {
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
-      router.push(`/dashboard/players/${selectedPlayer.user_id}`);
+      router.push(`/dashboard/players/${selectedPlayer.user_id}?from=chat`);
     }
   }, [selectedPlayer, router]);
 

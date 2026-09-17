@@ -3,7 +3,7 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi, paymentMethodsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import {
@@ -46,7 +46,11 @@ import {
   PlayerBalanceTableValue,
 } from '@/components/dashboard/players/player-balance-hover';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
-import { buildPlayerDetailHref, playerListFilterStateFromSearchParams } from '@/lib/players/player-list-filter-params';
+import {
+  buildPlayerDetailHref,
+  buildPlayersListHref,
+  playerListFilterStateFromSearchParams,
+} from '@/lib/players/player-list-filter-params';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -203,7 +207,6 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
 
 function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const pagination = usePagination();
 
@@ -367,23 +370,6 @@ function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
       isMounted = false;
     };
   }, []);
-
-  // Remove URL parameter after component has mounted (if agent was in URL)
-  useEffect(() => {
-    if (agentFromUrl) {
-      const timeoutId = setTimeout(() => {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('agent');
-        const newSearch = params.toString();
-        const newUrl = newSearch
-          ? `${pathname}?${newSearch}`
-          : pathname;
-        window.history.replaceState({}, '', newUrl);
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [agentFromUrl, pathname]);
 
   const dataState = useSuperAdminPlayersData({
     filters: filters.appliedFilters,
@@ -562,6 +548,7 @@ function useSuperAdminPlayerFilters(
   values: SuperAdminFilterState;
   hasActiveFilters: boolean;
 } {
+  const router = useRouter();
   const defaultFilters: SuperAdminFilterState = {
     username: '',
     full_name: '',
@@ -581,14 +568,23 @@ function useSuperAdminPlayerFilters(
   const [filters, setFilters] = useState<SuperAdminFilterState>(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState<SuperAdminFilterState>(defaultFilters);
 
+  const syncFiltersToUrl = useCallback(
+    (nextFilters: SuperAdminFilterState) => {
+      router.replace(buildPlayersListHref(nextFilters), { scroll: false });
+    },
+    [router],
+  );
+
   const setFilter = useCallback((key: keyof SuperAdminFilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const applyFilters = useCallback(() => {
-    setAppliedFilters({ ...filters });
+    const next = { ...filters };
+    setAppliedFilters(next);
     setPage(1);
-  }, [filters, setPage]);
+    syncFiltersToUrl(next);
+  }, [filters, setPage, syncFiltersToUrl]);
 
   const clearFilters = useCallback(() => {
     const clearedFilters: SuperAdminFilterState = {
@@ -607,7 +603,8 @@ function useSuperAdminPlayerFilters(
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
-  }, []);
+    syncFiltersToUrl(clearedFilters);
+  }, [syncFiltersToUrl]);
 
   const hasActiveFilters = useMemo(() => {
     return (
@@ -632,9 +629,10 @@ function useSuperAdminPlayerFilters(
       const updatedFilters = { ...prevFilters, [key]: value };
       setAppliedFilters(updatedFilters);
       setPage(1);
+      syncFiltersToUrl(updatedFilters);
       return updatedFilters;
     });
-  }, [setPage]);
+  }, [setPage, syncFiltersToUrl]);
 
   return {
     applyFilters,

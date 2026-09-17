@@ -3,7 +3,7 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import { useAuth } from '@/providers/auth-provider';
@@ -34,7 +34,11 @@ import {
   PlayerBalanceTableValue,
 } from '@/components/dashboard/players/player-balance-hover';
 import { getPlayerReferredByDisplay } from '@/lib/players/referred-by';
-import { buildPlayerDetailHref, playerListFilterStateFromSearchParams } from '@/lib/players/player-list-filter-params';
+import {
+  buildPlayerDetailHref,
+  buildPlayersListHref,
+  playerListFilterStateFromSearchParams,
+} from '@/lib/players/player-list-filter-params';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -235,7 +239,6 @@ export default function PlayersDashboard(): ReactElement {
 
 function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const pagination = usePagination();
   const { user } = useAuth();
@@ -366,26 +369,6 @@ function usePlayersPageContext(): PlayersPageContext {
       isMounted = false;
     };
   }, []); // Load agents for all users
-
-  // Remove URL parameter after component has mounted (if agent was in URL)
-  // This prevents it from overriding filter changes
-  useEffect(() => {
-    if (agentFromUrl) {
-      // Use setTimeout to ensure state has been committed before updating URL
-      const timeoutId = setTimeout(() => {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('agent');
-        const newSearch = params.toString();
-        const newUrl = newSearch
-          ? `${pathname}?${newSearch}`
-          : pathname;
-        // Use window.history.replaceState to avoid triggering a navigation/reload
-        window.history.replaceState({}, '', newUrl);
-      }, 100); // Small delay to ensure filter state is initialized
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [agentFromUrl, pathname]);
 
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
@@ -582,6 +565,7 @@ function usePlayerFilters(
   values: FilterState;
   hasActiveFilters: boolean;
 } {
+  const router = useRouter();
   const defaultFilters: FilterState = {
     username: '',
     full_name: '',
@@ -600,15 +584,24 @@ function usePlayerFilters(
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilters);
 
+  const syncFiltersToUrl = useCallback(
+    (nextFilters: FilterState) => {
+      router.replace(buildPlayersListHref(nextFilters), { scroll: false });
+    },
+    [router],
+  );
+
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const applyFilters = useCallback(() => {
-    setAppliedFilters({ ...filters });
+    const next = { ...filters };
+    setAppliedFilters(next);
     // Reset to page 1 when filters are applied
     setPage(1);
-  }, [filters, setPage]);
+    syncFiltersToUrl(next);
+  }, [filters, setPage, syncFiltersToUrl]);
 
   const clearFilters = useCallback(() => {
     const clearedFilters: FilterState = {
@@ -626,7 +619,8 @@ function usePlayerFilters(
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
-  }, []);
+    syncFiltersToUrl(clearedFilters);
+  }, [syncFiltersToUrl]);
 
   const hasActiveFilters = useMemo(() => {
     return (
@@ -651,10 +645,10 @@ function usePlayerFilters(
       // Update appliedFilters with the new value immediately
       setAppliedFilters(updatedFilters);
       setPage(1);
-      console.log('✅ Filter set and applied:', key, '=', value, 'Updated filters:', updatedFilters);
+      syncFiltersToUrl(updatedFilters);
       return updatedFilters;
     });
-  }, [setPage]);
+  }, [setPage, syncFiltersToUrl]);
 
   return {
     applyFilters,
