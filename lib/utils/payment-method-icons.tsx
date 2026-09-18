@@ -8,7 +8,7 @@ const iconClass = 'w-5 h-5';
 const PAYMENT_LOGOS: Record<string, string> = {
   alchemypay: '/payment-logos/alchemy pay.png',
   alchemy: '/payment-logos/alchemy pay.png',
-  applepay: '/payment-logos/apple_pay.png',
+  applepay: '/payment-logos/apay.png',
   apex: '/payment-logos/apex.png',
   banxa: '/payment-logos/banxa.png',
   binpay: '/payment-logos/binpay.png',
