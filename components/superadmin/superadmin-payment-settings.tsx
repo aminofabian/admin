@@ -22,7 +22,7 @@ import { paymentMethodsApi } from '@/lib/api';
 import type { Company, PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory, PurchasePaymentMethod, PurchaseSubcategory } from '@/types';
 import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
-import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
+import { getPaymentMethodIcon, getSubcategoryPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 
 type SortField = 'name' | 'type' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -752,7 +752,7 @@ export function SuperAdminPaymentSettings() {
                                                             >
                                                                 <div className="flex items-center gap-4 min-w-0">
                                                                     <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white dark:bg-slate-800 dark:border-border/60 flex items-center justify-center border border-border/50 shadow-sm group-hover:shadow-md group-hover:border-primary/30 dark:group-hover:border-primary/40 dark:group-hover:bg-slate-700 transition-all duration-200">
-                                                                        {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, { size: 'md', methodType: sub.method_type, providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method, asInitialFallback: true })}
+                                                                        {getSubcategoryPaymentMethodIcon(sub, { size: 'md' })}
                                                                     </div>
                                                                     <div className="min-w-0">
                                                                         <div className="font-medium text-sm text-foreground">
@@ -879,7 +879,7 @@ export function SuperAdminPaymentSettings() {
                                                             >
                                                                 <div className="flex items-center gap-4 min-w-0">
                                                                     <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white dark:bg-slate-800 dark:border-border/60 flex items-center justify-center border border-border/50 shadow-sm group-hover:shadow-md group-hover:border-primary/30 dark:group-hover:border-primary/40 dark:group-hover:bg-slate-700 transition-all duration-200">
-                                                                        {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, { size: 'md', methodType: sub.method_type, providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method, asInitialFallback: true })}
+                                                                        {getSubcategoryPaymentMethodIcon(sub, { size: 'md' })}
                                                                     </div>
                                                                     <div className="min-w-0">
                                                                         <div className="font-medium text-sm text-foreground">
@@ -1037,7 +1037,7 @@ export function SuperAdminPaymentSettings() {
                                                     <TableCell className="font-medium">
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white/80 dark:bg-slate-800 dark:border dark:border-border/50 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none">
-                                                                {getPaymentMethodIcon(method.payment_method, { size: 'md', methodType: method.method_type, asInitialFallback: true })}
+                                                                {getPaymentMethodIcon(method.payment_method_display || method.payment_method, { size: 'md', methodType: method.method_type, asInitialFallback: true })}
                                                             </div>
                                                             <div>
                                                                 <div>{formatPaymentMethod(method.payment_method_display || method.payment_method)}</div>
@@ -1167,7 +1167,7 @@ export function SuperAdminPaymentSettings() {
                                             <CardContent className="p-3 space-y-2">
                                                 <div className="flex items-start gap-3">
                                                     <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/80 dark:bg-slate-800 dark:border dark:border-border/50 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none">
-                                                        {getPaymentMethodIcon(method.payment_method, { size: 'lg', methodType: method.method_type, asInitialFallback: true })}
+                                                        {getPaymentMethodIcon(method.payment_method_display || method.payment_method, { size: 'lg', methodType: method.method_type, asInitialFallback: true })}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold text-base leading-tight mb-1">{formatPaymentMethod(method.payment_method_display || method.payment_method)}</h3>

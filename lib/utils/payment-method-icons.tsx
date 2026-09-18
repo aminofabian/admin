@@ -8,13 +8,16 @@ const iconClass = 'w-5 h-5';
 const PAYMENT_LOGOS: Record<string, string> = {
   alchemypay: '/payment-logos/alchemy pay.png',
   alchemy: '/payment-logos/alchemy pay.png',
+  applepay: '/payment-logos/apple_pay.png',
   apex: '/payment-logos/apex.png',
   banxa: '/payment-logos/banxa.png',
   binpay: '/payment-logos/binpay.png',
   card: '/payment-logos/card.png',
   cards: '/payment-logos/card.png',
   cashapp: '/payment-logos/cashapp.png',
+  ecashapp: '/payment-logos/cashapp.png',
   chime: '/payment-logos/chime.png',
+  googlepay: '/payment-logos/google_pay.png',
   litecoin: '/payment-logos/litecoin.png',
   ltc: '/payment-logos/litecoin.png',
   moonpay: '/payment-logos/moonpay.png',
@@ -123,6 +126,13 @@ const InitialIcon = ({ letter, className = 'w-8 h-8 text-xs font-bold' }: { lett
 
 const normalizeKey = (s: string) => s?.toLowerCase().replace(/[\s_-]+/g, '') ?? '';
 
+/** Protocols — never use these as the visible brand logo (badge already shows payapi/brenzi). */
+const PROTOCOL_KEYS = new Set(['payapi', 'brenzi', 'tap', 'taparcaida', 'taparcadia']);
+
+function isProtocolKey(key: string | undefined): boolean {
+  return Boolean(key) && PROTOCOL_KEYS.has(key as string);
+}
+
 function resolveIcon(
   key: string,
   sizeClass: string,
@@ -133,16 +143,19 @@ function resolveIcon(
 ): ReactNode {
   const typeKey = normalizeKey(methodType ?? '');
 
-  // Payment logos (check first – use images when available)
-  const logoKeys = [key, typeKey, providerKey].filter((x): x is string => Boolean(x));
+  // Brand logos only — skip protocol slugs like payapi/brenzi so Chime/Apple Pay rows
+  // don't fall through to a letter badge or the protocol asset.
+  const logoKeys = [key, typeKey, providerKey].filter(
+    (x): x is string => Boolean(x) && !isProtocolKey(x)
+  );
   for (const k of logoKeys) {
     const exact = PAYMENT_LOGOS[k];
     if (exact) return <PaymentLogoImage src={exact} sizeClass={sizeClass} />;
   }
   const sortedLogoEntries = Object.entries(PAYMENT_LOGOS).sort(([a], [b]) => b.length - a.length);
-  const allKeys = [key, typeKey, providerKey].filter((x): x is string => Boolean(x));
   for (const [logoKey, src] of sortedLogoEntries) {
-    if (allKeys.some((k) => k.startsWith(logoKey))) {
+    if (isProtocolKey(logoKey)) continue;
+    if (logoKeys.some((k) => k.startsWith(logoKey))) {
       return <PaymentLogoImage src={src} sizeClass={sizeClass} />;
     }
   }
@@ -199,4 +212,30 @@ export function getPaymentMethodIcon(
 
   const typeKey = normalizeKey(methodType ?? '');
   return resolveIcon(key, sizeClass, paymentMethod, typeKey || undefined, asInitialFallback, providerKey || undefined);
+}
+
+type SubcategoryIconSource = {
+  payment_method?: string | null;
+  payment_method_display?: string | null;
+  provider_payment_method?: string | null;
+  provider_payment_method_display?: string | null;
+  method_type?: string | null;
+};
+
+/** Icon for a payment-settings subcategory: brand (Chime, Apple Pay) not protocol (PayAPI). */
+export function getSubcategoryPaymentMethodIcon(
+  sub: SubcategoryIconSource,
+  options?: { size?: 'sm' | 'md' | 'lg' }
+): ReactNode {
+  const label =
+    sub.payment_method_display ||
+    sub.payment_method ||
+    sub.provider_payment_method_display ||
+    sub.provider_payment_method;
+  return getPaymentMethodIcon(label, {
+    size: options?.size ?? 'md',
+    methodType: isProtocolKey(normalizeKey(sub.method_type ?? '')) ? null : sub.method_type,
+    providerPaymentMethod: sub.provider_payment_method_display || sub.provider_payment_method,
+    asInitialFallback: true,
+  });
 }
