@@ -495,8 +495,6 @@ const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const
 
 const TAP_TICKET_ID_KEYS = ['taparcaida_ticket_id', 'taparcadia_ticket_id', 'tapTicketId'] as const;
 
-const PAYAPI_ORDER_ID_KEYS = ['payapi_order_id', 'payapiOrderId', 'mch_order_no'] as const;
-
 const BRENZI_REFERENCE_KEYS = ['brenzi_reference', 'brenziReference'] as const;
 
 function getBinpayOrderIdEntry(
@@ -562,18 +560,49 @@ function getTapTicketIdEntry(
   return null;
 }
 
+function getNestedPayapiOrderNo(paymentDetails: Record<string, unknown>): unknown {
+  const response = paymentDetails.payapi_response;
+  if (!response || typeof response !== 'object') return undefined;
+  const data = (response as Record<string, unknown>).data;
+  if (data && typeof data === 'object') {
+    const fromData = (data as Record<string, unknown>).payOrderNo
+      ?? (data as Record<string, unknown>).pay_order_no;
+    if (fromData != null && String(fromData).trim() !== '') return fromData;
+  }
+  const fromResponse = (response as Record<string, unknown>).payOrderNo
+    ?? (response as Record<string, unknown>).pay_order_no;
+  if (fromResponse != null && String(fromResponse).trim() !== '') return fromResponse;
+  return undefined;
+}
+
+/** Keys for the merchant/internal id — only used when pay_order_no is unavailable. */
+const PAYAPI_ORDER_ID_FALLBACK_KEYS = [
+  'payapi_order_id',
+  'payapiOrderId',
+  'mch_order_no',
+] as const;
+
 function getPayapiOrderIdEntry(
   transaction: Pick<Transaction, 'payapi_order_id' | 'payment_details'>
 ): [string, string] | null {
   const tx = transaction as Record<string, unknown>;
   const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
-    ? transaction.payment_details
+    ? (transaction.payment_details as Record<string, unknown>)
     : null;
 
-  let val: unknown = null;
-  for (const key of PAYAPI_ORDER_ID_KEYS) {
-    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
-    if (val != null && String(val).trim() !== '') break;
+  // Prefer PayAPI's pay_order_no (the important lookup ID) for all payapi methods
+  // (Cash App, Chime, Google Pay, Apple Pay, etc.).
+  let val: unknown =
+    tx.pay_order_no
+    ?? tx.payOrderNo
+    ?? (pd ? pd.pay_order_no ?? pd.payOrderNo : undefined)
+    ?? (pd ? getNestedPayapiOrderNo(pd) : undefined);
+
+  if (val == null || String(val).trim() === '') {
+    for (const key of PAYAPI_ORDER_ID_FALLBACK_KEYS) {
+      val = tx[key] ?? (pd ? pd[key] : undefined);
+      if (val != null && String(val).trim() !== '') break;
+    }
   }
 
   const str = formatDetailValue(val);

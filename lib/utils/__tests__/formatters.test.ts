@@ -291,6 +291,38 @@ describe('formatters', () => {
       });
       expect(rows.find(([label]) => label === 'Brenzi reference')?.[1]).toBe('4E0BFBF340C1');
     });
+
+    it('prefers pay_order_no over mch_order_no / payapi_order_id for PayAPI methods', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'cashapp',
+        provider: 'payapi',
+        payapi_order_id: 'payapi_67_1790015122_5478f881',
+        payment_details: {
+          provider: 'payapi',
+          way_code: 'ecashapp',
+          mch_order_no: 'payapi_67_1790015122_5478f881',
+          pay_order_no: 'S2026092110253144365',
+        },
+      });
+      expect(rows.find(([label]) => label === 'PayAPI order ID')?.[1]).toBe('S2026092110253144365');
+    });
+
+    it('reads PayAPI order ID from nested payapi_response when flat pay_order_no is missing', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'chime',
+        provider: 'payapi',
+        payapi_order_id: 'payapi_67_1790015293_1e54288d',
+        payment_details: {
+          provider: 'payapi',
+          way_code: 'chime',
+          mch_order_no: 'payapi_67_1790015293_1e54288d',
+          payapi_response: {
+            data: { payOrderNo: 'S202609211028E0F2366' },
+          },
+        },
+      });
+      expect(rows.find(([label]) => label === 'PayAPI order ID')?.[1]).toBe('S202609211028E0F2366');
+    });
   });
 
   describe('getProviderDisplayName', () => {
