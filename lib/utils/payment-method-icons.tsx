@@ -17,7 +17,7 @@ const PAYMENT_LOGOS: Record<string, string> = {
   cashapp: '/payment-logos/cashapp.png',
   ecashapp: '/payment-logos/cashapp.png',
   chime: '/payment-logos/chime.png',
-  googlepay: '/payment-logos/google_pay.png',
+  googlepay: '/payment-logos/gpay.png',
   litecoin: '/payment-logos/litecoin.png',
   ltc: '/payment-logos/litecoin.png',
   moonpay: '/payment-logos/moonpay.png',
