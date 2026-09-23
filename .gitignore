@@ -17,8 +17,6 @@
 /.next/
 /out/
 
-.gitignore
-
 # cursor
 /.cursor/
 
