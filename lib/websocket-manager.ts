@@ -21,7 +21,7 @@ const ABNORMAL_CLOSE = 1006;
 
 function isAuthCloseEvent(event: CloseEvent): boolean {
   if (AUTH_CLOSE_CODES.has(event.code)) return true;
-  return /auth|token|forbidden|unauthor|expired/i.test(event.reason || "");
+  return /auth|token|forbidden|unauthor|expired|403/i.test(event.reason || "");
 }
 
 /** Stable map key: strip token so reconnects with a new JWT stay on the same connection. */
@@ -336,7 +336,8 @@ class WebSocketManager {
         return;
       }
 
-      // Failed handshake → 1006 with no prior onopen: one soft refresh, then network backoff.
+      // Failed handshake → 1006 with no prior onopen (HTTP 403 often looks like this).
+      // One refresh + reconnect. A second failed handshake stops; no backoff spam.
       if (
         event.code === ABNORMAL_CLOSE &&
         !managed.hasOpened &&
@@ -349,8 +350,31 @@ class WebSocketManager {
         void this.attemptReconnection(managed, finalConfig, {
           forceRefresh: true,
           immediate: true,
-          logoutOnRefreshFailure: false,
+          logoutOnRefreshFailure: true,
         });
+        return;
+      }
+
+      if (
+        event.code === ABNORMAL_CLOSE &&
+        !managed.hasOpened &&
+        managed.authRefreshAttempted
+      ) {
+        managed.shouldReconnect = false;
+        recordWsAuthMetric("auth_close_login", {
+          endpoint: managed.key,
+          code: event.code,
+          reason: "handshake_retry_stopped",
+        });
+        managed.listeners.forEach((listener) => {
+          try {
+            listener.onAuthFailure?.();
+          } catch {
+            // ignore
+          }
+        });
+        redirectToLoginAfterAuthFailure();
+        this.closeConnection(managed.key);
         return;
       }
 
