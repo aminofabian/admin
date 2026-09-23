@@ -437,12 +437,24 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         },
         onError: (error) => {
           console.error('❌ [Online Players] WebSocket error:', error);
-          setError('WebSocket connection error');
+          setError('Connection lost, reconnecting...');
           setIsConnected(false);
         },
         onClose: (event) => {
           !IS_PROD && console.log('🔌 [Online Players] WebSocket closed:', event.code);
           setIsConnected(false);
+          if (
+            event.code === 4001 ||
+            /auth|token|forbidden|expired/i.test(event.reason || '')
+          ) {
+            setError('Session expired, please log in again');
+          } else if (!event.wasClean) {
+            setError('Connection lost, reconnecting...');
+          }
+        },
+        onAuthFailure: () => {
+          setIsConnected(false);
+          setError('Session expired, please log in again');
         },
       };
 

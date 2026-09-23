@@ -256,12 +256,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           console.error('❌ [Chat Users] WebSocket error:', error);
           setIsLoading(false);
           setIsConnected(false);
-          setError('WebSocket connection error');
+          setError('Connection lost, reconnecting...');
         },
         onClose: (event) => {
           if (!IS_PROD) console.log('🔌 [Chat Users] WebSocket closed:', event.code, event.reason);
           setIsConnected(false);
           setIsLoading(false);
+          if (
+            event.code === 4001 ||
+            /auth|token|forbidden|expired/i.test(event.reason || '')
+          ) {
+            setError('Session expired, please log in again');
+          } else if (!event.wasClean) {
+            setError('Connection lost, reconnecting...');
+          }
+        },
+        onAuthFailure: () => {
+          setIsConnected(false);
+          setIsLoading(false);
+          setError('Session expired, please log in again');
         },
       };
 

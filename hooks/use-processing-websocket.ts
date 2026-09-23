@@ -756,7 +756,20 @@ export function useProcessingWebSocket({
           setIsConnected(false);
           setIsConnecting(false);
           setReconnectAttempts((prev) => prev + 1);
+          if (
+            event.code === 4001 ||
+            /auth|token|forbidden|expired/i.test(event.reason || "")
+          ) {
+            setError("Session expired, please log in again");
+          } else if (!event.wasClean) {
+            setError("Connection lost, reconnecting...");
+          }
           onDisconnect?.();
+        },
+        onAuthFailure: () => {
+          setError("Session expired, please log in again");
+          setIsConnected(false);
+          setIsConnecting(false);
         },
         onMaxReconnectAttemptsReached: () => {
           console.log(
@@ -764,6 +777,7 @@ export function useProcessingWebSocket({
           );
           connectionFailedCalledRef.current = true;
           setHasConnectionFailed(true);
+          setError("Connection lost, reconnecting...");
           onConnectionFailed?.();
         },
       };
