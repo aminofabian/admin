@@ -74,8 +74,10 @@ This project follows strict coding standards:
 1. **Create `.env.local` file** in the project root:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:8000
+   # Optional: Jev transaction-action gate — https://www.jevai.org/agent/keys
+   JEV_API_KEY=
    ```
-   Replace with your actual backend URL.
+   Replace with your actual backend URL. See [docs/jev.md](docs/jev.md) for when Jev is called.
 
 2. **Install dependencies:**
    ```bash

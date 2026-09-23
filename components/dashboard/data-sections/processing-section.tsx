@@ -1164,7 +1164,42 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         playerIp: playerIp ?? '(none)',
         actionOptions,
       });
-      const response = await transactionsApi.transactionAction(transactionId, apiAction, actionOptions);
+
+      let response;
+      try {
+        response = await transactionsApi.transactionAction(
+          transactionId,
+          apiAction,
+          actionOptions
+        );
+      } catch (firstError) {
+        const gate = firstError as { code?: string; message?: string; jev?: { guidance?: string; decision?: string } };
+        if (gate?.code !== 'jev_confirmation_required') {
+          throw firstError;
+        }
+        const guidance =
+          gate.jev?.guidance ||
+          gate.message ||
+          'Jev recommends confirming before this transaction action.';
+        const decision = gate.jev?.decision ? ` (${gate.jev.decision})` : '';
+        const confirmed = window.confirm(
+          `Jev review${decision}:\n\n${guidance}\n\nProceed with this action?`
+        );
+        if (!confirmed) {
+          addToast({
+            type: 'info',
+            title: 'Action cancelled',
+            description: 'Stopped after Jev confirmation gate.',
+            duration: 3000,
+          });
+          return;
+        }
+        response = await transactionsApi.transactionAction(transactionId, apiAction, {
+          ...actionOptions,
+          jevConfirmed: true,
+        });
+      }
+
       console.log(' Transaction Action - API call successful:', response);
 
       // Always refetch this transaction before mutating UI — a successful claim may leave

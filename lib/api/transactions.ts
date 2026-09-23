@@ -23,6 +23,8 @@ export type TransactionActionOptions = {
   binpayUsername?: string | null;
   /** Hint Tierlock to use email for payout contact (no phone). */
   tierlockPreferEmailOnly?: boolean;
+  /** Operator already confirmed after a Jev confirm/review gate. */
+  jevConfirmed?: boolean;
 };
 
 /** Loose shape from Django-style paginated JSON (fields may be wrong types). */
@@ -267,6 +269,9 @@ export const transactionsApi = {
         formData.append('tierlock_contact_email', options.userEmail.trim());
       }
     }
+    if (options?.jevConfirmed) {
+      formData.append('jev_confirmed', '1');
+    }
 
     const response = await apiClient.post<{
       status: string;
@@ -282,12 +287,31 @@ export const transactionsApi = {
       cashout_24h_remaining_amount?: string | null;
       cashout_24h_window_started_at?: string;
       cashout_24h_as_of?: string;
+      jev?: {
+        decision?: string;
+        confidence?: number;
+        guidance?: string;
+        probabilities?: Record<string, number>;
+      };
     }>('api/transaction-action', formData);
+
+    if (response.status === 'jev_gate' || response.code === 'jev_confirmation_required') {
+      throw {
+        status: 'jev_gate',
+        code: 'jev_confirmation_required',
+        message:
+          response.message ||
+          response.jev?.guidance ||
+          'Jev recommends confirmation before this action.',
+        jev: response.jev,
+      };
+    }
     
     // Check if the response contains an error (backend may return 200 with error in body)
     if (
       response.status === 'error' ||
-      response.code === 'cashout_24h_limit_exceeded'
+      response.code === 'cashout_24h_limit_exceeded' ||
+      response.code === 'jev_denied'
     ) {
       throw {
         status: 'error',
@@ -303,6 +327,7 @@ export const transactionsApi = {
         cashout_24h_remaining_amount: response.cashout_24h_remaining_amount,
         cashout_24h_window_started_at: response.cashout_24h_window_started_at,
         cashout_24h_as_of: response.cashout_24h_as_of,
+        jev: response.jev,
       };
     }
     
