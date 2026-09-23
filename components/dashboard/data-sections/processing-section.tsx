@@ -48,7 +48,7 @@ import {
   formatPaymentMethod,
   getPlayerIpFromTransaction,
   getProviderDisplayName,
-  isCryptoPaymentMethod,
+  isBtcpayCashoutTransaction,
   resolvePayoutContactFromTransaction,
 } from '@/lib/utils/formatters';
 import { getTransactionAmountColorClass } from '@/lib/utils/transaction-display';
@@ -1420,9 +1420,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     if (!txn || txn.type !== 'cashout' || (status !== 'pending' && status !== 'failed')) return [];
 
     // bitcoin_lightning / cashapp_lightning / on-chain crypto → BTCPay only (not Tap/Binpay under cashapp).
-    const isCryptoCashout =
-      isCryptoPaymentMethod(txn.payment_method) || isCryptoPaymentMethod(txn.provider);
-    if (isCryptoCashout) {
+    // Also covers cashapp_lightning stored as payment_method=`cashapp` with a BOLT11 wallet.
+    if (isBtcpayCashoutTransaction(txn)) {
       return [{ label: 'Send to BTCPay', action: 'send_to_btcpay' }];
     }
 

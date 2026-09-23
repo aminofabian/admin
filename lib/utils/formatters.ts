@@ -450,6 +450,57 @@ export function isCryptoPaymentMethod(paymentMethod: string | null | undefined):
   return CRYPTO_PAYMENT_METHOD_SUBSTRINGS.some((m) => lower.includes(m));
 }
 
+/** BOLT11: lnbc (mainnet), lntb (testnet), lnbcrt (regtest). Bech32, all one case. */
+export function isLightningInvoice(value: string | null | undefined): boolean {
+  const invoice = (value ?? '').trim();
+  if (!invoice) return false;
+  return /^(lnbc|lntb|lnbcrt)[0-9a-z]+$/i.test(invoice);
+}
+
+const BTCPAY_HINT_KEYS = [
+  'provider',
+  'provider_payment_method',
+  'payment_method',
+  'method',
+  'rail',
+  'topup_method',
+] as const;
+
+/**
+ * True when a cashout should be paid via BTCPay (Lightning / on-chain crypto),
+ * not Tap/Binpay subcategories under a parent rail like cashapp.
+ *
+ * Cashapp Lightning is often stored as payment_method=`cashapp` with a BOLT11
+ * invoice in payment_details — method/provider alone miss that case.
+ */
+export function isBtcpayCashoutTransaction(transaction: {
+  payment_method?: string | null;
+  provider?: string | null;
+  payment_details?: Record<string, unknown> | null;
+}): boolean {
+  if (
+    isCryptoPaymentMethod(transaction.payment_method) ||
+    isCryptoPaymentMethod(transaction.provider)
+  ) {
+    return true;
+  }
+
+  const pd = transaction.payment_details;
+  if (!pd || typeof pd !== 'object') return false;
+
+  for (const key of BTCPAY_HINT_KEYS) {
+    const raw = findPaymentDetailValue(pd, [key]);
+    if (raw != null && isCryptoPaymentMethod(String(raw))) return true;
+  }
+
+  for (const key of CRYPTO_WALLET_KEYS) {
+    const raw = findPaymentDetailValue(pd, [key]);
+    if (raw != null && isLightningInvoice(String(raw))) return true;
+  }
+
+  return false;
+}
+
 /** Fallback when no identity fields: Provider + Payment Method. */
 function getProviderPaymentMethodFallback(transaction: {
   payment_method?: string | null;
@@ -689,7 +740,18 @@ export function getPaymentDetailsForDisplay(
   }
 
   const resolvedMethod = resolvePaymentMethod(transaction);
-  const methodStr = formatDetailValue(resolvedMethod);
+  let methodStr = formatDetailValue(resolvedMethod);
+  // Parent rail (e.g. cashapp) + Lightning invoice → show the Lightning rail name.
+  if (
+    methodStr !== '—' &&
+    !isCryptoPaymentMethod(resolvedMethod) &&
+    isBtcpayCashoutTransaction(transaction)
+  ) {
+    const pm = (resolvedMethod ?? '').trim().toLowerCase();
+    if (pm === 'cashapp' || pm === 'ecashapp' || pm === 'cash_app') {
+      methodStr = 'cashapp_lightning';
+    }
+  }
   const hasMethod = methodStr !== '—' && String(methodStr).trim() !== '';
   const alreadyHasMethod = entries.some(([label]) =>
     label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method'

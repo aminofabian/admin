@@ -6,7 +6,9 @@ import {
   getPaymentDetailsForDisplay,
   getProviderDisplayName,
   getPurchaseBonusPaymentLabel,
+  isBtcpayCashoutTransaction,
   isCryptoPaymentMethod,
+  isLightningInvoice,
   parseApiTimestampToDate,
 } from '../formatters';
 
@@ -425,6 +427,72 @@ describe('formatters', () => {
     it('does not treat cashtag cashapp as crypto', () => {
       expect(isCryptoPaymentMethod('cashapp')).toBe(false);
       expect(isCryptoPaymentMethod('ecashapp')).toBe(false);
+    });
+  });
+
+  describe('isLightningInvoice', () => {
+    it('accepts mainnet BOLT11 invoices', () => {
+      expect(
+        isLightningInvoice('lnbc100u1pexampleinvoice00000000000000000000000000000'),
+      ).toBe(true);
+    });
+
+    it('rejects cashtags and empty values', () => {
+      expect(isLightningInvoice('$PlayerTag')).toBe(false);
+      expect(isLightningInvoice('')).toBe(false);
+      expect(isLightningInvoice(null)).toBe(false);
+    });
+  });
+
+  describe('isBtcpayCashoutTransaction', () => {
+    it('routes explicit cashapp_lightning payment_method to BTCPay', () => {
+      expect(
+        isBtcpayCashoutTransaction({ payment_method: 'cashapp_lightning' }),
+      ).toBe(true);
+    });
+
+    it('routes cashapp parent method with BOLT11 invoice to BTCPay (not Tap)', () => {
+      expect(
+        isBtcpayCashoutTransaction({
+          payment_method: 'cashapp',
+          payment_details: {
+            lightning_invoice:
+              'lnbc100u1pexampleinvoice00000000000000000000000000000',
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('routes cashapp parent method with invoice key to BTCPay', () => {
+      expect(
+        isBtcpayCashoutTransaction({
+          payment_method: 'cashapp',
+          payment_details: {
+            invoice: 'lnbc100u1pexampleinvoice00000000000000000000000000000',
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('does not treat cashtag cashapp cashouts as BTCPay', () => {
+      expect(
+        isBtcpayCashoutTransaction({
+          payment_method: 'cashapp',
+          payment_details: { cashtag: '$PlayerTag' },
+        }),
+      ).toBe(false);
+    });
+  });
+
+  describe('getPaymentDetailsForDisplay lightning under cashapp', () => {
+    it('relabels Method to cashapp_lightning when wallet is a BOLT11 invoice', () => {
+      const invoice = 'lnbc100u1pexampleinvoice00000000000000000000000000000';
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'cashapp',
+        payment_details: { lightning_invoice: invoice },
+      });
+      expect(rows.find(([label]) => label === 'Method')?.[1]).toBe('cashapp_lightning');
+      expect(rows.find(([label]) => label === 'Wallet')?.[1]).toBe(invoice);
     });
   });
 });
