@@ -43,39 +43,16 @@ async function searchChatUserByQuery(
   );
 }
 
-/**
- * Resolve a chat directory user for deep-links (`?playerId=`).
- * Player-details alone usually has no chatroom_id — search the chat API for it.
- */
-export async function resolveChatUserForPlayerIdDeepLink({
-  userId,
-  token,
-}: ResolveArgs): Promise<ChatUser | null> {
-  const detailsRes = await fetch(`/api/player-details/${userId}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-
-  if (!detailsRes.ok) {
-    // Still try chat search by numeric id in case the directory knows the room.
-    return searchChatUserByQuery(String(userId), token, userId);
-  }
-
-  const data = await detailsRes.json();
-  const player = (data.player || data) as Record<string, unknown>;
-  if (!player || !(player.id || player.user_id)) {
-    return searchChatUserByQuery(String(userId), token, userId);
-  }
-
+function mapPlayerDetailsToChatUser(
+  player: Record<string, unknown>,
+): ChatUser | null {
   const resolvedUserId = Number(player.id || player.user_id || 0);
   if (!Number.isFinite(resolvedUserId) || resolvedUserId <= 0) {
     return null;
   }
 
   const identityVerified = isIdentityVerifiedFromRecord(player);
-  const profileUser: ChatUser = {
+  return {
     id: pickChatroomIdFromRow(player, resolvedUserId),
     user_id: resolvedUserId,
     username: String(player.username || player.full_name || 'Unknown'),
@@ -122,20 +99,75 @@ export async function resolveChatUserForPlayerIdDeepLink({
       ? {}
       : { isIdentityVerified: identityVerified }),
   };
+}
 
-  if (profileUser.id) {
+/**
+ * Resolve a chat directory user for deep-links (`?playerId=`).
+ * Player-details alone usually has no chatroom_id — search the chat API for it.
+ * Runs profile + chat search in parallel so the first open feels snappy.
+ */
+export async function resolveChatUserForPlayerIdDeepLink({
+  userId,
+  token,
+}: ResolveArgs): Promise<ChatUser | null> {
+  const detailsPromise = fetch(`/api/player-details/${userId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  })
+    .then(async (res) => {
+      if (!res.ok) return null;
+      const data = await res.json();
+      const player = (data.player || data) as Record<string, unknown>;
+      if (!player || !(player.id || player.user_id)) return null;
+      return mapPlayerDetailsToChatUser(player);
+    })
+    .catch(() => null);
+
+  // Chat search by numeric id often has chatroom_id; start in parallel with profile.
+  const searchByIdPromise = searchChatUserByQuery(String(userId), token, userId);
+
+  const [profileUser, fromUserId] = await Promise.all([
+    detailsPromise,
+    searchByIdPromise,
+  ]);
+
+  if (fromUserId?.id) {
+    if (!profileUser) return fromUserId;
+    return {
+      ...profileUser,
+      ...fromUserId,
+      user_id: profileUser.user_id,
+      username: profileUser.username || fromUserId.username,
+      fullName: profileUser.fullName || fromUserId.fullName,
+      email: profileUser.email || fromUserId.email,
+      avatar: profileUser.avatar || fromUserId.avatar,
+      balance: profileUser.balance ?? fromUserId.balance,
+      winningBalance: profileUser.winningBalance ?? fromUserId.winningBalance,
+      cashoutLimit: profileUser.cashoutLimit ?? fromUserId.cashoutLimit,
+      lockedBalance: profileUser.lockedBalance ?? fromUserId.lockedBalance,
+      phone: profileUser.phone || fromUserId.phone,
+      notes: profileUser.notes || fromUserId.notes,
+      isIdentityVerified:
+        profileUser.isIdentityVerified ?? fromUserId.isIdentityVerified,
+      id: fromUserId.id || profileUser.id,
+    };
+  }
+
+  if (profileUser?.id) {
     return profileUser;
+  }
+
+  if (!profileUser) {
+    return fromUserId;
   }
 
   const username = (profileUser.username || '').trim();
   const fromUsername =
     username && username.toLowerCase() !== 'unknown'
-      ? await searchChatUserByQuery(username, token, resolvedUserId)
+      ? await searchChatUserByQuery(username, token, profileUser.user_id)
       : null;
-  const fromUserId =
-    fromUsername?.id
-      ? null
-      : await searchChatUserByQuery(String(resolvedUserId), token, resolvedUserId);
 
   const fromSearch = fromUsername?.id
     ? fromUsername
@@ -150,8 +182,7 @@ export async function resolveChatUserForPlayerIdDeepLink({
   return {
     ...profileUser,
     ...fromSearch,
-    // Prefer profile ledger / identity when search row is thin
-    user_id: resolvedUserId,
+    user_id: profileUser.user_id,
     username: profileUser.username || fromSearch.username,
     fullName: profileUser.fullName || fromSearch.fullName,
     email: profileUser.email || fromSearch.email,

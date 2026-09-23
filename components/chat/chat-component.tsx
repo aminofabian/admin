@@ -393,6 +393,7 @@ export function ChatComponent() {
     loadOlderMessages,
     hasMoreHistory,
     isHistoryLoading: isHistoryLoadingMessages,
+    hasCompletedInitialHistory,
     updateMessagePinnedState,
     markAllAsRead,
     refreshMessages,
@@ -2416,6 +2417,9 @@ export function ChatComponent() {
       return;
     }
 
+    // Show skeleton immediately on deep-link — before candidate lookup / API resolve.
+    setIsResolvingChatroom(true);
+
     // Search for the player in the available data
     let candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
       return player.user_id === targetUserId;
@@ -3375,14 +3379,16 @@ export function ChatComponent() {
                     </div>
                   )}
 
-                {((isHistoryLoadingMessages || isResolvingChatroom) &&
+                {((isHistoryLoadingMessages ||
+                  isResolvingChatroom ||
+                  (Boolean(selectedPlayer) && !hasCompletedInitialHistory)) &&
                   wsMessages.length === 0) && (
                   <MessageHistorySkeleton />
                 )}
                 {!isHistoryLoadingMessages &&
                   !isResolvingChatroom &&
-                  wsMessages.length === 0 &&
-                  isConnected && (
+                  hasCompletedInitialHistory &&
+                  wsMessages.length === 0 && (
                     <div className="flex items-center justify-center h-full min-h-[200px]">
                       <div className="text-center space-y-2">
                         <p className="text-muted-foreground text-sm md:text-base">

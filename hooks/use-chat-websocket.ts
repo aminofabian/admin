@@ -218,6 +218,8 @@ interface UseChatWebSocketReturn {
   loadOlderMessages: () => Promise<{ added: number }>;
   hasMoreHistory: boolean;
   isHistoryLoading: boolean;
+  /** True until first history fetch finishes for the current safe chatroom (avoids empty-state flash). */
+  hasCompletedInitialHistory: boolean;
   updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
   refreshMessages: () => Promise<void>;
   updateMessagesBalance: (balance: string, winningBalance: string) => void;
@@ -246,6 +248,8 @@ export function useChatWebSocket({
   const [isPurchaseHistoryLoading, setIsPurchaseHistoryLoading] =
     useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [hasCompletedInitialHistory, setHasCompletedInitialHistory] =
+    useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({
     page: 0,
@@ -321,9 +325,12 @@ export function useChatWebSocket({
     setNotes("");
     setPlayerLastSeenAt(null);
     setIsUserOnline(false);
-    setIsHistoryLoading(false);
     setHasMoreHistory(false);
     setHistoryPagination({ page: 0, totalPages: 0 });
+    setHasCompletedInitialHistory(false);
+
+    // Keep skeleton visible while chatroom resolves or history loads (no empty flash).
+    setIsHistoryLoading(Boolean(userId));
 
     if (effectiveEnabled) {
       setConnectionError(null);
@@ -460,16 +467,23 @@ export function useChatWebSocket({
 
       // Wait for a real chatroom id before hitting the history API.
       if (!resolveSafeChatroomId(chatId, userId)) {
+        // Stay in loading until chatroom_id is resolved (deep-link).
+        setIsHistoryLoading(true);
+        setHasCompletedInitialHistory(false);
         return 0;
       }
 
       const requestId = historyRequestRef.current + 1;
       historyRequestRef.current = requestId;
       setIsHistoryLoading(true);
+      setHasCompletedInitialHistory(false);
 
       try {
         const payload = await requestHistory(page);
         if (!payload) {
+          if (historyRequestRef.current === requestId) {
+            setHasCompletedInitialHistory(true);
+          }
           return 0;
         }
 
@@ -501,6 +515,7 @@ export function useChatWebSocket({
           }
         }
 
+        setHasCompletedInitialHistory(true);
         return added;
       } finally {
         if (historyRequestRef.current === requestId) {
@@ -659,6 +674,24 @@ export function useChatWebSocket({
     }
   }, [chatId, userId]); // Include userId in dependency array
 
+  // Fetch history as soon as a real chatroom_id is available — do not wait for WS onOpen.
+  // Deep-links often select the player before chatroom_id is known; when it arrives we
+  // must load history without tearing down the WebSocket.
+  useEffect(() => {
+    if (!effectiveEnabled || !userId) return;
+    const safeChatId = resolveSafeChatroomId(chatId, userId);
+    if (!safeChatId) return;
+
+    void fetchMessageHistory(1, "replace");
+    void fetchPurchaseHistory();
+  }, [
+    effectiveEnabled,
+    userId,
+    chatId,
+    fetchMessageHistory,
+    fetchPurchaseHistory,
+  ]);
+
   // FIX #8: Centralized balance update handler (single source of truth)
   const handleBalanceUpdate = useCallback(
     (rawData: RawChatMessage) => {
@@ -769,12 +802,14 @@ export function useChatWebSocket({
   );
 
   // FIX #1: Use websocketManager instead of raw WebSocket
+  // Room URL is /ws/cschat/P{userId}Chat/ — chatroom_id is NOT part of the socket.
+  // Do not reconnect when chatId arrives later from deep-link resolve.
   const connect = useCallback(() => {
     if (!userId || !effectiveEnabled) return;
 
     void (async () => {
     try {
-      const connectionKey = `${userId}:${chatId ?? "none"}`;
+      const connectionKey = `cschat:${userId}`;
       activeConnectionKeyRef.current = connectionKey;
 
       const roomName = `P${userId}Chat`;
@@ -834,17 +869,20 @@ export function useChatWebSocket({
                   text,
                   timestamp: Date.now(),
                   userId,
-                  chatId,
+                  chatId: chatIdRef.current,
                 });
               }
             });
           }
 
-          !IS_PROD &&
-            console.log(
-              "📜 [Chat WS] Fetching message history after connection...",
-            );
-          void fetchMessageHistory(1, "replace");
+          // History is fetched by the chatroom-ready effect; refresh if we already have a room.
+          if (resolveSafeChatroomId(chatIdRef.current, userId)) {
+            !IS_PROD &&
+              console.log(
+                "📜 [Chat WS] Refreshing message history after connection...",
+              );
+            void fetchMessageHistory(1, "replace");
+          }
         },
 
         onMessage: (data) => {
@@ -1145,7 +1183,6 @@ export function useChatWebSocket({
     })();
   }, [
     userId,
-    chatId,
     adminId,
     effectiveEnabled,
     fetchMessageHistory,
@@ -1525,7 +1562,7 @@ export function useChatWebSocket({
     return () => {
       disconnect();
     };
-  }, [effectiveEnabled, userId, chatId, connect, disconnect]);
+  }, [effectiveEnabled, userId, connect, disconnect]);
 
   return {
     messages,
@@ -1542,6 +1579,7 @@ export function useChatWebSocket({
     loadOlderMessages,
     hasMoreHistory,
     isHistoryLoading,
+    hasCompletedInitialHistory,
     updateMessagePinnedState,
     refreshMessages,
     updateMessagesBalance,
