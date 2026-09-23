@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import {
   CASHAPP_PAY_PROVIDER_FILTER_VALUE,
+  isPayapiRailProviderFilterValue,
   normalizePaymentMethodFilterQueryValue,
+  payapiRailPaymentMethodForProviderFilter,
 } from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
@@ -129,6 +131,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       const cleanedAdvancedFilters: Record<string, string | number> = {};
       let cashappPayProviderLocksPaymentMethod = false;
       let cashappLightningProviderLocksPaymentMethod = false;
+      let payapiRailProviderLocksPaymentMethod = false;
 
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
@@ -175,13 +178,22 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
               // Cashouts store the rail on payment_method (not provider); Provider dropdown is UX.
               cleanedAdvancedFilters.payment_method = 'cashapp_lightning';
               cashappLightningProviderLocksPaymentMethod = true;
+            } else if (isPayapiRailProviderFilterValue(trimmed)) {
+              // PayAPI rails: UI shows Apple Pay / Google Pay / ACH; API stores provider=payapi.
+              const rail = payapiRailPaymentMethodForProviderFilter(trimmed);
+              cleanedAdvancedFilters.provider = 'payapi';
+              if (rail) {
+                cleanedAdvancedFilters.payment_method = rail;
+              }
+              payapiRailProviderLocksPaymentMethod = true;
             } else if (trimmed) {
               cleanedAdvancedFilters[key] = trimmed;
             }
           } else if (key === 'payment_method') {
             if (
               cashappPayProviderLocksPaymentMethod ||
-              cashappLightningProviderLocksPaymentMethod
+              cashappLightningProviderLocksPaymentMethod ||
+              payapiRailProviderLocksPaymentMethod
             ) {
               return;
             }

@@ -48,6 +48,36 @@ function sortFilterOptionsByLabel<T extends { label: string; value: string }>(op
  */
 export const CASHAPP_PAY_PROVIDER_FILTER_VALUE = '__cashapp_pay__';
 
+/**
+ * PayAPI rails shown in the Provider dropdown (protocol slug `payapi` is not listed).
+ * Store expands each to `provider=payapi&payment_method=<rail>` on fetch.
+ */
+export const PAYAPI_APPLE_PAY_PROVIDER_FILTER_VALUE = 'apple_pay';
+export const PAYAPI_GOOGLE_PAY_PROVIDER_FILTER_VALUE = 'google_pay';
+export const PAYAPI_ACH_PROVIDER_FILTER_VALUE = 'ach';
+
+const PAYAPI_PROVIDER_FILTER_RAILS = new Set([
+  PAYAPI_APPLE_PAY_PROVIDER_FILTER_VALUE,
+  PAYAPI_GOOGLE_PAY_PROVIDER_FILTER_VALUE,
+  PAYAPI_ACH_PROVIDER_FILTER_VALUE,
+]);
+
+/** True when the Provider dropdown value is a PayAPI rail (Apple Pay / Google Pay / ACH). */
+export function isPayapiRailProviderFilterValue(value: string | null | undefined): boolean {
+  return PAYAPI_PROVIDER_FILTER_RAILS.has(normKey(value));
+}
+
+/** Map a PayAPI rail filter value to the history `payment_method` query param. */
+export function payapiRailPaymentMethodForProviderFilter(
+  value: string | null | undefined,
+): string | null {
+  const k = normKey(value);
+  if (k === 'apple_pay' || k === 'applepay') return PAYAPI_APPLE_PAY_PROVIDER_FILTER_VALUE;
+  if (k === 'google_pay' || k === 'googlepay') return PAYAPI_GOOGLE_PAY_PROVIDER_FILTER_VALUE;
+  if (k === 'ach') return PAYAPI_ACH_PROVIDER_FILTER_VALUE;
+  return null;
+}
+
 /** API/query param for the card rail (matches backend). */
 export const PAYMENT_METHOD_CARD_QUERY_VALUE = 'card';
 
@@ -143,7 +173,22 @@ const PROVIDER_CANONICAL: Array<{
   { label: 'Topper', matchKeys: ['topper'] },
   { label: 'Moonpay', matchKeys: ['moonpay'] },
   { label: 'Tap', matchKeys: ['tap', 'taparcadia'] },
-  { label: 'PayAPI', matchKeys: ['payapi', 'pay_api'] },
+  // PayAPI is a protocol — surface its player-facing rails instead of "PayAPI".
+  {
+    label: 'Apple Pay',
+    matchKeys: ['apple_pay', 'applepay', 'payapi', 'pay_api'],
+    fixedFilterValue: PAYAPI_APPLE_PAY_PROVIDER_FILTER_VALUE,
+  },
+  {
+    label: 'Google Pay',
+    matchKeys: ['google_pay', 'googlepay', 'payapi', 'pay_api'],
+    fixedFilterValue: PAYAPI_GOOGLE_PAY_PROVIDER_FILTER_VALUE,
+  },
+  {
+    label: 'ACH',
+    matchKeys: ['ach', 'payapi', 'pay_api'],
+    fixedFilterValue: PAYAPI_ACH_PROVIDER_FILTER_VALUE,
+  },
   { label: 'Freeplay', matchKeys: ['freeplay', 'free_play'], alwaysVisible: true },
   { label: 'External Deposit', matchKeys: ['external_deposit'], alwaysVisible: true },
   { label: 'External Cashout', matchKeys: ['external_cashout'], alwaysVisible: true },
@@ -182,6 +227,14 @@ export function resolveHistoryTransactionProviderFilterForUi(
   }
   if (p === 'bitcoin_lightning' && pm === 'cashapp') {
     return CASHAPP_PAY_PROVIDER_FILTER_VALUE;
+  }
+  // PayAPI rails: UI Provider dropdown uses apple_pay / google_pay / ach (not "payapi").
+  if (isPayapiRailProviderFilterValue(p)) {
+    return payapiRailPaymentMethodForProviderFilter(p) ?? String(rawProvider ?? '').trim();
+  }
+  if (p === 'payapi' || p === 'pay_api') {
+    const rail = payapiRailPaymentMethodForProviderFilter(pm);
+    if (rail) return rail;
   }
   return String(rawProvider ?? '').trim();
 }
@@ -416,12 +469,15 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
 const HISTORY_PROVIDER_ALWAYS_INCLUDED: Array<{ value: string; label: string }> = [
   { value: 'paypal', label: 'Paypal' },
   { value: 'coinbase', label: 'Coinbase Pay' },
+  { value: PAYAPI_APPLE_PAY_PROVIDER_FILTER_VALUE, label: 'Apple Pay' },
+  { value: PAYAPI_GOOGLE_PAY_PROVIDER_FILTER_VALUE, label: 'Google Pay' },
+  { value: PAYAPI_ACH_PROVIDER_FILTER_VALUE, label: 'ACH' },
 ];
 
 /**
  * History Provider dropdown: configured purchase/cashout integrators from payment settings,
- * excluding ledger/manual providers. Paypal and Coinbase Pay are always included.
- * Sorted A–Z by label.
+ * excluding ledger/manual providers. Paypal, Coinbase Pay, and PayAPI rails (Apple Pay /
+ * Google Pay / ACH) are always included. Sorted A–Z by label.
  */
 export function buildHistoryProviderFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,

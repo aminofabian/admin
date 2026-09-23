@@ -342,6 +342,15 @@ describe('resolveHistoryTransactionProviderFilterForUi', () => {
       'bitcoin_lightning',
     );
   });
+
+  it('maps payapi + rail payment method to Apple Pay / Google Pay / ACH', () => {
+    expect(resolveHistoryTransactionProviderFilterForUi('payapi', 'apple_pay')).toBe('apple_pay');
+    expect(resolveHistoryTransactionProviderFilterForUi('payapi', 'google_pay')).toBe('google_pay');
+    expect(resolveHistoryTransactionProviderFilterForUi('payapi', 'ach')).toBe('ach');
+    expect(resolveHistoryTransactionProviderFilterForUi('apple_pay', '')).toBe('apple_pay');
+    expect(resolveHistoryTransactionProviderFilterForUi('google_pay', '')).toBe('google_pay');
+    expect(resolveHistoryTransactionProviderFilterForUi('ach', '')).toBe('ach');
+  });
 });
 
 describe('isCreditDebitCardCategoryDisplay', () => {
@@ -657,6 +666,13 @@ describe('buildStaticProviderFilterOptions', () => {
     expect(values).toContain(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
     expect(values).toContain('cashapp_lightning');
     expect(opts.find((o) => o.value === 'cashapp_lightning')?.label).toBe('Cashapp Lightning');
+    expect(values).toContain('apple_pay');
+    expect(values).toContain('google_pay');
+    expect(values).toContain('ach');
+    expect(opts.find((o) => o.value === 'apple_pay')?.label).toBe('Apple Pay');
+    expect(opts.find((o) => o.value === 'google_pay')?.label).toBe('Google Pay');
+    expect(opts.find((o) => o.value === 'ach')?.label).toBe('ACH');
+    expect(values).not.toContain('payapi');
     expect(values).not.toContain('freeplay');
     expect(values).not.toContain('external_deposit');
     expect(values).not.toContain('external_cashout');
@@ -723,7 +739,42 @@ describe('buildHistoryProviderFilterOptionsFromPaymentMethodsRaw', () => {
     });
     expect(opts.find((o) => o.value === 'paypal')?.label).toBe('Paypal');
     expect(opts.find((o) => o.value === 'coinbase')?.label).toBe('Coinbase Pay');
+    expect(opts.find((o) => o.value === 'apple_pay')?.label).toBe('Apple Pay');
+    expect(opts.find((o) => o.value === 'google_pay')?.label).toBe('Google Pay');
+    expect(opts.find((o) => o.value === 'ach')?.label).toBe('ACH');
+    expect(opts.map((o) => o.value)).not.toContain('payapi');
     expect(opts.map((o) => o.value)).not.toContain('freeplay');
+  });
+
+  it('surfaces Apple Pay / Google Pay / ACH instead of PayAPI when payapi is configured', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'apple_pay',
+          payment_method_display: 'Apple Pay',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'apple_pay',
+              payment_method_display: 'Apple Pay',
+              provider_payment_method: 'payapi',
+              provider_payment_method_display: 'PayAPI',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildHistoryProviderFilterOptionsFromPaymentMethodsRaw(data);
+    const values = opts.map((o) => o.value.toLowerCase());
+    expect(values).toContain('apple_pay');
+    expect(values).toContain('google_pay');
+    expect(values).toContain('ach');
+    expect(values).not.toContain('payapi');
+    expect(opts.find((o) => o.value === 'apple_pay')?.label).toBe('Apple Pay');
   });
 });
 
