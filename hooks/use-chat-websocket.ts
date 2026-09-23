@@ -10,7 +10,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { USER_ROLES } from "@/lib/constants/roles";
 import {
   websocketManager,
-  createAuthenticatedWebSocketUrl,
+  createFreshAuthenticatedWebSocketUrl,
   type WebSocketListeners,
 } from "@/lib/websocket-manager";
 import type { ChatMessage, WebSocketMessage } from "@/types";
@@ -336,10 +336,21 @@ export function useChatWebSocket({
         return null;
       }
 
+      // Backend requires chatroom_id — never call with user_id alone.
+      const safeChatId = resolveSafeChatroomId(chatId, userId);
+      if (!safeChatId) {
+        !IS_PROD &&
+          console.warn(
+            "⏳ Skipping message history until chatroom_id is resolved",
+            { chatId, userId },
+          );
+        return null;
+      }
+
       try {
         !IS_PROD &&
           console.log("📜 Fetching message history...", {
-            chatId,
+            chatId: safeChatId,
             userId,
             page,
           });
@@ -357,10 +368,7 @@ export function useChatWebSocket({
           page: String(page),
         });
 
-        const safeChatId = resolveSafeChatroomId(chatId, userId);
-        if (safeChatId) {
-          params.append("chatroom_id", safeChatId);
-        }
+        params.append("chatroom_id", safeChatId);
 
         if (userId) {
           params.append("user_id", String(userId));
@@ -450,6 +458,11 @@ export function useChatWebSocket({
         return 0;
       }
 
+      // Wait for a real chatroom id before hitting the history API.
+      if (!resolveSafeChatroomId(chatId, userId)) {
+        return 0;
+      }
+
       const requestId = historyRequestRef.current + 1;
       historyRequestRef.current = requestId;
       setIsHistoryLoading(true);
@@ -526,13 +539,26 @@ export function useChatWebSocket({
   const fetchPurchaseHistory = useCallback(async () => {
     if (!chatId && !userId) return;
 
+    const safeChatId = resolveSafeChatroomId(chatId, userId);
+    if (!safeChatId) {
+      !IS_PROD &&
+        console.warn(
+          "⏳ Skipping purchase history until chatroom_id is resolved",
+          { chatId, userId },
+        );
+      return;
+    }
+
     const requestId = purchaseRequestRef.current + 1;
     purchaseRequestRef.current = requestId;
 
     try {
       setIsPurchaseHistoryLoading(true);
       !IS_PROD &&
-        console.log(`💰 Fetching purchase history...`, { chatId, userId });
+        console.log(`💰 Fetching purchase history...`, {
+          chatId: safeChatId,
+          userId,
+        });
 
       const token = storage.get(TOKEN_KEY);
 
@@ -541,10 +567,8 @@ export function useChatWebSocket({
         return;
       }
 
-      // Prefer verified chatroom_id; fall back to user_id when missing or colliding with player id
       const params = new URLSearchParams();
-      const safeChatId = resolveSafeChatroomId(chatId, userId);
-      if (safeChatId) params.append("chatroom_id", safeChatId);
+      params.append("chatroom_id", safeChatId);
       if (userId) params.append("user_id", String(userId));
 
       purchaseAbortRef.current?.abort();
@@ -748,12 +772,13 @@ export function useChatWebSocket({
   const connect = useCallback(() => {
     if (!userId || !effectiveEnabled) return;
 
+    void (async () => {
     try {
       const connectionKey = `${userId}:${chatId ?? "none"}`;
       activeConnectionKeyRef.current = connectionKey;
 
       const roomName = `P${userId}Chat`;
-      const wsUrl = createAuthenticatedWebSocketUrl(
+      const wsUrl = await createFreshAuthenticatedWebSocketUrl(
         WEBSOCKET_BASE_URL,
         `/ws/cschat/${roomName}/`,
         {
@@ -1071,7 +1096,7 @@ export function useChatWebSocket({
         onError: () => {
           console.error("❌ [Chat WS] WebSocket error");
           if (isMountedRef.current) {
-            setConnectionError("Chat connection error. Retrying...");
+            setConnectionError("Connection lost, reconnecting...");
           }
         },
 
@@ -1083,6 +1108,20 @@ export function useChatWebSocket({
           connectionStateRef.current = "disconnected";
           if (isMountedRef.current) {
             setIsConnected(false);
+            if (
+              event.code === 4001 ||
+              /auth|token|forbidden|expired/i.test(event.reason || "")
+            ) {
+              setConnectionError("Session expired, please log in again");
+            } else if (!event.wasClean) {
+              setConnectionError("Connection lost, reconnecting...");
+            }
+          }
+        },
+
+        onAuthFailure: () => {
+          if (isMountedRef.current) {
+            setConnectionError("Session expired, please log in again");
           }
         },
       };
@@ -1103,6 +1142,7 @@ export function useChatWebSocket({
     } catch (error) {
       console.error("❌ Failed to create WebSocket connection:", error);
     }
+    })();
   }, [
     userId,
     chatId,

@@ -5,7 +5,7 @@ import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createFreshAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
 import {
   extractChatListServerCounts,
@@ -333,9 +333,10 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   const connectWebSocket = useCallback(() => {
     if (!effectiveEnabled || !adminId) return;
 
+    void (async () => {
     try {
       // Use the same URL as useChatUsers to share connection
-      const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
+      const wsUrl = await createFreshAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
       wsUrlRef.current = wsUrl;
 
       !IS_PROD && console.log('🔌 [Online Players] Connecting to managed WebSocket:', wsUrl);
@@ -460,6 +461,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       console.error('❌ [Online Players] Failed to create WebSocket:', err);
       setError('Failed to connect to WebSocket');
     }
+    })();
   }, [adminId, enabled]);
 
   /**

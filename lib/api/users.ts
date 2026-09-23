@@ -46,12 +46,13 @@ function buildChatSidebarParams(
   const userId = options?.userId;
   const collidesWithUser = trimmed && userId != null && trimmed === String(userId);
 
+  // Backend chat sidebar endpoints require a real chatroom_id (not player id).
+  // Do not fall back to user_id alone — that returns 400 and empty UI.
   if (trimmed && !collidesWithUser) {
     params.chatroom_id = trimmed;
-  } else if (userId != null) {
-    params.user_id = userId;
-  } else if (trimmed) {
-    params.chatroom_id = trimmed;
+    if (userId != null) {
+      params.user_id = userId;
+    }
   }
 
   return params;

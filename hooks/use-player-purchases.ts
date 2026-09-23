@@ -31,7 +31,14 @@ export const usePlayerPurchases = (
 
   // Fetch initial purchases
   useEffect(() => {
-    if (!chatroomId && !playerUserId) {
+    const safeChatroom =
+      chatroomId != null &&
+      String(chatroomId).trim() !== '' &&
+      (playerUserId == null || String(chatroomId) !== String(playerUserId))
+        ? String(chatroomId).trim()
+        : null;
+
+    if (!safeChatroom) {
       setPurchases([]);
       return;
     }
@@ -44,8 +51,8 @@ export const usePlayerPurchases = (
       setError(null);
 
       try {
-        console.log('🎯 usePlayerPurchases: Fetching for chatroom ID:', chatroomId);
-        const data = await playersApi.purchases(chatroomId, {
+        console.log('🎯 usePlayerPurchases: Fetching for chatroom ID:', safeChatroom);
+        const data = await playersApi.purchases(safeChatroom, {
           userId: playerUserId,
           signal: abortController.signal,
         });

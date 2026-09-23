@@ -31,8 +31,8 @@ import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
 } from "@/lib/chat/map-chat-api";
-import { isIdentityVerifiedFromRecord } from "@/lib/players/player-verification";
-import { pickChatroomIdFromRow } from "@/lib/chat/safe-chatroom-id";
+import { pickChatroomIdFromRow, resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
+import { resolveChatUserForPlayerIdDeepLink } from "@/lib/chat/resolve-chat-user-for-deep-link";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
 import {
   PlayerListSidebar,
@@ -215,6 +215,9 @@ export function ChatComponent() {
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
   const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
   const queryUsernameResolveInFlightRef = useRef<string | null>(null);
+  const queryPlayerIdResolveInFlightRef = useRef<number | null>(null);
+  /** True while deep-link is still resolving chatroom_id (avoid false "No chat history"). */
+  const [isResolvingChatroom, setIsResolvingChatroom] = useState(false);
   // Track last manual payment operation to help determine message type for balanceUpdated messages
   const lastManualPaymentRef = useRef<{
     playerId: number;
@@ -1292,6 +1295,38 @@ export function ChatComponent() {
         ...(winningChanged ? { winningBalance: nextWinning } : {}),
       };
     });
+  }, [selectedPlayer, activeChatsUsers, allPlayers]);
+
+  // Deep-link / cold open often selects a player before chatroom_id is known.
+  // When the directory later has a real chatroom id, patch it onto selectedPlayer
+  // so history / purchases / cashouts can send chatroom_id.
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const userId = selectedPlayer.user_id;
+    const hasSafeId = Boolean(
+      resolveSafeChatroomId(selectedPlayer.id, userId),
+    );
+    if (hasSafeId) return;
+
+    const canonical =
+      activeChatsUsers.find((p) => p.user_id === userId) ||
+      allPlayers.find((p) => p.user_id === userId);
+    const canonicalId = resolveSafeChatroomId(canonical?.id, userId);
+    if (!canonical || !canonicalId) return;
+
+    setSelectedPlayer((prev) => {
+      if (!prev || prev.user_id !== userId) return prev;
+      if (resolveSafeChatroomId(prev.id, userId)) return prev;
+      return {
+        ...prev,
+        id: canonicalId,
+        lastMessage: prev.lastMessage ?? canonical.lastMessage,
+        lastMessageTime: prev.lastMessageTime ?? canonical.lastMessageTime,
+        unreadCount: prev.unreadCount ?? canonical.unreadCount,
+        isOnline: canonical.isOnline ?? prev.isOnline,
+      };
+    });
+    setIsResolvingChatroom(false);
   }, [selectedPlayer, activeChatsUsers, allPlayers]);
 
   // Determine which loading state to show based on active tab
@@ -2395,117 +2430,83 @@ export function ChatComponent() {
       candidate = queryParamPlayerRef.current;
     }
 
-    // FIX: If player not found anywhere, fetch from API directly
-    // This prevents the "No players found" message while allPlayers is loading
+    // FIX: If player not found anywhere, resolve via player-details + chat search.
+    // Player-details alone has no chatroom_id; history APIs require it.
     if (!candidate) {
+      if (queryPlayerIdResolveInFlightRef.current === targetUserId) {
+        return;
+      }
+      queryPlayerIdResolveInFlightRef.current = targetUserId;
+      setIsResolvingChatroom(true);
+
       const fetchPlayerById = async () => {
         try {
           if (!IS_PROD)
             console.log(
-              `🔍 [Query Param] Player ${targetUserId} not found in loaded data, fetching from API...`,
+              `🔍 [Query Param] Player ${targetUserId} not found in loaded data, resolving chatroom...`,
             );
 
           const token = storage.get(TOKEN_KEY);
-          // Use the players detail endpoint to get the full player data (username, email, etc.)
-          const response = await fetch(`/api/player-details/${targetUserId}`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
+          const chatUser = await resolveChatUserForPlayerIdDeepLink({
+            userId: targetUserId,
+            token,
           });
 
-          if (!response.ok) {
+          if (!chatUser) {
             if (!IS_PROD)
               console.error(
-                `❌ [Query Param] Failed to fetch player ${targetUserId}:`,
-                response.status,
+                `❌ [Query Param] Failed to resolve player ${targetUserId}`,
               );
+            setIsResolvingChatroom(false);
             return;
           }
 
-          const data = await response.json();
           if (!IS_PROD)
-            console.log(`✅ [Query Param] Fetched player data:`, data);
+            console.log(`✅ [Query Param] Resolved player:`, {
+              user_id: chatUser.user_id,
+              chatroom_id: chatUser.id || "(missing)",
+              username: chatUser.username,
+            });
 
-          // Transform the player data to ChatUser format
-          const player = data.player || data;
-          if (player && (player.id || player.user_id)) {
-            const userId = Number(player.id || player.user_id || 0);
-            const row = player as Record<string, unknown>;
-            const identityVerified = isIdentityVerifiedFromRecord(row);
-            const chatUser: Player = {
-              id: pickChatroomIdFromRow(row, userId),
-              user_id: userId,
-              username: player.username || player.full_name || "Unknown",
-              fullName: player.full_name || player.name || undefined,
-              email: player.email || "",
-              avatar:
-                player.profile_pic ||
-                player.profile_image ||
-                player.avatar ||
-                undefined,
-              isOnline: player.is_online || false,
-              lastMessage: player.last_message || undefined,
-              lastMessageTime: player.last_message_timestamp || undefined,
-              balance:
-                player.balance !== undefined
-                  ? String(player.balance)
-                  : undefined,
-              ...pickWinningBalanceFromBackend(row),
-              cashoutLimit:
-                player.cashout_limit !== undefined &&
-                player.cashout_limit !== null
-                  ? String(player.cashout_limit)
-                  : undefined,
-              lockedBalance:
-                player.locked_balance !== undefined &&
-                player.locked_balance !== null
-                  ? String(player.locked_balance)
-                  : undefined,
-              gamesPlayed: player.games_played || player.gems || undefined,
-              winRate: player.win_rate || undefined,
-              phone: player.phone_number || player.mobile_number || undefined,
-              unreadCount: player.unread_messages_count || 0,
-              notes: player.notes || undefined,
-              ...(identityVerified === undefined
-                ? {}
-                : { isIdentityVerified: identityVerified }),
-            };
+          // Store in ref immediately so displayedPlayers includes them
+          queryParamPlayerRef.current = chatUser;
+          processedQueryPlayerIdRef.current = targetUserId;
 
-            // Store in ref immediately so displayedPlayers includes them
-            queryParamPlayerRef.current = chatUser;
-            processedQueryPlayerIdRef.current = targetUserId;
-
-            // Set search query
-            if (
-              chatUser.username &&
-              lastSetSearchQueryRef.current !== chatUser.username
-            ) {
-              lastSetSearchQueryRef.current = chatUser.username;
-              setSearchQuery(chatUser.username);
-            }
-
-            // Select the player
-            setActiveTab("all-chats");
-            setSelectedPlayer(chatUser);
-            setPendingPinMessageId(null);
-            setMobileView("chat");
-
-            // Mark as read if has chatId
-            if (chatUser.id) {
-              markChatAsReadDebounced({
-                chatId: chatUser.id,
-                userId: chatUser.user_id,
-              });
-            }
-
-            // Clear URL params after a short delay
-            setTimeout(() => {
-              router.replace("/dashboard/chat", { scroll: false });
-            }, 100);
+          // Set search query
+          if (
+            chatUser.username &&
+            lastSetSearchQueryRef.current !== chatUser.username
+          ) {
+            lastSetSearchQueryRef.current = chatUser.username;
+            setSearchQuery(chatUser.username);
           }
+
+          // Select the player
+          setActiveTab("all-chats");
+          setSelectedPlayer(chatUser);
+          setPendingPinMessageId(null);
+          setMobileView("chat");
+          setIsResolvingChatroom(!resolveSafeChatroomId(chatUser.id, chatUser.user_id));
+
+          // Mark as read if has chatId
+          if (chatUser.id) {
+            markChatAsReadDebounced({
+              chatId: chatUser.id,
+              userId: chatUser.user_id,
+            });
+          }
+
+          // Clear URL params after a short delay
+          setTimeout(() => {
+            router.replace("/dashboard/chat", { scroll: false });
+          }, 100);
         } catch (error) {
           console.error("❌ [Query Param] Error fetching player:", error);
+          setIsResolvingChatroom(false);
+        } finally {
+          if (queryPlayerIdResolveInFlightRef.current === targetUserId) {
+            queryPlayerIdResolveInFlightRef.current = null;
+          }
         }
       };
 
@@ -2531,6 +2532,10 @@ export function ChatComponent() {
         setSearchQuery(candidate.username);
       }
 
+      const candidateHasChatroom = Boolean(
+        resolveSafeChatroomId(candidate.id, candidate.user_id),
+      );
+
       // Select the player if not already selected
       // Set selectedPlayer directly to avoid handlePlayerSelect clearing URL params too early
       if (!selectedPlayer || selectedPlayer.user_id !== candidate.user_id) {
@@ -2539,17 +2544,72 @@ export function ChatComponent() {
         setSelectedPlayer(candidate);
         setPendingPinMessageId(null);
         setMobileView("chat");
+        setIsResolvingChatroom(!candidateHasChatroom);
 
         // Mark as read
-        markChatAsReadDebounced({
-          chatId: candidate.id,
-          userId: candidate.user_id,
-        });
+        if (candidateHasChatroom) {
+          markChatAsReadDebounced({
+            chatId: candidate.id,
+            userId: candidate.user_id,
+          });
+        }
 
         // Clear URL params after a short delay to ensure state is set
         setTimeout(() => {
           router.replace("/dashboard/chat", { scroll: false });
         }, 100);
+      } else if (!candidateHasChatroom) {
+        setIsResolvingChatroom(true);
+      } else {
+        setIsResolvingChatroom(false);
+      }
+
+      // Directory row may lack chatroom_id on cold loads — resolve via chat search.
+      if (!candidateHasChatroom && queryPlayerIdResolveInFlightRef.current !== targetUserId) {
+        queryPlayerIdResolveInFlightRef.current = targetUserId;
+        void (async () => {
+          try {
+            const token = storage.get(TOKEN_KEY);
+            const resolved = await resolveChatUserForPlayerIdDeepLink({
+              userId: targetUserId,
+              token,
+            });
+            const resolvedId = resolveSafeChatroomId(
+              resolved?.id,
+              targetUserId,
+            );
+            if (!resolvedId || !resolved) {
+              setIsResolvingChatroom(false);
+              return;
+            }
+            setSelectedPlayer((prev) => {
+              if (!prev || prev.user_id !== targetUserId) return prev;
+              if (resolveSafeChatroomId(prev.id, targetUserId)) return prev;
+              return { ...prev, ...resolved, id: resolvedId, user_id: targetUserId };
+            });
+            queryParamPlayerRef.current = {
+              ...candidate,
+              ...resolved,
+              id: resolvedId,
+              user_id: targetUserId,
+            };
+            setIsResolvingChatroom(false);
+            markChatAsReadDebounced({
+              chatId: resolvedId,
+              userId: targetUserId,
+            });
+          } catch (error) {
+            console.error(
+              "❌ [Query Param] Failed to resolve chatroom for candidate:",
+              error,
+            );
+            setIsResolvingChatroom(false);
+          } finally {
+            if (queryPlayerIdResolveInFlightRef.current === targetUserId) {
+              queryPlayerIdResolveInFlightRef.current = null;
+            }
+          }
+        })();
       }
     } else if (
       queryParamPlayerRef.current &&
@@ -2844,48 +2904,55 @@ export function ChatComponent() {
               if (row) {
                 const userId = Number(row.id ?? row.user_id ?? 0);
                 if (Number.isFinite(userId) && userId > 0) {
-                  resolved = {
-                    id: pickChatroomIdFromRow(row, userId),
-                    user_id: userId,
-                    username: String(row.username ?? row.full_name ?? "Unknown"),
-                    fullName: row.full_name
-                      ? String(row.full_name)
-                      : undefined,
-                    email: String(row.email ?? ""),
-                    avatar:
-                      row.profile_pic || row.profile_image || row.avatar
-                        ? String(
-                            row.profile_pic ||
-                              row.profile_image ||
-                              row.avatar,
-                          )
+                  // Prefer chat-search resolution so we get chatroom_id (admin players often omit it).
+                  const withChatroom = await resolveChatUserForPlayerIdDeepLink({
+                    userId,
+                    token,
+                  });
+                  resolved =
+                    withChatroom ??
+                    ({
+                      id: pickChatroomIdFromRow(row, userId),
+                      user_id: userId,
+                      username: String(row.username ?? row.full_name ?? "Unknown"),
+                      fullName: row.full_name
+                        ? String(row.full_name)
                         : undefined,
-                    isOnline: Boolean(row.is_online ?? false),
-                    balance:
-                      row.balance !== undefined
-                        ? String(row.balance)
-                        : undefined,
-                    ...pickWinningBalanceFromBackend(row),
-                    cashoutLimit:
-                      row.cashout_limit !== undefined &&
-                      row.cashout_limit !== null
-                        ? String(row.cashout_limit)
-                        : undefined,
-                    lockedBalance:
-                      row.locked_balance !== undefined &&
-                      row.locked_balance !== null
-                        ? String(row.locked_balance)
-                        : undefined,
-                    gamesPlayed:
-                      (row.games_played as number | undefined) || undefined,
-                    winRate: (row.win_rate as number | undefined) || undefined,
-                    phone:
-                      row.phone_number || row.mobile_number
-                        ? String(row.phone_number || row.mobile_number)
-                        : undefined,
-                    unreadCount: Number(row.unread_messages_count ?? 0),
-                    notes: row.notes ? String(row.notes) : undefined,
-                  };
+                      email: String(row.email ?? ""),
+                      avatar:
+                        row.profile_pic || row.profile_image || row.avatar
+                          ? String(
+                              row.profile_pic ||
+                                row.profile_image ||
+                                row.avatar,
+                            )
+                          : undefined,
+                      isOnline: Boolean(row.is_online ?? false),
+                      balance:
+                        row.balance !== undefined
+                          ? String(row.balance)
+                          : undefined,
+                      ...pickWinningBalanceFromBackend(row),
+                      cashoutLimit:
+                        row.cashout_limit !== undefined &&
+                        row.cashout_limit !== null
+                          ? String(row.cashout_limit)
+                          : undefined,
+                      lockedBalance:
+                        row.locked_balance !== undefined &&
+                        row.locked_balance !== null
+                          ? String(row.locked_balance)
+                          : undefined,
+                      gamesPlayed:
+                        (row.games_played as number | undefined) || undefined,
+                      winRate: (row.win_rate as number | undefined) || undefined,
+                      phone:
+                        row.phone_number || row.mobile_number
+                          ? String(row.phone_number || row.mobile_number)
+                          : undefined,
+                      unreadCount: Number(row.unread_messages_count ?? 0),
+                      notes: row.notes ? String(row.notes) : undefined,
+                    } as Player);
                 }
               }
             }
@@ -2918,6 +2985,9 @@ export function ChatComponent() {
           setSelectedPlayer(resolved);
           setPendingPinMessageId(null);
           setMobileView("chat");
+          setIsResolvingChatroom(
+            !resolveSafeChatroomId(resolved.id, resolved.user_id),
+          );
 
           if (resolved.id) {
             markChatAsReadDebounced({
@@ -3246,8 +3316,10 @@ export function ChatComponent() {
                 </svg>
                 <span className="text-[11px] font-medium">
                   {connectionError
-                    ? `Connection lost: ${connectionError}`
-                    : "Reconnecting..."}
+                    ? connectionError.includes("Session expired")
+                      ? "Session expired, please log in again"
+                      : "Connection lost, reconnecting..."
+                    : "Connection lost, reconnecting..."}
                 </span>
               </div>
             )}
@@ -3303,16 +3375,24 @@ export function ChatComponent() {
                     </div>
                   )}
 
-                {isHistoryLoadingMessages && wsMessages.length === 0 && (
+                {((isHistoryLoadingMessages || isResolvingChatroom) &&
+                  wsMessages.length === 0) && (
                   <MessageHistorySkeleton />
                 )}
                 {!isHistoryLoadingMessages &&
+                  !isResolvingChatroom &&
                   wsMessages.length === 0 &&
                   isConnected && (
                     <div className="flex items-center justify-center h-full min-h-[200px]">
                       <div className="text-center space-y-2">
                         <p className="text-muted-foreground text-sm md:text-base">
-                          No chat history available
+                          {selectedPlayer &&
+                          !resolveSafeChatroomId(
+                            selectedPlayer.id,
+                            selectedPlayer.user_id,
+                          )
+                            ? "Unable to load conversation"
+                            : "No chat history available"}
                         </p>
                       </div>
                     </div>

@@ -145,7 +145,9 @@ export const ChatHeader = memo(function ChatHeader({
           </div>
           <div className="flex min-h-[1rem] items-center truncate text-[10px] text-muted-foreground">
             {connectionError
-              ? `Error: ${connectionError}`
+              ? connectionError.includes('Session expired')
+                ? 'Session expired, please log in again'
+                : 'Connection lost, reconnecting...'
               : selectedPlayer.isOnline
                 ? 'Active now'
                 : lastSeenTime != null

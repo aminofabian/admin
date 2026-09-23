@@ -31,7 +31,14 @@ export const usePlayerCashouts = (
 
   // Fetch initial cashouts
   useEffect(() => {
-    if (!chatroomId && !playerUserId) {
+    const safeChatroom =
+      chatroomId != null &&
+      String(chatroomId).trim() !== '' &&
+      (playerUserId == null || String(chatroomId) !== String(playerUserId))
+        ? String(chatroomId).trim()
+        : null;
+
+    if (!safeChatroom) {
       setCashouts([]);
       return;
     }
@@ -44,8 +51,8 @@ export const usePlayerCashouts = (
       setError(null);
 
       try {
-        console.log('🎯 usePlayerCashouts: Fetching for chatroom ID:', chatroomId);
-        const data = await playersApi.cashouts(chatroomId, {
+        console.log('🎯 usePlayerCashouts: Fetching for chatroom ID:', safeChatroom);
+        const data = await playersApi.cashouts(safeChatroom, {
           userId: playerUserId,
           signal: abortController.signal,
         });

@@ -4,7 +4,7 @@ import { WEBSOCKET_BASE_URL } from "@/lib/constants/api";
 import { USER_ROLES } from "@/lib/constants/roles";
 import {
   websocketManager,
-  createAuthenticatedWebSocketUrl,
+  createFreshAuthenticatedWebSocketUrl,
   type WebSocketListeners,
 } from "@/lib/websocket-manager";
 import type { TransactionQueue, Transaction } from "@/types";
@@ -430,7 +430,7 @@ export function useProcessingWebSocket({
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [hasConnectionFailed, setHasConnectionFailed] = useState(false);
 
-  const getWebSocketUrl = useCallback((): string | null => {
+  const getWebSocketUrl = useCallback(async (): Promise<string | null> => {
     if (!user?.username) {
       console.warn("⚠️ Cannot create WebSocket URL: username not available");
       return null;
@@ -438,7 +438,7 @@ export function useProcessingWebSocket({
 
     // Fix security issue: encode username to prevent injection
     const encodedUsername = encodeURIComponent(user.username);
-    const wsUrl = createAuthenticatedWebSocketUrl(
+    const wsUrl = await createFreshAuthenticatedWebSocketUrl(
       WEBSOCKET_BASE_URL,
       `/ws/notifications/${encodedUsername}/`,
     );
@@ -473,7 +473,8 @@ export function useProcessingWebSocket({
       return;
     }
 
-    const wsUrl = getWebSocketUrl();
+    void (async () => {
+    const wsUrl = await getWebSocketUrl();
     if (!wsUrl) {
       console.error("❌ Cannot create WebSocket: invalid URL");
       setError("Cannot create WebSocket connection: user not authenticated");
@@ -785,6 +786,7 @@ export function useProcessingWebSocket({
       setError("Failed to create WebSocket connection");
       setIsConnecting(false);
     }
+    })();
   }, [
     enabled,
     isAuthenticated,
