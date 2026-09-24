@@ -43,6 +43,7 @@ import {
   MessageInputArea,
 } from "./sections";
 import { MessageBubble } from "./components/message-bubble";
+import { ChatLoadingBoxes } from "./components/chat-loading-boxes";
 import {
   isAutoMessage,
   isPurchaseNotification,
@@ -3297,34 +3298,48 @@ export function ChatComponent() {
 
             {/* Connection Status Banner */}
             {!isConnected && (
-              <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-amber-700 animate-in fade-in slide-in-from-top-1 duration-300 dark:text-amber-400">
-                <svg
-                  className="w-3.5 h-3.5 animate-spin shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    strokeWidth="3"
-                  />
-                  <path
-                    className="opacity-75"
-                    d="M4 12a8 8 0 018-8"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="text-[11px] font-medium">
-                  {connectionError
-                    ? connectionError.includes("Session expired")
-                      ? "Session expired, please log in again"
-                      : "Connection lost, reconnecting..."
-                    : "Connection lost, reconnecting..."}
-                </span>
+              <div
+                className={`flex shrink-0 items-center justify-center gap-2 border-b px-3 py-2 animate-in fade-in slide-in-from-top-1 duration-300 ${
+                  connectionError?.includes("Session expired")
+                    ? "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-400"
+                    : connectionError?.includes("Connection lost")
+                      ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      : "border-emerald-500/20 bg-emerald-500/10"
+                }`}
+              >
+                {connectionError?.includes("Session expired") ? (
+                  <span className="text-[11px] font-medium">
+                    Session expired, please log in again
+                  </span>
+                ) : connectionError?.includes("Connection lost") ? (
+                  <>
+                    <svg
+                      className="h-3.5 w-3.5 shrink-0 animate-spin"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        strokeWidth="3"
+                      />
+                      <path
+                        className="opacity-75"
+                        d="M4 12a8 8 0 018-8"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="text-[11px] font-medium">
+                      Connection lost, reconnecting...
+                    </span>
+                  </>
+                ) : (
+                  <ChatLoadingBoxes label="Loading chats..." />
+                )}
               </div>
             )}
 

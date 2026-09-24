@@ -269,6 +269,8 @@ export function useChatWebSocket({
   const activeConnectionKeyRef = useRef("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  /** True after at least one successful open for the current player — distinguishes first connect from a real drop. */
+  const hasEstablishedConnectionRef = useRef(false);
   const chatIdRef = useRef(chatId);
   const userIdRef = useRef(userId);
 
@@ -328,6 +330,7 @@ export function useChatWebSocket({
     setHasMoreHistory(false);
     setHistoryPagination({ page: 0, totalPages: 0 });
     setHasCompletedInitialHistory(false);
+    hasEstablishedConnectionRef.current = false;
 
     // Keep skeleton visible while chatroom resolves or history loads (no empty flash).
     setIsHistoryLoading(Boolean(userId));
@@ -837,6 +840,7 @@ export function useChatWebSocket({
           !IS_PROD &&
             console.log("✅ [Chat WS] WebSocket connected successfully");
           connectionStateRef.current = "connected";
+          hasEstablishedConnectionRef.current = true;
           if (isMountedRef.current) {
             setIsConnected(true);
             setConnectionError(null);
@@ -1130,10 +1134,14 @@ export function useChatWebSocket({
           }
         },
 
-        // FIX #7: Surface connection errors to UI
+        // FIX #7: Surface connection errors to UI — only after a live session dropped.
+        // First-open handshake errors are normal while the socket is still coming up.
         onError: () => {
           console.error("❌ [Chat WS] WebSocket error");
-          if (isMountedRef.current) {
+          if (
+            isMountedRef.current &&
+            hasEstablishedConnectionRef.current
+          ) {
             setConnectionError("Connection lost, reconnecting...");
           }
         },
@@ -1151,7 +1159,10 @@ export function useChatWebSocket({
               /auth|token|forbidden|expired/i.test(event.reason || "")
             ) {
               setConnectionError("Session expired, please log in again");
-            } else if (!event.wasClean) {
+            } else if (
+              !event.wasClean &&
+              hasEstablishedConnectionRef.current
+            ) {
               setConnectionError("Connection lost, reconnecting...");
             }
           }

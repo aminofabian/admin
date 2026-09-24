@@ -137,22 +137,28 @@ export const ChatHeader = memo(function ChatHeader({
                 CONNECTED
               </span>
             ) : (
-              <span className="hidden shrink-0 sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
-                <span className="h-1 w-1 shrink-0 rounded-full bg-amber-500" />
-                CONNECTING
+              <span className="hidden shrink-0 sm:inline-flex items-center gap-1 px-1.5 py-px bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
+                <span className="flex items-end gap-0.5 h-2.5" aria-hidden>
+                  <span className="block h-1.5 w-1 rounded-[1px] bg-emerald-500 animate-bounce [animation-duration:0.9s]" />
+                  <span className="block h-2.5 w-1 rounded-[1px] bg-emerald-500 animate-bounce [animation-duration:0.9s] [animation-delay:140ms]" />
+                  <span className="block h-1.5 w-1 rounded-[1px] bg-emerald-500 animate-bounce [animation-duration:0.9s] [animation-delay:280ms]" />
+                </span>
+                LOADING
               </span>
             )}
           </div>
           <div className="flex min-h-[1rem] items-center truncate text-[10px] text-muted-foreground">
-            {connectionError
-              ? connectionError.includes('Session expired')
-                ? 'Session expired, please log in again'
-                : 'Connection lost, reconnecting...'
-              : selectedPlayer.isOnline
-                ? 'Active now'
-                : lastSeenTime != null
-                  ? `Last seen ${formatChatTimestampCompact(lastSeenTime)}`
-                  : <Skeleton className="h-3 w-24" />}
+            {connectionError?.includes('Session expired')
+              ? 'Session expired, please log in again'
+              : connectionError?.includes('Connection lost')
+                ? 'Connection lost, reconnecting...'
+                : !isConnected
+                  ? 'Loading chats...'
+                  : selectedPlayer.isOnline
+                    ? 'Active now'
+                    : lastSeenTime != null
+                      ? `Last seen ${formatChatTimestampCompact(lastSeenTime)}`
+                      : <Skeleton className="h-3 w-24" />}
           </div>
         </div>
       </button>
