@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { playersApi } from '@/lib/api';
 import { isManualGameMode } from '@/lib/constants/game-operation-mode';
 import { formatCurrency } from '@/lib/utils/formatters';
 import {
@@ -65,6 +67,9 @@ interface GameActionFormProps {
 }
 
 export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProps) {
+  const router = useRouter();
+  const [playerId, setPlayerId] = useState<number | null>(null);
+  const [isLoadingPlayerId, setIsLoadingPlayerId] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newBalance, setNewBalance] = useState('');
   const [newEntries, setNewEntries] = useState('');
@@ -153,6 +158,94 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
     return isManualGameMode(game?.game_operation_mode);
   }, [queue, games, matchedGame]);
+
+  useEffect(() => {
+    setPlayerId(null);
+  }, [queue?.id]);
+
+  useEffect(() => {
+    if (!queue?.user_username) {
+      setIsLoadingPlayerId(false);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchPlayerId = async () => {
+      setIsLoadingPlayerId(true);
+      try {
+        const response = await playersApi.list({
+          username: queue.user_username,
+          page_size: 1,
+        });
+        if (!cancelled && response?.results && response.results.length > 0) {
+          setPlayerId(response.results[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch player ID:', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPlayerId(false);
+        }
+      }
+    };
+
+    void fetchPlayerId();
+    return () => {
+      cancelled = true;
+    };
+  }, [queue?.id, queue?.user_username]);
+
+  const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onCancel();
+      return;
+    }
+    if (queue?.user_username) {
+      router.push(`/dashboard/chat?username=${encodeURIComponent(queue.user_username)}`);
+      onCancel();
+    }
+  }, [router, playerId, queue?.user_username, onCancel]);
+
+  const handleGoToPlayerDetails = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/players/${playerId}`);
+      onCancel();
+    } else if (queue?.user_username) {
+      router.push(`/dashboard/players?search=${encodeURIComponent(queue.user_username)}`);
+      onCancel();
+    }
+  }, [router, playerId, queue?.user_username, onCancel]);
+
+  const renderPlayerActions = () => (
+    <div className="pt-2 flex flex-col gap-2 sm:flex-row">
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        onClick={handleOpenChat}
+        className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        Chat
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleGoToPlayerDetails}
+        disabled={isLoadingPlayerId}
+        className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        {isLoadingPlayerId ? 'Loading...' : 'Player Details'}
+      </Button>
+    </div>
+  );
 
   const renderRechargeRedeemBalanceBoxes = () => (
     <div className="grid grid-cols-2 gap-2">
@@ -381,6 +474,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
+          {renderPlayerActions()}
+
           {renderRechargeRedeemBalanceBoxes()}
 
           {/* Transaction Amount */}
@@ -453,6 +548,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
+          {renderPlayerActions()}
         </div>
       );
     }
@@ -494,6 +590,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
           </div>
         </div>
+        {renderPlayerActions()}
         {gameUsername && (
           <div className="pt-2 border-t border-border">
             <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
@@ -711,6 +808,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
+          {renderPlayerActions()}
+
           {renderRechargeRedeemBalanceBoxes()}
 
           {/* Amount and Bonus */}
@@ -783,6 +882,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
+          {renderPlayerActions()}
         </div>
       );
     }
@@ -824,6 +924,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
           </div>
         </div>
+        {renderPlayerActions()}
         {gameUsername && (
           <div className="pt-2 border-t border-border">
             <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
