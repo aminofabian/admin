@@ -19,12 +19,30 @@ import {
   applyMessageEdited,
   buildMessageDeletedEvent,
   buildMessageEditedEvent,
+  markMessageDissipating,
   messageEventId,
+  MESSAGE_DISSIPATE_MS,
 } from "@/lib/chat/apply-chat-message-event";
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === "production";
 const MESSAGES_PER_PAGE = 20;
+const MESSAGE_ACTION_CONFIRM_TIMEOUT_MS = 8000;
+
+type MessageActionKind = "edit" | "delete";
+
+/**
+ * `confirmed`: the server broadcast the change, so it is saved.
+ * `unconfirmed`: sent, but the server never broadcast it back; nothing was saved.
+ * `not_sent`: socket closed, message not saved yet, or an action is already in flight.
+ */
+export type MessageActionResult = "confirmed" | "unconfirmed" | "not_sent";
+
+interface PendingMessageAction {
+  kind: MessageActionKind;
+  timer: ReturnType<typeof setTimeout>;
+  resolve: (confirmed: boolean) => void;
+}
 
 type HistoryMergeMode = "prepend" | "replace";
 
@@ -64,6 +82,7 @@ interface RawChatMessage {
   is_read?: boolean;
   type?: string;
   is_comment?: boolean;
+  is_edited?: boolean;
   is_file?: boolean;
   file_extension?: string;
   file?: string;
@@ -163,6 +182,7 @@ const mapHistoryMessage = (msg: RawChatMessage): ChatMessage => {
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
     senderId: typeof msg.sender_id === "number" ? msg.sender_id : undefined,
     sentBy,
+    ...(msg.is_edited ? { renderAsText: true } : {}),
   };
 };
 
@@ -222,8 +242,17 @@ interface UseChatWebSocketReturn {
   isTyping: boolean;
   isUserOnline: boolean;
   sendMessage: (text: string, fileUrl?: string) => void;
-  editMessage: (messageId: string, text: string, isComment?: boolean) => boolean;
-  deleteMessage: (messageId: string, isComment?: boolean) => boolean;
+  /** Resolves "confirmed" only after the server broadcasts message_edited for this id. */
+  editMessage: (
+    messageId: string,
+    text: string,
+    isComment?: boolean,
+  ) => Promise<MessageActionResult>;
+  /** Resolves "confirmed" only after the server broadcasts message_deleted for this id. */
+  deleteMessage: (
+    messageId: string,
+    isComment?: boolean,
+  ) => Promise<MessageActionResult>;
   markAsRead: (messageId: string) => void;
   markAllAsRead: (lastMessageId?: string) => void;
   connectionError: string | null;
@@ -328,6 +357,60 @@ export function useChatWebSocket({
   useEffect(() => {
     onConversationPreviewChangeRef.current = onConversationPreviewChange;
   }, [onConversationPreviewChange]);
+
+  const pendingMessageActionsRef = useRef(
+    new Map<string, PendingMessageAction>(),
+  );
+  const dissipateTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const clearDissipateTimer = useCallback((messageId: string) => {
+    const timer = dissipateTimersRef.current.get(messageId);
+    if (timer) {
+      clearTimeout(timer);
+      dissipateTimersRef.current.delete(messageId);
+    }
+  }, []);
+
+  const scheduleMessageRemoval = useCallback(
+    (messageId: string) => {
+      clearDissipateTimer(messageId);
+      const timer = setTimeout(() => {
+        dissipateTimersRef.current.delete(messageId);
+        if (!isMountedRef.current) return;
+        setMessages((prev) => {
+          const result = applyMessageDeleted(prev, messageId);
+          return result.messages;
+        });
+      }, MESSAGE_DISSIPATE_MS);
+      dissipateTimersRef.current.set(messageId, timer);
+    },
+    [clearDissipateTimer],
+  );
+  const scheduleMessageRemovalRef = useRef(scheduleMessageRemoval);
+  useEffect(() => {
+    scheduleMessageRemovalRef.current = scheduleMessageRemoval;
+  }, [scheduleMessageRemoval]);
+
+  const settlePendingMessageAction = useCallback(
+    (messageId: string, kind: MessageActionKind, confirmed: boolean) => {
+      const pending = pendingMessageActionsRef.current.get(messageId);
+      if (!pending || pending.kind !== kind) return;
+      clearTimeout(pending.timer);
+      pendingMessageActionsRef.current.delete(messageId);
+      pending.resolve(confirmed);
+    },
+    [],
+  );
+
+  const failAllPendingMessageActions = useCallback(() => {
+    pendingMessageActionsRef.current.forEach((pending) => {
+      clearTimeout(pending.timer);
+      pending.resolve(false);
+    });
+    pendingMessageActionsRef.current.clear();
+    dissipateTimersRef.current.forEach((timer) => clearTimeout(timer));
+    dissipateTimersRef.current.clear();
+  }, []);
 
   useEffect(() => {
     historyAbortRef.current?.abort();
@@ -959,23 +1042,39 @@ export function useChatWebSocket({
               String(rawData.player_id) === String(userId);
 
             if (editedId && roomMatches && playerMatches && isMountedRef.current) {
-              setMessages((prev) => {
-                const result =
-                  messageType === "message_edited"
-                    ? applyMessageEdited(
-                        prev,
-                        editedId,
-                        String(rawData.message ?? ""),
-                      )
-                    : applyMessageDeleted(prev, editedId);
-                if (result.preview && result.messages !== prev) {
-                  const nextPreview = result.preview;
-                  queueMicrotask(() => {
-                    onConversationPreviewChangeRef.current?.(nextPreview);
-                  });
-                }
-                return result.messages;
-              });
+              if (messageType === "message_edited") {
+                setMessages((prev) => {
+                  const result = applyMessageEdited(
+                    prev,
+                    editedId,
+                    String(rawData.message ?? ""),
+                  );
+                  if (result.preview && result.messages !== prev) {
+                    const nextPreview = result.preview;
+                    queueMicrotask(() => {
+                      onConversationPreviewChangeRef.current?.(nextPreview);
+                    });
+                  }
+                  return result.messages;
+                });
+              } else {
+                setMessages((prev) => {
+                  const result = markMessageDissipating(prev, editedId);
+                  if (result.preview) {
+                    const nextPreview = result.preview;
+                    queueMicrotask(() => {
+                      onConversationPreviewChangeRef.current?.(nextPreview);
+                    });
+                  }
+                  return result.messages;
+                });
+                scheduleMessageRemovalRef.current(editedId);
+              }
+              settlePendingMessageAction(
+                editedId,
+                messageType === "message_edited" ? "edit" : "delete",
+                true,
+              );
             }
             return;
           }
@@ -1418,6 +1517,7 @@ export function useChatWebSocket({
   );
 
   const disconnect = useCallback(() => {
+    failAllPendingMessageActions();
     if (connectionWaitTimeoutRef.current) {
       clearTimeout(connectionWaitTimeoutRef.current);
       connectionWaitTimeoutRef.current = null;
@@ -1462,7 +1562,7 @@ export function useChatWebSocket({
     if (isMountedRef.current) {
       setIsConnected(false);
     }
-  }, [sendMessageViaRest, userId, chatId]);
+  }, [failAllPendingMessageActions, sendMessageViaRest, userId, chatId]);
 
   // FIX #1: Use manager for sending instead of raw WS ref
   const sendMessage = useCallback(
@@ -1531,86 +1631,73 @@ export function useChatWebSocket({
     [adminId, userId, chatId, sendMessageViaRest],
   );
 
-  const applyLocalMessageChange = useCallback(
+  const requestMessageAction = useCallback(
     (
       messageId: string,
-      change: "edit" | "delete",
-      text?: string,
-    ) => {
-      setMessages((prev) => {
-        const result =
-          change === "edit"
-            ? applyMessageEdited(prev, messageId, text ?? "")
-            : applyMessageDeleted(prev, messageId);
-        if (result.preview && result.messages !== prev) {
-          const nextPreview = result.preview;
-          queueMicrotask(() => {
-            onConversationPreviewChangeRef.current?.(nextPreview);
-          });
+      kind: MessageActionKind,
+      payload: object,
+    ): Promise<MessageActionResult> => {
+      if (
+        !messageId ||
+        messageId.startsWith("temp-") ||
+        !userId ||
+        connectionStateRef.current !== "connected"
+      ) {
+        return Promise.resolve("not_sent");
+      }
+      if (pendingMessageActionsRef.current.has(messageId)) {
+        return Promise.resolve("not_sent");
+      }
+
+      return new Promise<MessageActionResult>((resolve) => {
+        const timer = setTimeout(() => {
+          settlePendingMessageAction(messageId, kind, false);
+        }, MESSAGE_ACTION_CONFIRM_TIMEOUT_MS);
+        pendingMessageActionsRef.current.set(messageId, {
+          kind,
+          timer,
+          resolve: (confirmed) =>
+            resolve(confirmed ? "confirmed" : "unconfirmed"),
+        });
+
+        if (!websocketManager.send(wsUrlRef.current, payload)) {
+          clearTimeout(timer);
+          pendingMessageActionsRef.current.delete(messageId);
+          resolve("not_sent");
         }
-        return result.messages;
       });
     },
-    [],
+    [settlePendingMessageAction, userId],
   );
 
   const editMessage = useCallback(
-    (messageId: string, text: string, isComment = false) => {
+    (messageId: string, text: string, _isComment = false) => {
       const nextText = text.trim();
-      if (
-        !messageId ||
-        messageId.startsWith("temp-") ||
-        !nextText ||
-        !userId ||
-        connectionStateRef.current !== "connected"
-      ) {
-        return false;
-      }
-
-      const sent = websocketManager.send(
-        wsUrlRef.current,
+      if (!nextText || !userId) return Promise.resolve<MessageActionResult>("not_sent");
+      return requestMessageAction(
+        messageId,
+        "edit",
         buildMessageEditedEvent({
           messageId,
           message: nextText,
-          playerId: userId,
-          chatroomId: resolveSafeChatroomId(chatIdRef.current, userId),
-          isComment,
         }),
       );
-      if (!sent) return false;
-
-      applyLocalMessageChange(messageId, "edit", nextText);
-      return true;
     },
-    [applyLocalMessageChange, userId],
+    [requestMessageAction, userId],
   );
 
   const deleteMessage = useCallback(
-    (messageId: string, isComment = false) => {
-      if (
-        !messageId ||
-        messageId.startsWith("temp-") ||
-        !userId ||
-        connectionStateRef.current !== "connected"
-      ) {
-        return false;
-      }
-
-      const sent = websocketManager.send(
-        wsUrlRef.current,
+    (messageId: string, _isComment = false) => {
+      if (!userId) return Promise.resolve<MessageActionResult>("not_sent");
+      return requestMessageAction(
+        messageId,
+        "delete",
         buildMessageDeletedEvent({
           messageId,
-          playerId: userId,
-          chatroomId: resolveSafeChatroomId(chatIdRef.current, userId),
-          isComment,
         }),
       );
-      if (!sent) return false;
-
-      applyLocalMessageChange(messageId, "delete");
-      return true;
     },
-    [applyLocalMessageChange, userId],
+    [requestMessageAction, userId],
   );
 
   const markAsRead = useCallback(

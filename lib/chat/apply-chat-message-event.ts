@@ -9,7 +9,12 @@ export interface ChatEventMessage {
   isFile?: boolean;
   isPinned?: boolean;
   renderAsText?: boolean;
+  /** Exit animation in progress; message will be removed shortly. */
+  isDissipating?: boolean;
 }
+
+/** How long the delete exit animation plays before the row is removed. */
+export const MESSAGE_DISSIPATE_MS = 720;
 
 export function messageEventId(event: {
   id?: string | number | null;
@@ -28,68 +33,37 @@ export function socketNumericId(value: string | number): number | string {
   return Number.isSafeInteger(asNumber) ? asNumber : raw;
 }
 
-export interface MessageEditedSocketEvent {
-  type: "message_edited";
-  id: number | string;
+/** Outbound command the admin dashboard sends to edit a message. */
+export interface EditMessageCommand {
+  type: "edit_message";
   message_id: number | string;
-  chatroom_id?: number | string;
-  player_id: number;
-  is_comment: boolean;
   message: string;
 }
 
-export interface MessageDeletedSocketEvent {
-  type: "message_deleted";
-  id: number | string;
+/** Outbound command the admin dashboard sends to delete a message. */
+export interface DeleteMessageCommand {
+  type: "delete_message";
   message_id: number | string;
-  chatroom_id?: number | string;
-  player_id: number;
-  is_comment: boolean;
-}
-
-function assignChatroomId<T extends { chatroom_id?: number | string }>(
-  event: T,
-  chatroomId?: string | number | null,
-): T {
-  if (chatroomId == null || String(chatroomId).trim() === "") return event;
-  event.chatroom_id = socketNumericId(chatroomId);
-  return event;
 }
 
 export function buildMessageEditedEvent(input: {
   messageId: string;
   message: string;
-  playerId: number;
-  chatroomId?: string | number | null;
-  isComment?: boolean;
-}): MessageEditedSocketEvent {
-  const id = socketNumericId(input.messageId);
-  const event: MessageEditedSocketEvent = {
-    type: "message_edited",
-    id,
-    message_id: id,
-    player_id: input.playerId,
-    is_comment: Boolean(input.isComment),
+}): EditMessageCommand {
+  return {
+    type: "edit_message",
+    message_id: socketNumericId(input.messageId),
     message: input.message,
   };
-  return assignChatroomId(event, input.chatroomId);
 }
 
 export function buildMessageDeletedEvent(input: {
   messageId: string;
-  playerId: number;
-  chatroomId?: string | number | null;
-  isComment?: boolean;
-}): MessageDeletedSocketEvent {
-  const id = socketNumericId(input.messageId);
-  const event: MessageDeletedSocketEvent = {
-    type: "message_deleted",
-    id,
-    message_id: id,
-    player_id: input.playerId,
-    is_comment: Boolean(input.isComment),
+}): DeleteMessageCommand {
+  return {
+    type: "delete_message",
+    message_id: socketNumericId(input.messageId),
   };
-  return assignChatroomId(event, input.chatroomId);
 }
 
 function plainPreviewText(value: string): string {
@@ -123,6 +97,28 @@ export function conversationPreviewText(
     return "📷 Image";
   }
   return plainPreviewText(message.text);
+}
+
+/** Caption an admin can edit, with the image URLs that must survive the edit. */
+export function splitEditableMessageText(text: string): {
+  caption: string;
+  imageUrls: string[];
+} {
+  const imageUrls = Array.from(
+    new Set((text || "").match(imageUrlPattern()) ?? []),
+  );
+  const caption = plainPreviewText(text || "")
+    .replace(imageUrlPattern(), "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { caption, imageUrls };
+}
+
+export function composeEditedMessageText(
+  caption: string,
+  imageUrls: string[],
+): string {
+  return [caption.trim(), ...imageUrls].filter(Boolean).join("\n");
 }
 
 function previewOf(message: ChatEventMessage | undefined): {
@@ -167,4 +163,29 @@ export function applyMessageDeleted<T extends ChatEventMessage>(
   const isLast = index === messages.length - 1;
   if (!isLast) return { messages: next, preview: null };
   return { messages: next, preview: previewOf(next[next.length - 1]) };
+}
+
+/**
+ * Marks a message for the evaporate exit animation and returns the
+ * conversation preview as if the message were already gone.
+ */
+export function markMessageDissipating<T extends ChatEventMessage>(
+  messages: T[],
+  messageId: string,
+): { messages: T[]; preview: { text: string; timestamp: string } | null } {
+  const index = messages.findIndex((message) => message.id === messageId);
+  if (index === -1) return { messages, preview: null };
+  if (messages[index].isDissipating) {
+    return { messages, preview: null };
+  }
+
+  const next = messages.map((message) =>
+    message.id === messageId ? { ...message, isDissipating: true } : message,
+  );
+  const remaining = next.filter((message) => message.id !== messageId);
+  const isLast = index === messages.length - 1;
+  return {
+    messages: next,
+    preview: isLast ? previewOf(remaining[remaining.length - 1]) : null,
+  };
 }

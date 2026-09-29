@@ -56,6 +56,8 @@ export interface ChatMessage {
   sentBy?: ChatMessageSender; // Full sender info for group chat display
   /** Edited over the socket. Render `text` as plain text, never as HTML. */
   renderAsText?: boolean;
+  /** Exit animation in progress after a confirmed delete. */
+  isDissipating?: boolean;
 }
 
 export interface ChatListResponse {

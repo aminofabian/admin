@@ -21,6 +21,10 @@ import {
   transactionTypeToVisualKind,
   type BinpayVerificationKind,
 } from '../utils/message-helpers';
+import {
+  composeEditedMessageText,
+  splitEditableMessageText,
+} from '@/lib/chat/apply-chat-message-event';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -31,9 +35,13 @@ interface MessageBubbleProps {
   isPinning: boolean;
   onExpandImage: (url: string) => void;
   onTogglePin: (messageId: string, isPinned: boolean) => void;
-  onEditMessage?: (messageId: string, text: string, isComment: boolean) => boolean;
-  onDeleteMessage?: (messageId: string, isComment: boolean) => boolean;
+  /** Resolves true once the server confirms the edit. */
+  onEditMessage?: (messageId: string, text: string, isComment: boolean) => Promise<boolean>;
+  /** Resolves true once the server confirms the delete. */
+  onDeleteMessage?: (messageId: string, isComment: boolean) => Promise<boolean>;
 }
+
+type ModerationState = 'idle' | 'editing' | 'saving' | 'confirmingDelete' | 'deleting';
 
 export const MessageBubble = memo(function MessageBubble({
   message,
@@ -47,13 +55,46 @@ export const MessageBubble = memo(function MessageBubble({
   onEditMessage,
   onDeleteMessage,
 }: MessageBubbleProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(message.text);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const canModerate =
-    !message.id.startsWith("temp-") &&
-    Boolean(onEditMessage) &&
-    Boolean(onDeleteMessage);
+  const [moderation, setModeration] = useState<ModerationState>('idle');
+  const [draft, setDraft] = useState('');
+  const isSaved = !message.id.startsWith('temp-');
+  const canEdit = isSaved && Boolean(onEditMessage);
+  const canDelete = isSaved && Boolean(onDeleteMessage);
+  const isBusy = moderation === 'saving' || moderation === 'deleting';
+  const isEditing = moderation === 'editing' || moderation === 'saving';
+  const isDissipating = Boolean(message.isDissipating);
+
+  const startEditing = () => {
+    setDraft(splitEditableMessageText(message.text).caption);
+    setModeration('editing');
+  };
+
+  const cancelModeration = () => {
+    if (!isBusy) setModeration('idle');
+  };
+
+  const saveEdit = async () => {
+    if (!onEditMessage || moderation !== 'editing') return;
+    const { caption, imageUrls } = splitEditableMessageText(message.text);
+    const nextCaption = draft.trim();
+    if (nextCaption === caption) {
+      setModeration('idle');
+      return;
+    }
+    const nextText = composeEditedMessageText(nextCaption, imageUrls);
+    if (!nextText) return;
+    setModeration('saving');
+    const saved = await onEditMessage(message.id, nextText, Boolean(message.isComment));
+    setModeration(saved ? 'idle' : 'editing');
+  };
+
+  const confirmDelete = async () => {
+    if (!onDeleteMessage || moderation !== 'confirmingDelete') return;
+    setModeration('deleting');
+    const removed = await onDeleteMessage(message.id, Boolean(message.isComment));
+    if (!removed) setModeration('idle');
+  };
+
   const messageHasHtml = hasHtmlContent(message.text);
   const isKyc = isKycVerificationMessage(message);
   const isAuto = isAutoMessage(message);
@@ -71,10 +112,11 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      className={`flex w-full min-w-0 ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+      className={`flex w-full min-w-0 ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${isDissipating ? 'chat-message-dissipate' : ''}`}
+      aria-hidden={isDissipating || undefined}
     >
       <div
-        className={`flex min-w-0 max-w-[85%] items-end gap-2 md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
+        className={`relative flex min-w-0 max-w-[85%] items-end gap-2 md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
       >
         {showAvatar ? (
           <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10">
@@ -84,14 +126,39 @@ export const MessageBubble = memo(function MessageBubble({
           <div className="w-6 md:w-7 shrink-0" />
         )}
 
-        <div className="relative group flex flex-col min-w-0">
+        <div className={`group relative flex min-w-0 flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
+          {!isDissipating && !isEditing && moderation === 'idle' && (
+            <div
+              className={`pointer-events-none absolute -top-3 z-10 flex items-center gap-0.5 rounded-full border border-border/40 bg-card/90 px-1 py-0.5 shadow-sm backdrop-blur-md opacity-100 md:pointer-events-auto md:opacity-0 md:transition-opacity md:duration-150 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${isAdmin ? 'right-1' : 'left-1'}`}
+            >
+              <div className="pointer-events-auto flex items-center gap-0.5">
+                <CopyButton text={message.text} />
+                <PinButton
+                  messageId={message.id}
+                  isPinned={message.isPinned}
+                  isPinning={isPinning}
+                  onTogglePin={onTogglePin}
+                />
+                {canEdit && <EditButton onEdit={startEditing} />}
+                {canDelete && (
+                  <DeleteButton onDelete={() => setModeration('confirmingDelete')} />
+                )}
+              </div>
+            </div>
+          )}
+
           <div
-            className={`min-w-0 max-w-full rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 transition-all duration-200 ${isAdmin
+            className={`relative min-w-0 max-w-full overflow-hidden rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 transition-[box-shadow,ring] duration-200 ${isAdmin
               ? 'bg-card/95 backdrop-blur-sm border border-border/50 text-foreground shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]'
               : 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20'
               } ${isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
-              } ${message.isPinned ? 'ring-2 ring-amber-400/50' : ''}`}
+              } ${message.isPinned ? 'ring-2 ring-amber-400/50' : ''
+              } ${isEditing ? 'w-[min(420px,100%)] ring-2 ring-primary/25' : ''
+              } ${moderation === 'confirmingDelete' ? 'ring-1 ring-red-400/35' : ''}`}
+            aria-busy={isBusy}
           >
+            {isDissipating && <span className="chat-message-dissipate-mist" aria-hidden />}
+
             <MessageAttachment
               message={message}
               isAdmin={isAdmin}
@@ -102,91 +169,44 @@ export const MessageBubble = memo(function MessageBubble({
               <CommentBadge isAdmin={isAdmin} />
             )}
 
-            <MessageText
-              message={message}
-              isAdmin={isAdmin}
-              messageHasHtml={messageHasHtml}
-            />
+            {isEditing ? (
+              <EditMessageForm
+                draft={draft}
+                isSaving={moderation === 'saving'}
+                onChange={setDraft}
+                onSave={saveEdit}
+                onCancel={cancelModeration}
+              />
+            ) : (
+              <MessageText
+                message={message}
+                isAdmin={isAdmin}
+                messageHasHtml={messageHasHtml}
+              />
+            )}
           </div>
 
-          <MessageMeta message={message} isAdmin={isAdmin} />
-
-          {isEditing && (
-            <form
-              className={`mt-1 flex min-w-[220px] flex-col gap-1.5 ${isAdmin ? "items-end" : "items-start"}`}
-              onSubmit={(event) => {
-                event.preventDefault();
-                const saved = onEditMessage?.(
-                  message.id,
-                  draft,
-                  Boolean(message.isComment),
-                );
-                if (saved) setIsEditing(false);
-              }}
-            >
-              <textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                rows={3}
-                className="w-full resize-y rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                aria-label="Edit message"
-              />
-              <div className="flex items-center gap-1">
-                <button
-                  type="submit"
-                  className="rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
-                  disabled={!draft.trim() || draft.trim() === message.text.trim()}
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
-                  onClick={() => {
-                    setDraft(message.text);
-                    setIsEditing(false);
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          {moderation === 'confirmingDelete' && !isDissipating && (
+            <DeleteConfirmation
+              isAdmin={isAdmin}
+              isDeleting={moderation === 'deleting' || false}
+              onConfirm={confirmDelete}
+              onCancel={cancelModeration}
+            />
           )}
 
-          <div className={`mt-0.5 flex items-center gap-0.5 ${isAdmin ? "justify-end" : "justify-start"}`}>
-            <CopyButton text={message.text} />
-            <PinButton
-              messageId={message.id}
-              isPinned={message.isPinned}
-              isPinning={isPinning}
-              onTogglePin={onTogglePin}
-            />
-            {canModerate && (
-              <EditButton
-                onEdit={() => {
-                  setConfirmingDelete(false);
-                  setDraft(message.text);
-                  setIsEditing(true);
-                }}
-              />
-            )}
-            {canModerate && (
-              <DeleteButton
-                confirming={confirmingDelete}
-                onDelete={() => {
-                  if (!confirmingDelete) {
-                    setConfirmingDelete(true);
-                    return;
-                  }
-                  const removed = onDeleteMessage?.(
-                    message.id,
-                    Boolean(message.isComment),
-                  );
-                  if (!removed) setConfirmingDelete(false);
-                }}
-              />
-            )}
-          </div>
+          {moderation === 'deleting' && !isDissipating && (
+            <div
+              className={`mt-1.5 flex items-center gap-1.5 rounded-full border border-border/40 bg-card/90 px-2.5 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur-md ${isAdmin ? 'self-end' : 'self-start'}`}
+            >
+              <Spinner />
+              Removing…
+            </div>
+          )}
+
+          {!isDissipating && (
+            <MessageMeta message={message} isAdmin={isAdmin} />
+          )}
         </div>
       </div>
     </div>
@@ -524,6 +544,11 @@ function MessageMeta({ message, isAdmin }: {
       <span className="text-[9px] md:text-[10px] text-muted-foreground font-medium">
         {message.time || message.timestamp}
       </span>
+      {message.renderAsText && (
+        <span className="text-[9px] md:text-[10px] italic text-muted-foreground/80">
+          Edited
+        </span>
+      )}
       {message.isPinned && (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
           <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -571,17 +596,18 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
-      className="p-1 opacity-70 hover:!opacity-100 transition-opacity duration-200"
+      className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
       aria-label="Copy message"
       title={copied ? 'Copied!' : 'Copy message'}
     >
       {copied ? (
-        <svg className="h-3.5 w-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-3 w-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ) : (
-        <svg className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       )}
@@ -594,36 +620,153 @@ function EditButton({ onEdit }: { onEdit: () => void }) {
     <button
       type="button"
       onClick={onEdit}
-      className="p-1 opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
+      className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
       aria-label="Edit message"
       title="Edit message"
     >
-      <svg className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       </svg>
     </button>
   );
 }
 
-function DeleteButton({
-  confirming,
-  onDelete,
-}: {
-  confirming: boolean;
-  onDelete: () => void;
-}) {
+function DeleteButton({ onDelete }: { onDelete: () => void }) {
   return (
     <button
       type="button"
       onClick={onDelete}
-      className="p-1 opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
-      aria-label={confirming ? "Confirm delete message" : "Delete message"}
-      title={confirming ? "Click again to delete" : "Delete message"}
+      className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-500"
+      aria-label="Delete message"
+      title="Delete message"
     >
-      <svg className={`h-3.5 w-3.5 ${confirming ? "text-red-500" : "text-muted-foreground/50 hover:text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
       </svg>
     </button>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DeleteConfirmation({
+  isAdmin,
+  isDeleting,
+  onConfirm,
+  onCancel,
+}: {
+  isAdmin: boolean;
+  isDeleting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      role="alertdialog"
+      aria-label="Delete this message?"
+      className={`mt-1.5 flex animate-in fade-in zoom-in-95 duration-150 items-center gap-2 rounded-full border border-border/50 bg-card/95 px-2 py-1 shadow-sm backdrop-blur-md ${isAdmin ? 'self-end' : 'self-start'}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onCancel();
+      }}
+    >
+      <span className="pl-1 text-[11px] font-medium text-muted-foreground">
+        Delete?
+      </span>
+      <button
+        type="button"
+        autoFocus
+        onClick={onConfirm}
+        disabled={isDeleting}
+        className="rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isDeleting}
+        className="rounded-full px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60"
+      >
+        No
+      </button>
+    </div>
+  );
+}
+
+function EditMessageForm({
+  draft,
+  isSaving,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  draft: string;
+  isSaving: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
+      <textarea
+        value={draft}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onCancel();
+          } else if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            onSave();
+          }
+        }}
+        onFocus={(event) => {
+          const end = event.currentTarget.value.length;
+          event.currentTarget.setSelectionRange(end, end);
+        }}
+        autoFocus
+        readOnly={isSaving}
+        rows={Math.min(6, Math.max(2, draft.split('\n').length))}
+        className="w-full resize-none rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-[13px] md:text-sm leading-relaxed text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30"
+        aria-label="Edit message"
+      />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-muted-foreground/80">
+          Enter · Esc
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving || !draft.trim()}
+            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
+          >
+            {isSaving && <Spinner />}
+            {isSaving ? 'Saving' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }
 
@@ -635,15 +778,16 @@ function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
 }) {
   return (
     <button
+      type="button"
       onClick={() => onTogglePin(messageId, Boolean(isPinned))}
       disabled={isPinning}
-      className="p-1 opacity-70 hover:!opacity-100 disabled:cursor-not-allowed disabled:opacity-40 transition-opacity duration-200"
+      className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       aria-label={isPinned ? 'Unpin message' : 'Pin message'}
       title={isPinned ? 'Unpin message' : 'Pin message'}
     >
       {isPinning ? (
         <svg
-          className="h-3.5 w-3.5 animate-spin text-muted-foreground/70"
+          className="h-3 w-3 animate-spin"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -653,9 +797,9 @@ function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
         </svg>
       ) : (
         <svg
-          className={`h-3.5 w-3.5 transition-colors ${isPinned
-            ? 'text-amber-500/70 dark:text-amber-400/70 hover:text-amber-600 dark:hover:text-amber-400'
-            : 'text-muted-foreground/50 hover:text-muted-foreground'
+          className={`h-3 w-3 transition-colors ${isPinned
+            ? 'text-amber-500'
+            : ''
             }`}
           viewBox="0 0 20 20"
           fill="currentColor"

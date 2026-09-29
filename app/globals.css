@@ -786,6 +786,82 @@ select {
   animation: slideLeft linear infinite;
 }
 
+/* Chat message delete — dissipates into air */
+@keyframes chat-message-dissipate {
+  0% {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+    transform: translateY(0) scale(1);
+    max-height: 480px;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  35% {
+    opacity: 0.72;
+    filter: blur(1.5px) saturate(0.85);
+    transform: translateY(-6px) scale(1.015);
+  }
+  70% {
+    opacity: 0.28;
+    filter: blur(6px) saturate(0.55);
+    transform: translateY(-18px) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(14px) saturate(0.2);
+    transform: translateY(-36px) scale(1.08);
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@keyframes chat-message-mist {
+  0% {
+    opacity: 0;
+    transform: translateY(8%) scale(0.92);
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-55%) scale(1.35);
+  }
+}
+
+.chat-message-dissipate {
+  animation: chat-message-dissipate 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+  transform-origin: center top;
+  overflow: hidden;
+  will-change: transform, opacity, filter, max-height;
+}
+
+.chat-message-dissipate-mist {
+  pointer-events: none;
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 140%;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 45% 35% at 30% 55%, rgba(255, 255, 255, 0.55), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 70% 40%, rgba(255, 255, 255, 0.4), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 50% 70%, rgba(148, 163, 184, 0.25), transparent 75%);
+  animation: chat-message-mist 0.72s ease-out forwards;
+  mix-blend-mode: soft-light;
+}
+
+.dark .chat-message-dissipate-mist {
+  background:
+    radial-gradient(ellipse 45% 35% at 30% 55%, rgba(255, 255, 255, 0.18), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 70% 40%, rgba(168, 85, 247, 0.2), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 50% 70%, rgba(148, 163, 184, 0.15), transparent 75%);
+  mix-blend-mode: screen;
+}
+
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-in-from-bottom-4,
@@ -797,8 +873,16 @@ select {
   .animate-bounce-in-smooth,
   .animate-scroll-indicator,
   .animate-slide-left,
-  .typing-indicator-smooth {
+  .typing-indicator-smooth,
+  .chat-message-dissipate,
+  .chat-message-dissipate-mist {
     animation: none;
+  }
+
+  .chat-message-dissipate {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
   }
 
   .scroll-smooth-optimized {

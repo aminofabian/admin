@@ -4,7 +4,10 @@ import {
   applyMessageEdited,
   buildMessageDeletedEvent,
   buildMessageEditedEvent,
+  composeEditedMessageText,
+  markMessageDissipating,
   messageEventId,
+  splitEditableMessageText,
 } from "../apply-chat-message-event";
 import type { ChatEventMessage } from "../apply-chat-message-event";
 
@@ -23,42 +26,50 @@ describe("messageEventId", () => {
   });
 });
 
-describe("websocket edit and delete payloads", () => {
-  it("sends message_edited with the same fields as the socket example", () => {
+describe("editing a photo message", () => {
+  it("edits only the caption and keeps the image url", () => {
+    const original = "see this<br>\nhttps://cdn.example.com/a.jpg";
+    const { caption, imageUrls } = splitEditableMessageText(original);
+    expect(caption).toBe("see this");
+    expect(imageUrls).toEqual(["https://cdn.example.com/a.jpg"]);
+    expect(composeEditedMessageText("new caption", imageUrls)).toBe(
+      "new caption\nhttps://cdn.example.com/a.jpg",
+    );
+  });
+
+  it("keeps an image-only message as just the url", () => {
+    const { caption, imageUrls } = splitEditableMessageText(
+      "https://cdn.example.com/a.png",
+    );
+    expect(caption).toBe("");
+    expect(composeEditedMessageText(caption, imageUrls)).toBe(
+      "https://cdn.example.com/a.png",
+    );
+  });
+});
+
+describe("websocket edit and delete commands", () => {
+  it("sends edit_message with message_id and message", () => {
     expect(
       buildMessageEditedEvent({
         messageId: "125",
-        message: "Hello! Your request has been approved.",
-        chatroomId: "10",
-        playerId: 42,
-        isComment: false,
+        message: "Updated text",
       }),
     ).toEqual({
-      type: "message_edited",
-      id: 125,
+      type: "edit_message",
       message_id: 125,
-      chatroom_id: 10,
-      player_id: 42,
-      is_comment: false,
-      message: "Hello! Your request has been approved.",
+      message: "Updated text",
     });
   });
 
-  it("sends message_deleted without a message body", () => {
+  it("sends delete_message with message_id only", () => {
     expect(
       buildMessageDeletedEvent({
         messageId: "125",
-        chatroomId: 10,
-        playerId: 42,
-        isComment: false,
       }),
     ).toEqual({
-      type: "message_deleted",
-      id: 125,
+      type: "delete_message",
       message_id: 125,
-      chatroom_id: 10,
-      player_id: 42,
-      is_comment: false,
     });
   });
 });
@@ -187,6 +198,31 @@ describe("sample websocket payloads", () => {
       thread,
     );
     expect(applyMessageDeleted(thread, "999").messages).toBe(thread);
+  });
+});
+
+describe("markMessageDissipating", () => {
+  it("flags the message for exit animation and previews the remaining last message", () => {
+    const thread = [
+      message({ id: "10", text: "kept", timestamp: "2026-09-29T11:00:00.000Z" }),
+      message({ id: "125", text: "gone", timestamp: "2026-09-29T11:32:00.000Z" }),
+    ];
+    const result = markMessageDissipating(thread, "125");
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[1].isDissipating).toBe(true);
+    expect(result.preview).toEqual({
+      text: "kept",
+      timestamp: "2026-09-29T11:00:00.000Z",
+    });
+  });
+
+  it("is a no-op when already dissipating", () => {
+    const thread = [
+      message({ id: "125", text: "gone", isDissipating: true }),
+    ];
+    const result = markMessageDissipating(thread, "125");
+    expect(result.messages).toBe(thread);
+    expect(result.preview).toBeNull();
   });
 });
 

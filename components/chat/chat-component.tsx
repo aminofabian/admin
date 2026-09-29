@@ -6,7 +6,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui";
 import { formatCurrency, isValidTimestamp } from "@/lib/utils/formatters";
 import { useChatUsersContext } from "@/contexts/chat-users-context";
-import { useChatWebSocket } from "@/hooks/use-chat-websocket";
+import {
+  useChatWebSocket,
+  type MessageActionResult,
+} from "@/hooks/use-chat-websocket";
 import { conversationPreviewText } from "@/lib/chat/apply-chat-message-event";
 import { useOnlinePlayers } from "@/hooks/use-online-players";
 import { storage } from "@/lib/utils/storage";
@@ -1805,34 +1808,37 @@ export function ChatComponent() {
     await refetchOnlinePlayers();
   }, [hasValidAdminUser, refetchOnlinePlayers]);
 
-  const handleEditMessage = useCallback(
-    (messageId: string, text: string, isComment: boolean) => {
-      const saved = wsEditMessage(messageId, text, isComment);
-      if (!saved) {
-        addToast({
-          type: "error",
-          title: "Couldn't edit message",
-          description: "The chat socket is not connected.",
-        });
-      }
-      return saved;
+  const reportMessageActionFailure = useCallback(
+    (action: "edit" | "delete", result: MessageActionResult) => {
+      const verb = action === "edit" ? "edit" : "delete";
+      addToast({
+        type: "error",
+        title: `Couldn't ${verb} message`,
+        description:
+          result === "unconfirmed"
+            ? "The server didn't confirm the change, so nothing was saved."
+            : "Chat is not connected. Try again in a moment.",
+      });
     },
-    [addToast, wsEditMessage],
+    [addToast],
+  );
+
+  const handleEditMessage = useCallback(
+    async (messageId: string, text: string, isComment: boolean) => {
+      const result = await wsEditMessage(messageId, text, isComment);
+      if (result !== "confirmed") reportMessageActionFailure("edit", result);
+      return result === "confirmed";
+    },
+    [reportMessageActionFailure, wsEditMessage],
   );
 
   const handleDeleteMessage = useCallback(
-    (messageId: string, isComment: boolean) => {
-      const removed = wsDeleteMessage(messageId, isComment);
-      if (!removed) {
-        addToast({
-          type: "error",
-          title: "Couldn't delete message",
-          description: "The chat socket is not connected.",
-        });
-      }
-      return removed;
+    async (messageId: string, isComment: boolean) => {
+      const result = await wsDeleteMessage(messageId, isComment);
+      if (result !== "confirmed") reportMessageActionFailure("delete", result);
+      return result === "confirmed";
     },
-    [addToast, wsDeleteMessage],
+    [reportMessageActionFailure, wsDeleteMessage],
   );
 
   const handleTogglePin = useCallback(
@@ -3606,8 +3612,12 @@ export function ChatComponent() {
                             isPinning={isPinning}
                             onExpandImage={setExpandedImage}
                             onTogglePin={handleTogglePin}
-                            onEditMessage={handleEditMessage}
-                            onDeleteMessage={handleDeleteMessage}
+                            onEditMessage={
+                              isAdmin && isConnected ? handleEditMessage : undefined
+                            }
+                            onDeleteMessage={
+                              isAdmin && isConnected ? handleDeleteMessage : undefined
+                            }
                           />
                         </div>
                       );
