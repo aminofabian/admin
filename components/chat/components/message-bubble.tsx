@@ -740,7 +740,7 @@ function EditMessageForm({
         autoFocus
         readOnly={isSaving}
         rows={Math.min(6, Math.max(2, draft.split('\n').length))}
-        className="w-full resize-none rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-[13px] md:text-sm leading-relaxed text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30"
+        className="w-full resize-none rounded-xl border border-border/60 bg-background px-3 py-2 text-[13px] md:text-sm leading-relaxed text-foreground outline-none transition placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-border/70 dark:bg-input dark:text-foreground dark:placeholder:text-muted-foreground/70"
         aria-label="Edit message"
       />
       <div className="flex items-center justify-between gap-2">
