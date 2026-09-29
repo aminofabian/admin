@@ -13,6 +13,18 @@ export function resolveSafeChatroomId(
   return trimmed;
 }
 
+/** First id that is a real chatroom id, skipping blanks and values that match the player id. */
+export function firstSafeChatroomId(
+  userId: number | null | undefined,
+  ...ids: Array<string | number | null | undefined>
+): string | null {
+  for (const id of ids) {
+    const safe = resolveSafeChatroomId(id, userId);
+    if (safe) return safe;
+  }
+  return null;
+}
+
 /**
  * Reads chatroom id fields from an API row without falling back to player/user id.
  */

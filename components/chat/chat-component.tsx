@@ -32,7 +32,7 @@ import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
 } from "@/lib/chat/map-chat-api";
-import { pickChatroomIdFromRow, resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
+import { firstSafeChatroomId, pickChatroomIdFromRow, resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import { resolveChatUserForPlayerIdDeepLink } from "@/lib/chat/resolve-chat-user-for-deep-link";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
 import {
@@ -218,6 +218,7 @@ export function ChatComponent() {
   const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
   const queryUsernameResolveInFlightRef = useRef<string | null>(null);
   const queryPlayerIdResolveInFlightRef = useRef<number | null>(null);
+  const chatroomResolveUserRef = useRef<number | null>(null);
   /** True while deep-link is still resolving chatroom_id (avoid false "No chat history"). */
   const [isResolvingChatroom, setIsResolvingChatroom] = useState(false);
   // Track last manual payment operation to help determine message type for balanceUpdated messages
@@ -907,6 +908,9 @@ export function ChatComponent() {
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data
             seenUserIds.set(player.user_id, {
               ...existing,
+              id:
+                firstSafeChatroomId(player.user_id, player.id, existing.id) ??
+                existing.id,
               // WebSocket data takes priority for real-time fields
               lastMessage: player.lastMessage || existing.lastMessage,
               //  FIXED: Use better timestamp preservation logic like all-chats tab
@@ -1045,6 +1049,9 @@ export function ChatComponent() {
             // Start with WebSocket data, only add missing fields from REST API
             seenUserIds.set(player.user_id, {
               ...existing, // WebSocket data (real-time unreadCount, lastMessage, etc.)
+              id:
+                firstSafeChatroomId(player.user_id, existing.id, player.id) ??
+                existing.id,
               // Only override with REST API data for fields not in WebSocket
               fullName: player.fullName || existing.fullName,
               email: player.email || existing.email,
@@ -1158,6 +1165,7 @@ export function ChatComponent() {
         if (ws) {
           return {
             ...ws,
+            id: firstSafeChatroomId(ws.user_id, ws.id, apiPlayer.id) ?? ws.id,
             fullName: apiPlayer.fullName || ws.fullName,
             email: apiPlayer.email || ws.email,
             avatar: apiPlayer.avatar || ws.avatar,
@@ -1186,6 +1194,7 @@ export function ChatComponent() {
         if (ws) {
           return {
             ...apiOn,
+            id: firstSafeChatroomId(apiOn.user_id, ws.id, apiOn.id, apiPlayer.id) ?? apiOn.id,
             lastMessage: ws.lastMessage || apiOn.lastMessage,
             lastMessageTime: isValidTimestamp(ws.lastMessageTime)
               ? ws.lastMessageTime
@@ -1197,6 +1206,7 @@ export function ChatComponent() {
         }
         return {
           ...apiOn,
+          id: firstSafeChatroomId(apiOn.user_id, apiOn.id, apiPlayer.id) ?? apiOn.id,
           fullName: apiPlayer.fullName || apiOn.fullName,
           email: apiPlayer.email || apiOn.email,
           notes: apiPlayer.notes || apiOn.notes,
@@ -1206,6 +1216,7 @@ export function ChatComponent() {
       if (ws?.isOnline) {
         return {
           ...ws,
+          id: firstSafeChatroomId(ws.user_id, ws.id, apiPlayer.id) ?? ws.id,
           fullName: apiPlayer.fullName || ws.fullName,
           email: apiPlayer.email || ws.email,
           balance: apiPlayer.balance || ws.balance,
@@ -1312,37 +1323,98 @@ export function ChatComponent() {
     });
   }, [selectedPlayer, activeChatsUsers, allPlayers]);
 
-  // Deep-link / cold open often selects a player before chatroom_id is known.
-  // When the directory later has a real chatroom id, patch it onto selectedPlayer
-  // so history / purchases / cashouts can send chatroom_id.
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const userId = selectedPlayer.user_id;
-    const hasSafeId = Boolean(
-      resolveSafeChatroomId(selectedPlayer.id, userId),
+  const selectedUserId = selectedPlayer?.user_id ?? null;
+  const directoryChatroomId = useMemo(() => {
+    if (!selectedUserId) return null;
+    return firstSafeChatroomId(
+      selectedUserId,
+      ...activeChatsUsers
+        .filter((player) => player.user_id === selectedUserId)
+        .map((player) => player.id),
+      ...allPlayers
+        .filter((player) => player.user_id === selectedUserId)
+        .map((player) => player.id),
+      ...apiOnlinePlayers
+        .filter((player) => player.user_id === selectedUserId)
+        .map((player) => player.id),
     );
-    if (hasSafeId) return;
+  }, [selectedUserId, activeChatsUsers, allPlayers, apiOnlinePlayers]);
 
-    const canonical =
-      activeChatsUsers.find((p) => p.user_id === userId) ||
-      allPlayers.find((p) => p.user_id === userId);
-    const canonicalId = resolveSafeChatroomId(canonical?.id, userId);
-    if (!canonical || !canonicalId) return;
+  // A selected player sometimes has no chatroom id (online row, or a list row whose
+  // id is the user id). History will not load until a real chatroom id is patched on.
+  useEffect(() => {
+    if (!selectedUserId) return;
+    if (resolveSafeChatroomId(selectedPlayer?.id, selectedUserId)) {
+      setIsResolvingChatroom(false);
+      return;
+    }
 
-    setSelectedPlayer((prev) => {
-      if (!prev || prev.user_id !== userId) return prev;
-      if (resolveSafeChatroomId(prev.id, userId)) return prev;
-      return {
-        ...prev,
-        id: canonicalId,
-        lastMessage: prev.lastMessage ?? canonical.lastMessage,
-        lastMessageTime: prev.lastMessageTime ?? canonical.lastMessageTime,
-        unreadCount: prev.unreadCount ?? canonical.unreadCount,
-        isOnline: canonical.isOnline ?? prev.isOnline,
-      };
-    });
-    setIsResolvingChatroom(false);
-  }, [selectedPlayer, activeChatsUsers, allPlayers]);
+    if (directoryChatroomId) {
+      setSelectedPlayer((prev) => {
+        if (!prev || prev.user_id !== selectedUserId) return prev;
+        if (resolveSafeChatroomId(prev.id, selectedUserId)) return prev;
+        return { ...prev, id: directoryChatroomId };
+      });
+      setIsResolvingChatroom(false);
+      return;
+    }
+
+    if (isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers)) {
+      setIsResolvingChatroom(true);
+      return;
+    }
+
+    if (chatroomResolveUserRef.current === selectedUserId) return;
+    chatroomResolveUserRef.current = selectedUserId;
+    setIsResolvingChatroom(true);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = storage.get(TOKEN_KEY);
+        const resolved = await resolveChatUserForPlayerIdDeepLink({
+          userId: selectedUserId,
+          token,
+        });
+        if (cancelled) return;
+        const resolvedId = resolveSafeChatroomId(resolved?.id, selectedUserId);
+        if (resolved && resolvedId) {
+          setSelectedPlayer((prev) => {
+            if (!prev || prev.user_id !== selectedUserId) return prev;
+            if (resolveSafeChatroomId(prev.id, selectedUserId)) return prev;
+            return {
+              ...prev,
+              ...resolved,
+              id: resolvedId,
+              user_id: selectedUserId,
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Failed to resolve chatroom for selected player:", error);
+      } finally {
+        if (cancelled) return;
+        setIsResolvingChatroom(false);
+        if (chatroomResolveUserRef.current === selectedUserId) {
+          chatroomResolveUserRef.current = null;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (chatroomResolveUserRef.current === selectedUserId) {
+        chatroomResolveUserRef.current = null;
+      }
+    };
+  }, [
+    selectedUserId,
+    selectedPlayer?.id,
+    directoryChatroomId,
+    isLoadingUsers,
+    isLoadingAllPlayers,
+    allPlayers.length,
+  ]);
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {

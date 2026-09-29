@@ -701,7 +701,11 @@ export function useChatWebSocket({
   useEffect(() => {
     if (!effectiveEnabled || !userId) return;
     const safeChatId = resolveSafeChatroomId(chatId, userId);
-    if (!safeChatId) return;
+    if (!safeChatId) {
+      setIsHistoryLoading(false);
+      setHasCompletedInitialHistory(true);
+      return;
+    }
 
     void fetchMessageHistory(1, "replace");
     void fetchPurchaseHistory();

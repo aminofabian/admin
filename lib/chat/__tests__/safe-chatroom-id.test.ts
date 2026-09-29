@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickChatroomIdFromRow, resolveSafeChatroomId } from '../safe-chatroom-id';
+import { firstSafeChatroomId, pickChatroomIdFromRow, resolveSafeChatroomId } from '../safe-chatroom-id';
 
 describe('resolveSafeChatroomId', () => {
   it('returns chatroom id when it differs from user id', () => {
@@ -14,6 +14,13 @@ describe('resolveSafeChatroomId', () => {
   it('returns null for empty values', () => {
     expect(resolveSafeChatroomId('', 3648)).toBeNull();
     expect(resolveSafeChatroomId(null, 3648)).toBeNull();
+  });
+});
+
+describe('firstSafeChatroomId', () => {
+  it('skips a blank or user-id value and keeps a real chatroom id', () => {
+    expect(firstSafeChatroomId(3, '', '3', '94')).toBe('94');
+    expect(firstSafeChatroomId(3, '', '3')).toBeNull();
   });
 });
 
