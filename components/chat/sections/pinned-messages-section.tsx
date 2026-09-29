@@ -88,7 +88,9 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                     />
                     <div className="flex-1 min-w-0">
                       <p className="line-clamp-2 min-w-0 break-words text-foreground [overflow-wrap:anywhere]">
-                        {(() => {
+                        {msg.renderAsText ? (
+                          msg.text
+                        ) : (() => {
                           const raw = prepareChatMessageHtmlForDisplay(msg.text ?? '');
                           const hasHtml = hasHtmlContent(raw);
                           const linkedText = hasHtml ? raw : linkifyText(raw);

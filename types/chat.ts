@@ -54,6 +54,8 @@ export interface ChatMessage {
   paymentMethod?: string | null;
   senderId?: number; // The sender's user ID
   sentBy?: ChatMessageSender; // Full sender info for group chat display
+  /** Edited over the socket. Render `text` as plain text, never as HTML. */
+  renderAsText?: boolean;
 }
 
 export interface ChatListResponse {

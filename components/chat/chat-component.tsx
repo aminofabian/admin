@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui";
 import { formatCurrency, isValidTimestamp } from "@/lib/utils/formatters";
 import { useChatUsersContext } from "@/contexts/chat-users-context";
 import { useChatWebSocket } from "@/hooks/use-chat-websocket";
+import { conversationPreviewText } from "@/lib/chat/apply-chat-message-event";
 import { useOnlinePlayers } from "@/hooks/use-online-players";
 import { storage } from "@/lib/utils/storage";
 import { API_ENDPOINTS, TOKEN_KEY } from "@/lib/constants/api";
@@ -416,7 +417,7 @@ export function ChatComponent() {
           updateChatLastMessage(
             message.userId,
             selectedPlayer?.id || "",
-            message.text,
+            conversationPreviewText(message),
             message.timestamp,
           );
         }
@@ -532,6 +533,18 @@ export function ChatComponent() {
         }
       },
       [],
+    ),
+    onConversationPreviewChange: useCallback(
+      (preview: { text: string; timestamp: string }) => {
+        if (!selectedPlayer) return;
+        updateChatLastMessage(
+          selectedPlayer.user_id,
+          selectedPlayer.id,
+          preview.text,
+          preview.timestamp || new Date().toISOString(),
+        );
+      },
+      [selectedPlayer, updateChatLastMessage],
     ),
   });
 
@@ -1424,12 +1437,12 @@ export function ChatComponent() {
 
         // If there's also a text message, send it via WebSocket with the image URL
         if (imageUrl) {
-          const messageWithImage = messageInput.trim()
-            ? `${messageInput.trim()}\n${imageUrl}`
+          const caption = messageInput.trim();
+          const messageWithImage = caption
+            ? `${caption}\n${imageUrl}`
             : imageUrl;
 
-          // Send message with image URL via WebSocket
-          wsSendMessage(messageWithImage);
+          wsSendMessage(messageWithImage, imageUrl);
         }
 
         // Clear image preview and input

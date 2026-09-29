@@ -283,7 +283,7 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const imageUrls = extractImageUrls(message.text);
+  const imageUrls = message.renderAsText ? [] : extractImageUrls(message.text);
   const fileUrl = message.fileUrl || imageUrls[0];
   const isImage = fileUrl && isImageUrl(fileUrl);
 
@@ -387,12 +387,19 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
   isAdmin: boolean;
   messageHasHtml: boolean;
 }) {
-  const imageUrls = extractImageUrls(message.text);
-  const fileUrl = message.fileUrl || imageUrls[0];
-  const hasRenderedImage = fileUrl && isImageUrl(fileUrl);
-  const hasImages = imageUrls.length > 0;
+  if (message.renderAsText) {
+    if (!message.text.trim()) return null;
+    return (
+      <p
+        className={`min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${isAdmin ? 'text-foreground' : 'text-white'}`}
+      >
+        {message.text}
+      </p>
+    );
+  }
 
-  if (hasRenderedImage) return null;
+  const imageUrls = extractImageUrls(message.text);
+  const hasImages = imageUrls.length > 0;
 
   let displayText = prepareChatMessageHtmlForDisplay(message.text);
   if (hasImages) {
@@ -402,7 +409,7 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
     displayText = displayText.trim();
   }
 
-  if (!displayText && hasImages) return null;
+  if (!displayText) return null;
 
   const linkedText = messageHasHtml ? displayText : linkifyText(displayText ?? '');
   const shouldRenderAsHtml = messageHasHtml || linkedText !== displayText;

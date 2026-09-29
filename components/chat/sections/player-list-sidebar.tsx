@@ -5,6 +5,7 @@ import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
+import { conversationPreviewText } from '@/lib/chat/apply-chat-message-event';
 import {
   isAutoMessage,
   isPurchaseNotification,
@@ -161,7 +162,11 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
               );
             }
 
-            const plainText = stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage));
+            const plainText = conversationPreviewText({
+              id: player.id,
+              text: stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage)),
+              timestamp: player.lastMessageTime || '',
+            });
             return (
               <p className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage
                 ? 'text-foreground font-medium'

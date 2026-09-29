@@ -14,6 +14,11 @@ import {
   type WebSocketListeners,
 } from "@/lib/websocket-manager";
 import type { ChatMessage, WebSocketMessage } from "@/types";
+import {
+  applyMessageDeleted,
+  applyMessageEdited,
+  messageEventId,
+} from "@/lib/chat/apply-chat-message-event";
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -47,6 +52,7 @@ interface HistoryPayload {
 interface RawChatMessage {
   id?: string | number;
   message_id?: string | number;
+  chatroom_id?: string | number;
   message?: string;
   sender?: string;
   sender_id?: number;
@@ -201,6 +207,11 @@ interface UseChatWebSocketParams {
     cashoutLimit?: string;
     lockedBalance?: string;
   }) => void;
+  /** Fired when an edit or delete changes the latest message in this room. */
+  onConversationPreviewChange?: (preview: {
+    text: string;
+    timestamp: string;
+  }) => void;
 }
 
 interface UseChatWebSocketReturn {
@@ -208,7 +219,7 @@ interface UseChatWebSocketReturn {
   isConnected: boolean;
   isTyping: boolean;
   isUserOnline: boolean;
-  sendMessage: (text: string) => void;
+  sendMessage: (text: string, fileUrl?: string) => void;
   markAsRead: (messageId: string) => void;
   markAllAsRead: (lastMessageId?: string) => void;
   connectionError: string | null;
@@ -234,6 +245,7 @@ export function useChatWebSocket({
   enabled,
   onMessageReceived,
   onBalanceUpdated,
+  onConversationPreviewChange,
 }: UseChatWebSocketParams): UseChatWebSocketReturn {
   const { user } = useAuth();
   const isAgent = user?.role === USER_ROLES.AGENT;
@@ -288,6 +300,7 @@ export function useChatWebSocket({
   const messageQueueRef = useRef<
     Array<{
       text: string;
+      fileUrl?: string;
       timestamp: number;
       userId: number;
       chatId: string | null;
@@ -306,6 +319,11 @@ export function useChatWebSocket({
   useEffect(() => {
     onBalanceUpdatedRef.current = onBalanceUpdated;
   }, [onBalanceUpdated]);
+
+  const onConversationPreviewChangeRef = useRef(onConversationPreviewChange);
+  useEffect(() => {
+    onConversationPreviewChangeRef.current = onConversationPreviewChange;
+  }, [onConversationPreviewChange]);
 
   useEffect(() => {
     historyAbortRef.current?.abort();
@@ -860,17 +878,19 @@ export function useChatWebSocket({
             const queuedMessages = [...messageQueueRef.current];
             messageQueueRef.current = [];
 
-            queuedMessages.forEach(({ text }) => {
+            queuedMessages.forEach(({ text, fileUrl }) => {
               const sent = websocketManager.send(wsUrl, {
                 type: "message",
                 sender_id: adminId,
                 is_player_sender: false,
                 message: text,
                 sent_time: new Date().toISOString(),
+                ...(fileUrl ? { is_file: true, file: fileUrl } : {}),
               });
               if (!sent) {
                 messageQueueRef.current.push({
                   text,
+                  fileUrl,
                   timestamp: Date.now(),
                   userId,
                   chatId: chatIdRef.current,
@@ -908,6 +928,47 @@ export function useChatWebSocket({
           }
           if (messageType === "pong") {
             // Heartbeat response, connection is alive
+            return;
+          }
+
+          if (
+            messageType === "message_edited" ||
+            messageType === "message_deleted"
+          ) {
+            const editedId = messageEventId(rawData);
+            const eventRoom = rawData.chatroom_id;
+            const currentRoom = resolveSafeChatroomId(
+              chatIdRef.current,
+              userId,
+            );
+            const roomMatches =
+              eventRoom == null ||
+              eventRoom === "" ||
+              !currentRoom ||
+              String(eventRoom) === String(currentRoom);
+            const playerMatches =
+              rawData.player_id == null ||
+              String(rawData.player_id) === String(userId);
+
+            if (editedId && roomMatches && playerMatches && isMountedRef.current) {
+              setMessages((prev) => {
+                const result =
+                  messageType === "message_edited"
+                    ? applyMessageEdited(
+                        prev,
+                        editedId,
+                        String(rawData.message ?? ""),
+                      )
+                    : applyMessageDeleted(prev, editedId);
+                if (result.preview && result.messages !== prev) {
+                  const nextPreview = result.preview;
+                  queueMicrotask(() => {
+                    onConversationPreviewChangeRef.current?.(nextPreview);
+                  });
+                }
+                return result.messages;
+              });
+            }
             return;
           }
 
@@ -1201,7 +1262,7 @@ export function useChatWebSocket({
   ]);
 
   const sendMessageViaRest = useCallback(
-    async (text: string, retryCount = 0): Promise<boolean> => {
+    async (text: string, retryCount = 0, fileUrl?: string): Promise<boolean> => {
       const MAX_RETRIES = 2;
       const requestChatId = chatId;
       const requestUserId = userId;
@@ -1249,6 +1310,7 @@ export function useChatWebSocket({
             message: text,
             is_player_sender: false,
             sent_time: new Date().toISOString(),
+            ...(fileUrl ? { is_file: true, file: fileUrl } : {}),
           }),
           signal: abortController.signal,
         });
@@ -1278,7 +1340,7 @@ export function useChatWebSocket({
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * (retryCount + 1)),
             );
-            return sendMessageViaRest(text, retryCount + 1);
+            return sendMessageViaRest(text, retryCount + 1, fileUrl);
           }
 
           throw new Error(
@@ -1303,6 +1365,8 @@ export function useChatWebSocket({
             isRead: false,
             userId: adminId,
             isPinned: false,
+            isFile: Boolean(fileUrl),
+            fileUrl,
           };
 
           setMessages((prev) => [...prev, newMessage]);
@@ -1331,7 +1395,7 @@ export function useChatWebSocket({
           await new Promise((resolve) =>
             setTimeout(resolve, 1000 * (retryCount + 1)),
           );
-          return sendMessageViaRest(text, retryCount + 1);
+          return sendMessageViaRest(text, retryCount + 1, fileUrl);
         }
 
         if (isStillActiveRoom()) {
@@ -1371,8 +1435,8 @@ export function useChatWebSocket({
           console.log(
             `📤 Processing ${queuedMessages.length} queued messages before disconnect...`,
           );
-        queuedMessages.forEach(({ text }) => {
-          void sendMessageViaRest(text);
+        queuedMessages.forEach(({ text, fileUrl }) => {
+          void sendMessageViaRest(text, 0, fileUrl);
         });
       }
     } else {
@@ -1394,8 +1458,8 @@ export function useChatWebSocket({
 
   // FIX #1: Use manager for sending instead of raw WS ref
   const sendMessage = useCallback(
-    (text: string) => {
-      if (!text.trim() || !userId) return;
+    (text: string, fileUrl?: string) => {
+      if ((!text.trim() && !fileUrl) || !userId) return;
 
       // Case 1: Connected — send via manager
       if (connectionStateRef.current === "connected") {
@@ -1405,6 +1469,7 @@ export function useChatWebSocket({
           is_player_sender: false,
           message: text,
           sent_time: new Date().toISOString(),
+          ...(fileUrl ? { is_file: true, file: fileUrl } : {}),
         });
         if (sent) {
           !IS_PROD && console.log("📤 Sent message via WebSocket");
@@ -1419,6 +1484,7 @@ export function useChatWebSocket({
         !IS_PROD && console.log("⏳ WebSocket connecting, queueing message...");
         messageQueueRef.current.push({
           text,
+          fileUrl,
           timestamp: Date.now(),
           userId,
           chatId,
@@ -1440,8 +1506,8 @@ export function useChatWebSocket({
                   entry.userId === currentUserId && entry.chatId === currentChatId,
               );
               messageQueueRef.current = [];
-              for (const { text: queuedText } of queuedMessages) {
-                await sendMessageViaRest(queuedText);
+              for (const { text: queuedText, fileUrl: queuedFile } of queuedMessages) {
+                await sendMessageViaRest(queuedText, 0, queuedFile);
               }
             }
           }, CONNECTION_WAIT_TIMEOUT);
@@ -1452,7 +1518,7 @@ export function useChatWebSocket({
       // Case 3: Disconnected — REST fallback
       !IS_PROD &&
         console.log("📤 WebSocket not available, sending via REST API...");
-      void sendMessageViaRest(text);
+      void sendMessageViaRest(text, 0, fileUrl);
     },
     [adminId, userId, chatId, sendMessageViaRest],
   );

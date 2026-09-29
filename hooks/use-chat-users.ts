@@ -310,6 +310,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
+      // Edits and deletes are applied on the open conversation socket.
+      // They must not be treated as new chats or new message bubbles.
+      if (messageType === 'message_edited' || messageType === 'message_deleted') {
+        refreshCallback?.();
+        return;
+      }
+
       // Handle "message" type from chat list WebSocket.
       // Some "message"-typed events also embed ledger updates under a nested `payload`
       // (e.g. game_redeem, game_recharge). We fall through to the ledger branch in that case.
