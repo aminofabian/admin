@@ -392,6 +392,8 @@ export function ChatComponent() {
     isConnected,
     isTyping: remoteTyping,
     sendMessage: wsSendMessage,
+    editMessage: wsEditMessage,
+    deleteMessage: wsDeleteMessage,
     connectionError,
     loadOlderMessages,
     hasMoreHistory,
@@ -1802,6 +1804,36 @@ export function ChatComponent() {
     }
     await refetchOnlinePlayers();
   }, [hasValidAdminUser, refetchOnlinePlayers]);
+
+  const handleEditMessage = useCallback(
+    (messageId: string, text: string, isComment: boolean) => {
+      const saved = wsEditMessage(messageId, text, isComment);
+      if (!saved) {
+        addToast({
+          type: "error",
+          title: "Couldn't edit message",
+          description: "The chat socket is not connected.",
+        });
+      }
+      return saved;
+    },
+    [addToast, wsEditMessage],
+  );
+
+  const handleDeleteMessage = useCallback(
+    (messageId: string, isComment: boolean) => {
+      const removed = wsDeleteMessage(messageId, isComment);
+      if (!removed) {
+        addToast({
+          type: "error",
+          title: "Couldn't delete message",
+          description: "The chat socket is not connected.",
+        });
+      }
+      return removed;
+    },
+    [addToast, wsDeleteMessage],
+  );
 
   const handleTogglePin = useCallback(
     async (messageId: string, isPinned: boolean) => {
@@ -3574,6 +3606,8 @@ export function ChatComponent() {
                             isPinning={isPinning}
                             onExpandImage={setExpandedImage}
                             onTogglePin={handleTogglePin}
+                            onEditMessage={handleEditMessage}
+                            onDeleteMessage={handleDeleteMessage}
                           />
                         </div>
                       );

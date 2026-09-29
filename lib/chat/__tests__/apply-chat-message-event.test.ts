@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   applyMessageDeleted,
   applyMessageEdited,
+  buildMessageDeletedEvent,
+  buildMessageEditedEvent,
   messageEventId,
 } from "../apply-chat-message-event";
 import type { ChatEventMessage } from "../apply-chat-message-event";
@@ -18,6 +20,46 @@ function message(
 describe("messageEventId", () => {
   it("prefers message_id over id", () => {
     expect(messageEventId({ id: 1, message_id: 125 })).toBe("125");
+  });
+});
+
+describe("websocket edit and delete payloads", () => {
+  it("sends message_edited with the same fields as the socket example", () => {
+    expect(
+      buildMessageEditedEvent({
+        messageId: "125",
+        message: "Hello! Your request has been approved.",
+        chatroomId: "10",
+        playerId: 42,
+        isComment: false,
+      }),
+    ).toEqual({
+      type: "message_edited",
+      id: 125,
+      message_id: 125,
+      chatroom_id: 10,
+      player_id: 42,
+      is_comment: false,
+      message: "Hello! Your request has been approved.",
+    });
+  });
+
+  it("sends message_deleted without a message body", () => {
+    expect(
+      buildMessageDeletedEvent({
+        messageId: "125",
+        chatroomId: 10,
+        playerId: 42,
+        isComment: false,
+      }),
+    ).toEqual({
+      type: "message_deleted",
+      id: 125,
+      message_id: 125,
+      chatroom_id: 10,
+      player_id: 42,
+      is_comment: false,
+    });
   });
 });
 

@@ -17,6 +17,8 @@ import type { ChatMessage, WebSocketMessage } from "@/types";
 import {
   applyMessageDeleted,
   applyMessageEdited,
+  buildMessageDeletedEvent,
+  buildMessageEditedEvent,
   messageEventId,
 } from "@/lib/chat/apply-chat-message-event";
 
@@ -220,6 +222,8 @@ interface UseChatWebSocketReturn {
   isTyping: boolean;
   isUserOnline: boolean;
   sendMessage: (text: string, fileUrl?: string) => void;
+  editMessage: (messageId: string, text: string, isComment?: boolean) => boolean;
+  deleteMessage: (messageId: string, isComment?: boolean) => boolean;
   markAsRead: (messageId: string) => void;
   markAllAsRead: (lastMessageId?: string) => void;
   connectionError: string | null;
@@ -1527,6 +1531,88 @@ export function useChatWebSocket({
     [adminId, userId, chatId, sendMessageViaRest],
   );
 
+  const applyLocalMessageChange = useCallback(
+    (
+      messageId: string,
+      change: "edit" | "delete",
+      text?: string,
+    ) => {
+      setMessages((prev) => {
+        const result =
+          change === "edit"
+            ? applyMessageEdited(prev, messageId, text ?? "")
+            : applyMessageDeleted(prev, messageId);
+        if (result.preview && result.messages !== prev) {
+          const nextPreview = result.preview;
+          queueMicrotask(() => {
+            onConversationPreviewChangeRef.current?.(nextPreview);
+          });
+        }
+        return result.messages;
+      });
+    },
+    [],
+  );
+
+  const editMessage = useCallback(
+    (messageId: string, text: string, isComment = false) => {
+      const nextText = text.trim();
+      if (
+        !messageId ||
+        messageId.startsWith("temp-") ||
+        !nextText ||
+        !userId ||
+        connectionStateRef.current !== "connected"
+      ) {
+        return false;
+      }
+
+      const sent = websocketManager.send(
+        wsUrlRef.current,
+        buildMessageEditedEvent({
+          messageId,
+          message: nextText,
+          playerId: userId,
+          chatroomId: resolveSafeChatroomId(chatIdRef.current, userId),
+          isComment,
+        }),
+      );
+      if (!sent) return false;
+
+      applyLocalMessageChange(messageId, "edit", nextText);
+      return true;
+    },
+    [applyLocalMessageChange, userId],
+  );
+
+  const deleteMessage = useCallback(
+    (messageId: string, isComment = false) => {
+      if (
+        !messageId ||
+        messageId.startsWith("temp-") ||
+        !userId ||
+        connectionStateRef.current !== "connected"
+      ) {
+        return false;
+      }
+
+      const sent = websocketManager.send(
+        wsUrlRef.current,
+        buildMessageDeletedEvent({
+          messageId,
+          playerId: userId,
+          chatroomId: resolveSafeChatroomId(chatIdRef.current, userId),
+          isComment,
+        }),
+      );
+      if (!sent) return false;
+
+      applyLocalMessageChange(messageId, "delete");
+      return true;
+    },
+    [applyLocalMessageChange, userId],
+  );
+
   const markAsRead = useCallback(
     (messageId: string) => {
       const sent = websocketManager.send(wsUrlRef.current, {
@@ -1651,6 +1737,8 @@ export function useChatWebSocket({
     isTyping,
     isUserOnline,
     sendMessage,
+    editMessage,
+    deleteMessage,
     markAsRead,
     markAllAsRead,
     connectionError,

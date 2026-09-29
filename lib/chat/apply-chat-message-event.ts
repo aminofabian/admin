@@ -20,6 +20,81 @@ export function messageEventId(event: {
   return String(raw);
 }
 
+/** Match the numeric ids in the websocket examples when the value is a safe integer. */
+export function socketNumericId(value: string | number): number | string {
+  const raw = String(value).trim();
+  if (!/^\d+$/.test(raw)) return raw;
+  const asNumber = Number(raw);
+  return Number.isSafeInteger(asNumber) ? asNumber : raw;
+}
+
+export interface MessageEditedSocketEvent {
+  type: "message_edited";
+  id: number | string;
+  message_id: number | string;
+  chatroom_id?: number | string;
+  player_id: number;
+  is_comment: boolean;
+  message: string;
+}
+
+export interface MessageDeletedSocketEvent {
+  type: "message_deleted";
+  id: number | string;
+  message_id: number | string;
+  chatroom_id?: number | string;
+  player_id: number;
+  is_comment: boolean;
+}
+
+function withRoom<T extends { chatroom_id?: number | string }>(
+  event: T,
+  chatroomId?: string | number | null,
+): T {
+  if (chatroomId == null || String(chatroomId).trim() === "") return event;
+  return { ...event, chatroom_id: socketNumericId(chatroomId) };
+}
+
+export function buildMessageEditedEvent(input: {
+  messageId: string;
+  message: string;
+  playerId: number;
+  chatroomId?: string | number | null;
+  isComment?: boolean;
+}): MessageEditedSocketEvent {
+  const id = socketNumericId(input.messageId);
+  return withRoom(
+    {
+      type: "message_edited",
+      id,
+      message_id: id,
+      player_id: input.playerId,
+      is_comment: Boolean(input.isComment),
+      message: input.message,
+    },
+    input.chatroomId,
+  );
+}
+
+export function buildMessageDeletedEvent(input: {
+  messageId: string;
+  playerId: number;
+  chatroomId?: string | number | null;
+  isComment?: boolean;
+}): MessageDeletedSocketEvent {
+  const id = socketNumericId(input.messageId);
+  return withRoom(
+    {
+      type: "message_deleted",
+      id,
+      message_id: id,
+      player_id: input.playerId,
+      is_comment: Boolean(input.isComment),
+    },
+    input.chatroomId,
+  );
+}
+
 function plainPreviewText(value: string): string {
   return value
     .replace(/<br\s*\/?>/gi, "\n")

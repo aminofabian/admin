@@ -31,6 +31,8 @@ interface MessageBubbleProps {
   isPinning: boolean;
   onExpandImage: (url: string) => void;
   onTogglePin: (messageId: string, isPinned: boolean) => void;
+  onEditMessage?: (messageId: string, text: string, isComment: boolean) => boolean;
+  onDeleteMessage?: (messageId: string, isComment: boolean) => boolean;
 }
 
 export const MessageBubble = memo(function MessageBubble({
@@ -42,7 +44,16 @@ export const MessageBubble = memo(function MessageBubble({
   isPinning,
   onExpandImage,
   onTogglePin,
+  onEditMessage,
+  onDeleteMessage,
 }: MessageBubbleProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(message.text);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const canModerate =
+    !message.id.startsWith("temp-") &&
+    Boolean(onEditMessage) &&
+    Boolean(onDeleteMessage);
   const messageHasHtml = hasHtmlContent(message.text);
   const isKyc = isKycVerificationMessage(message);
   const isAuto = isAutoMessage(message);
@@ -100,8 +111,49 @@ export const MessageBubble = memo(function MessageBubble({
 
           <MessageMeta message={message} isAdmin={isAdmin} />
 
-          {/* Action buttons */}
-          <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 ${isAdmin ? '-left-14' : '-right-14'}`}>
+          {isEditing && (
+            <form
+              className={`mt-1 flex min-w-[220px] flex-col gap-1.5 ${isAdmin ? "items-end" : "items-start"}`}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const saved = onEditMessage?.(
+                  message.id,
+                  draft,
+                  Boolean(message.isComment),
+                );
+                if (saved) setIsEditing(false);
+              }}
+            >
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                rows={3}
+                className="w-full resize-y rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                aria-label="Edit message"
+              />
+              <div className="flex items-center gap-1">
+                <button
+                  type="submit"
+                  className="rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
+                  disabled={!draft.trim() || draft.trim() === message.text.trim()}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
+                  onClick={() => {
+                    setDraft(message.text);
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className={`mt-0.5 flex items-center gap-0.5 ${isAdmin ? "justify-end" : "justify-start"}`}>
             <CopyButton text={message.text} />
             <PinButton
               messageId={message.id}
@@ -109,6 +161,31 @@ export const MessageBubble = memo(function MessageBubble({
               isPinning={isPinning}
               onTogglePin={onTogglePin}
             />
+            {canModerate && (
+              <EditButton
+                onEdit={() => {
+                  setConfirmingDelete(false);
+                  setDraft(message.text);
+                  setIsEditing(true);
+                }}
+              />
+            )}
+            {canModerate && (
+              <DeleteButton
+                confirming={confirmingDelete}
+                onDelete={() => {
+                  if (!confirmingDelete) {
+                    setConfirmingDelete(true);
+                    return;
+                  }
+                  const removed = onDeleteMessage?.(
+                    message.id,
+                    Boolean(message.isComment),
+                  );
+                  if (!removed) setConfirmingDelete(false);
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -495,7 +572,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1 opacity-0 md:group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-200"
+      className="p-1 opacity-70 hover:!opacity-100 transition-opacity duration-200"
       aria-label="Copy message"
       title={copied ? 'Copied!' : 'Copy message'}
     >
@@ -512,6 +589,44 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function EditButton({ onEdit }: { onEdit: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      className="p-1 opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
+      aria-label="Edit message"
+      title="Edit message"
+    >
+      <svg className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    </button>
+  );
+}
+
+function DeleteButton({
+  confirming,
+  onDelete,
+}: {
+  confirming: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onDelete}
+      className="p-1 opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200"
+      aria-label={confirming ? "Confirm delete message" : "Delete message"}
+      title={confirming ? "Click again to delete" : "Delete message"}
+    >
+      <svg className={`h-3.5 w-3.5 ${confirming ? "text-red-500" : "text-muted-foreground/50 hover:text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    </button>
+  );
+}
+
 function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
   messageId: string;
   isPinned?: boolean;
@@ -522,7 +637,7 @@ function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
     <button
       onClick={() => onTogglePin(messageId, Boolean(isPinned))}
       disabled={isPinning}
-      className="p-1 opacity-60 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 disabled:cursor-not-allowed disabled:opacity-40 transition-opacity duration-200"
+      className="p-1 opacity-70 hover:!opacity-100 disabled:cursor-not-allowed disabled:opacity-40 transition-opacity duration-200"
       aria-label={isPinned ? 'Unpin message' : 'Pin message'}
       title={isPinned ? 'Unpin message' : 'Pin message'}
     >
