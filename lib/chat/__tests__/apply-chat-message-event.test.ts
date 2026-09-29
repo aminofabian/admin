@@ -75,6 +75,79 @@ describe("applyMessageEdited", () => {
   });
 });
 
+describe("sample websocket payloads", () => {
+  const thread = [
+    message({ id: "10", text: "Earlier note", timestamp: "2026-09-29T11:00:00.000Z" }),
+    message({
+      id: "125",
+      text: "Hello",
+      isPinned: true,
+      timestamp: "2026-09-29T11:32:00.000Z",
+    }),
+  ];
+
+  const edited = {
+    type: "message_edited",
+    id: 125,
+    message_id: 125,
+    chatroom_id: 10,
+    player_id: 42,
+    is_comment: false,
+    message: "Hello! Your request has been approved.",
+  };
+
+  const deleted = {
+    type: "message_deleted",
+    id: 125,
+    message_id: 125,
+    chatroom_id: 10,
+    player_id: 42,
+    is_comment: false,
+  };
+
+  it("edits message 125 in place and marks the text for safe rendering", () => {
+    const id = messageEventId(edited);
+    const result = applyMessageEdited(thread, id!, edited.message);
+    expect(result.messages).toHaveLength(thread.length);
+    expect(result.messages.map((item) => item.id)).toEqual(["10", "125"]);
+    expect(result.messages[1].text).toBe(
+      "Hello! Your request has been approved.",
+    );
+    expect(result.messages[1].renderAsText).toBe(true);
+    expect(result.messages[1].isPinned).toBe(true);
+    expect(result.preview?.text).toBe(
+      "Hello! Your request has been approved.",
+    );
+  });
+
+  it("keeps edited HTML as literal text instead of markup", () => {
+    const hostile = '<img src=x onerror="alert(1)"><script>alert(1)</script>';
+    const result = applyMessageEdited(thread, "125", hostile);
+    expect(result.messages[1].text).toBe(hostile);
+    expect(result.messages[1].renderAsText).toBe(true);
+    expect(result.preview?.text).not.toContain("<script>");
+    expect(result.preview?.text).not.toContain("<img");
+  });
+
+  it("deletes message 125 from the thread and from pinned messages", () => {
+    const id = messageEventId(deleted);
+    const result = applyMessageDeleted(thread, id!);
+    expect(result.messages.map((item) => item.id)).toEqual(["10"]);
+    expect(result.messages.some((item) => item.isPinned)).toBe(false);
+    expect(result.preview).toEqual({
+      text: "Earlier note",
+      timestamp: "2026-09-29T11:00:00.000Z",
+    });
+  });
+
+  it("does not create a bubble when the id is not in the thread", () => {
+    expect(applyMessageEdited(thread, "999", edited.message).messages).toBe(
+      thread,
+    );
+    expect(applyMessageDeleted(thread, "999").messages).toBe(thread);
+  });
+});
+
 describe("applyMessageDeleted", () => {
   const messages = [
     message({ id: "1", text: "kept" }),
