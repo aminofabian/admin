@@ -47,12 +47,13 @@ export interface MessageDeletedSocketEvent {
   is_comment: boolean;
 }
 
-function withRoom<T extends { chatroom_id?: number | string }>(
+function assignChatroomId<T extends { chatroom_id?: number | string }>(
   event: T,
   chatroomId?: string | number | null,
 ): T {
   if (chatroomId == null || String(chatroomId).trim() === "") return event;
-  return { ...event, chatroom_id: socketNumericId(chatroomId) };
+  event.chatroom_id = socketNumericId(chatroomId);
+  return event;
 }
 
 export function buildMessageEditedEvent(input: {
@@ -63,17 +64,15 @@ export function buildMessageEditedEvent(input: {
   isComment?: boolean;
 }): MessageEditedSocketEvent {
   const id = socketNumericId(input.messageId);
-  return withRoom(
-    {
-      type: "message_edited",
-      id,
-      message_id: id,
-      player_id: input.playerId,
-      is_comment: Boolean(input.isComment),
-      message: input.message,
-    },
-    input.chatroomId,
-  );
+  const event: MessageEditedSocketEvent = {
+    type: "message_edited",
+    id,
+    message_id: id,
+    player_id: input.playerId,
+    is_comment: Boolean(input.isComment),
+    message: input.message,
+  };
+  return assignChatroomId(event, input.chatroomId);
 }
 
 export function buildMessageDeletedEvent(input: {
@@ -83,16 +82,14 @@ export function buildMessageDeletedEvent(input: {
   isComment?: boolean;
 }): MessageDeletedSocketEvent {
   const id = socketNumericId(input.messageId);
-  return withRoom(
-    {
-      type: "message_deleted",
-      id,
-      message_id: id,
-      player_id: input.playerId,
-      is_comment: Boolean(input.isComment),
-    },
-    input.chatroomId,
-  );
+  const event: MessageDeletedSocketEvent = {
+    type: "message_deleted",
+    id,
+    message_id: id,
+    player_id: input.playerId,
+    is_comment: Boolean(input.isComment),
+  };
+  return assignChatroomId(event, input.chatroomId);
 }
 
 function plainPreviewText(value: string): string {
