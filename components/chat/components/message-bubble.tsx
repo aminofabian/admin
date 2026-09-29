@@ -189,7 +189,7 @@ export const MessageBubble = memo(function MessageBubble({
           {moderation === 'confirmingDelete' && !isDissipating && (
             <DeleteConfirmation
               isAdmin={isAdmin}
-              isDeleting={moderation === 'deleting' || false}
+              isDeleting={false}
               onConfirm={confirmDelete}
               onCancel={cancelModeration}
             />
