@@ -1,61 +1,131 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildAdminChatSearchPlayersPathAndQuery } from '@/lib/constants/api';
+import { createPlayerSearchCache } from '@/lib/chat/player-search-cache';
+import {
+  fingerprintSearchToken,
+  isSearchAbortError,
+  isSearchablePlayerQuery,
+  normalizePlayerSearchQuery,
+} from '@/lib/chat/player-search';
+
+/**
+ * Module-scoped so the cache survives across requests handled by the same
+ * server instance. In a serverless runtime each cold start begins empty, which
+ * is safe — it only means a miss.
+ */
+const searchCache = createPlayerSearchCache<unknown>();
+
+const EMPTY_RESULT = { status: 'ok', results: [], player: [], count: 0 };
 
 /**
  * Proxies the browser to the external admin chat API (JWT):
  * GET /api/v1/admin/chat/?request_type=search_players&query=<search text>
+ *
+ * The browser debounces, but without a cache every debounce window still costs
+ * an upstream request. Identical queries are served from a short-lived cache,
+ * concurrent identical queries share one request, and a query the client
+ * abandons is aborted upstream.
  */
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('query')?.trim() ?? '';
+  const normalizedQuery = normalizePlayerSearchQuery(query);
 
-  if (!query) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader) {
     return NextResponse.json(
-      { status: 'ok', results: [], player: [], count: 0 },
-      { status: 200 },
+      { status: 'error', message: 'Authentication required' },
+      { status: 401 },
     );
   }
 
-  try {
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz').replace(/\/$/, '');
-    const apiUrl = `${backendUrl}${buildAdminChatSearchPlayersPathAndQuery(query)}`;
+  // A one-character query matches most of the player table: it is both slow and
+  // useless. Answer it locally instead of spending a backend request on it.
+  if (!isSearchablePlayerQuery(normalizedQuery)) {
+    return NextResponse.json(EMPTY_RESULT, { status: 200 });
+  }
 
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz').replace(
+    /\/$/,
+    '',
+  );
+  const apiUrl = `${backendUrl}${buildAdminChatSearchPlayersPathAndQuery(query)}`;
+
+  // Scope the cache per operator so cached rows never cross accounts.
+  const cacheKey = `${fingerprintSearchToken(authHeader)}:${normalizedQuery}`;
+
+  try {
+    const data = await searchCache.resolve(
+      cacheKey,
+      async (signal) => {
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          signal,
+          // Search results are per-operator and short-lived; never let an
+          // intermediate cache serve a stale or shared copy.
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          const detail = await response.text().catch(() => '');
+          const error = new Error(
+            `Backend error: ${response.status} ${response.statusText}`,
+          ) as Error & {
+            status?: number;
+            detail?: string;
+            isAuthError?: boolean;
+          };
+          error.status = response.status;
+          error.detail = detail.substring(0, 200);
+          error.isAuthError = response.status === 401;
+          throw error;
+        }
+
+        return response.json();
+      },
+      request.signal,
+    );
+
+    return NextResponse.json(data);
+  } catch (error) {
+    // The client aborted (typed another character, or navigated away). The
+    // upstream request is already cancelled; there is nobody left to answer.
+    if (isSearchAbortError(error)) {
       return NextResponse.json(
-        { status: 'error', message: 'Authentication required' },
-        { status: 401 },
+        { status: 'error', message: 'Request cancelled' },
+        { status: 499 },
       );
     }
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
-      },
-    });
+    if (error instanceof Error && 'status' in error) {
+      const status = (error as { status?: number }).status;
+      const detail = (error as { detail?: string }).detail;
+      const isAuthError = (error as { isAuthError?: boolean }).isAuthError;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      if (response.status === 401) {
+      if (isAuthError) {
         return NextResponse.json(
-          { status: 'error', message: 'Authentication required. Please re-login.', results: [] },
+          {
+            status: 'error',
+            message: 'Authentication required. Please re-login.',
+            results: [],
+          },
           { status: 401 },
         );
       }
+
       return NextResponse.json(
         {
           status: 'error',
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+          message: error.message,
+          detail,
         },
-        { status: response.status },
+        { status: status && status >= 400 ? status : 502 },
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
     console.error('Error proxying search_players:', error);
     return NextResponse.json(
       {

@@ -24,14 +24,35 @@ const stripHtml = (html: string): string => {
 
 const MAX_UNREAD_BADGE_COUNT = 99;
 
+/** Renders the matched run of a search term in the primary colour. */
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+
+  const index = text.toLowerCase().indexOf(query);
+  if (index === -1) return <>{text}</>;
+
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark className="rounded-[2px] bg-primary/20 px-px font-bold text-primary">
+        {text.slice(index, index + query.length)}
+      </mark>
+      {text.slice(index + query.length)}
+    </>
+  );
+}
+
 //  Memoized player item component to prevent unnecessary re-renders
 interface PlayerItemProps {
   player: ChatUser;
   isSelected: boolean;
+  searchQuery: string;
+  /** True when this row belongs to a stale (in-flight) result set. */
+  isDimmed?: boolean;
   onSelect: (player: ChatUser) => void;
 }
 
-const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: PlayerItemProps) {
+const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, isDimmed = false, onSelect }: PlayerItemProps) {
   const unreadCount = player.unreadCount ?? 0;
   const prevUnreadCountRef = useRef(unreadCount);
   const [isNewMessage, setIsNewMessage] = useState(false);
@@ -87,6 +108,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
         ? 'bg-primary/10 border-l-2 border-l-primary'
         : 'border-l-2 border-l-transparent hover:bg-muted/60 hover:border-l-primary/30 active:scale-[0.998] dark:hover:bg-muted/40'
         } ${isNewMessage ? 'bg-primary/5 animate-new-message-pulse' : ''
+        } ${isDimmed ? 'opacity-60' : 'opacity-100'
         }`}
     >
       {/* New Message Indicator - Glowing bar on the left */}
@@ -113,7 +135,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             <p className={`text-[11px] md:text-xs font-semibold truncate transition-colors duration-200 capitalize ${isSelected ? 'text-primary' : 'text-foreground group-hover:text-primary/80'
               } ${isNewMessage ? 'text-primary font-bold' : ''
               }`}>
-              {player.username}
+              {player.username && <HighlightedText text={player.username} query={searchQuery} />}
             </p>
             <div className="flex items-center gap-1 shrink-0">
               {unreadCount > 0 && (
@@ -198,6 +220,8 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
     prevProps.player.user_id === nextProps.player.user_id &&
     prevProps.player.unreadCount === nextProps.player.unreadCount &&
     prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isDimmed === nextProps.isDimmed &&
+    prevProps.searchQuery === nextProps.searchQuery &&
     prevProps.player.isOnline === nextProps.player.isOnline &&
     prevProps.player.lastMessage === nextProps.player.lastMessage &&
     prevProps.player.lastMessageTime === nextProps.player.lastMessageTime &&
@@ -223,6 +247,15 @@ interface PlayerListSidebarProps {
   isCurrentTabLoading: boolean;
   /** True while server-side player search request is in flight */
   isPlayerSearchLoading?: boolean;
+  /**
+   * True when the visible rows belong to an earlier query and a newer one is
+   * still loading. The list is dimmed rather than emptied so it does not flash.
+   */
+  isPlayerSearchStale?: boolean;
+  /** Characters still required before a search is sent (query too short). */
+  searchCharactersRemaining?: number;
+  /** Lowercased search text, used to highlight the matched run in each row. */
+  searchQueryNormalized?: string;
   isLoadingApiOnlinePlayers: boolean;
   isLoadingMore: boolean;
   hasMorePlayers: boolean;
@@ -246,6 +279,9 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   playersWithChatsTotalCount,
   isCurrentTabLoading,
   isPlayerSearchLoading = false,
+  isPlayerSearchStale = false,
+  searchCharactersRemaining = 0,
+  searchQueryNormalized = '',
   isLoadingApiOnlinePlayers,
   isLoadingMore,
   hasMorePlayers,
@@ -260,6 +296,43 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
+  const isQueryTooShort = hasSearchQuery && searchCharactersRemaining > 0;
+
+  // "/" focuses search from anywhere in the panel, Escape clears it — the
+  // keyboard path an operator uses dozens of times a shift.
+  useEffect(() => {
+    const container = scrollContainerRef.current?.parentElement;
+    if (!container) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
+      if (event.key === 'Escape' && document.activeElement === searchInputRef.current) {
+        event.preventDefault();
+        setSearchQuery('');
+        searchInputRef.current?.blur();
+      }
+    };
+
+    container.addEventListener('keydown', onKeyDown);
+    return () => container.removeEventListener('keydown', onKeyDown);
+  }, [setSearchQuery]);
+
+  // A new query means the old scroll offset points at the wrong rows.
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  }, [searchQueryNormalized]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -303,10 +376,10 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-border/40 bg-card/95 md:w-48 lg:w-56`}
     >
       {/* Search Bar */}
-      <div className="p-1.5 md:p-2 border-b border-border/50">
+      <div className="border-b border-border/50 p-1.5 md:p-2">
         <div className="relative">
           <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -314,12 +387,82 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <Input
+            ref={searchInputRef}
             type="text"
-            placeholder="Search players..."
+            placeholder="Search players…  ( / )"
+            aria-label="Search players"
+            aria-describedby="player-search-hint"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 pr-2 py-1 text-sm rounded-md bg-muted/50 dark:bg-muted/30 border-transparent focus:border-primary focus:bg-background transition-all shadow-sm"
+            autoComplete="off"
+            spellCheck={false}
+            className={`rounded-md border-transparent bg-muted/50 py-1 pl-8 text-sm shadow-sm transition-all focus:border-primary focus:bg-background dark:bg-muted/30 ${
+              isPlayerSearchLoading ? 'pr-14' : hasSearchQuery ? 'pr-7' : 'pr-2'
+            }`}
           />
+
+          {/* Spinner replaces the clear button while a request is in flight. */}
+          {isPlayerSearchLoading ? (
+            <span
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              role="status"
+              aria-live="polite"
+            >
+              <svg
+                className="h-3.5 w-3.5 animate-spin text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span className="sr-only">Searching players</span>
+            </span>
+          ) : hasSearchQuery ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              aria-label="Clear search"
+              title="Clear search"
+              className="absolute right-1.5 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          ) : null}
+        </div>
+
+        {/* Live count / hint line. Reserves no height when idle to avoid
+            shifting the list on every keystroke. */}
+        <div id="player-search-hint" aria-live="polite" className="min-h-0">
+          {isQueryTooShort ? (
+            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">
+              Type {searchCharactersRemaining} more character{searchCharactersRemaining > 1 ? 's' : ''} to search
+            </p>
+          ) : isPlayerSearchLoading ? (
+            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">Searching all players…</p>
+          ) : isPlayerSearchStale ? (
+            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">Updating results…</p>
+          ) : hasSearchQuery ? (
+            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">
+              {displayedPlayers.length} {displayedPlayers.length === 1 ? 'match' : 'matches'}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -403,52 +546,67 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               {usersError}
             </p>
           </div>
-        ) : displayedPlayers.length === 0 && searchQuery.trim() && isPlayerSearchLoading ? (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-              <svg
-                className="w-8 h-8 text-muted-foreground animate-spin"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-foreground mb-1">Searching players…</p>
-            <p className="text-xs text-muted-foreground">Looking up matches on the server</p>
-          </div>
-        ) : displayedPlayers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        ) : displayedPlayers.length === 0 && isQueryTooShort ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/30">
+              <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">No players found</p>
-            <p className="text-xs text-muted-foreground">Try a different search term</p>
+            <p className="mb-1 text-sm font-medium text-foreground">Keep typing</p>
+            <p className="max-w-[14rem] text-xs text-muted-foreground">
+              Search matches on username, name, email, phone or player ID
+            </p>
+          </div>
+        ) : displayedPlayers.length === 0 && hasSearchQuery && isPlayerSearchLoading ? (
+          /* Skeleton rows rather than a full-panel spinner: the list keeps its
+             shape, so nothing jumps when results land. */
+          <div className="space-y-1 p-1" aria-busy="true" aria-live="polite">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex animate-pulse items-center gap-1.5 rounded-md p-1.5 md:p-2"
+                style={{ animationDelay: `${i * 90}ms` }}
+              >
+                <div className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-muted md:h-7 md:w-7" />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="h-2.5 w-2/3 animate-pulse rounded bg-muted" />
+                  <div className="h-2 w-4/5 animate-pulse rounded bg-muted/60" />
+                </div>
+              </div>
+            ))}
+            <span className="sr-only">Searching players</span>
+          </div>
+        ) : displayedPlayers.length === 0 && hasSearchQuery ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/30">
+              <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">No players found</p>
+            <p className="max-w-[14rem] text-xs text-muted-foreground">
+              No match for “{searchQuery.trim()}”. Try a different name, email or player ID.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="mt-3 rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              Clear search
+            </button>
           </div>
         ) : (
-          <div className="p-1 space-y-1">
-            {displayedPlayers.map((player, index) => (
-              <div
-                key={`${player.user_id}-${player.id}-${index}`}
-                className="transition-all duration-500 ease-out"
-                style={{
-                  animationDelay: `${index * 20}ms`,
-                }}
-              >
-                <PlayerItem
-                  player={player}
-                  isSelected={selectedPlayer?.user_id === player.user_id}
-                  onSelect={onPlayerSelect}
-                />
-              </div>
+          <div className="space-y-1 p-1">
+            {displayedPlayers.map((player) => (
+              <PlayerItem
+                key={`${player.user_id}-${player.id}`}
+                player={player}
+                isSelected={selectedPlayer?.user_id === player.user_id}
+                isDimmed={isPlayerSearchStale}
+                searchQuery={hasSearchQuery ? searchQueryNormalized : ''}
+                onSelect={onPlayerSelect}
+              />
             ))}
 
             {/* Infinite scroll trigger */}

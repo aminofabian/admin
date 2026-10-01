@@ -57,6 +57,8 @@ import {
 } from "./utils/message-helpers";
 import { MessageHistorySkeleton } from "./skeletons";
 import { useScrollManagement } from "./hooks/use-scroll-management";
+import { usePlayerSearch } from "./hooks/use-player-search";
+import { playerMatchesSearchQuery } from "@/lib/chat/player-search";
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -158,12 +160,9 @@ export function ChatComponent() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [activeTab, setActiveTab] = useState<"online" | "all-chats">("online");
   const [searchQuery, setSearchQuery] = useState("");
-  const [serverSearchPlayers, setServerSearchPlayers] = useState<Player[]>([]);
-  const [serverSearchForQuery, setServerSearchForQuery] = useState("");
-  const [isPlayerSearchLoading, setIsPlayerSearchLoading] = useState(false);
-  const playerSearchAbortRef = useRef<AbortController | null>(null);
-  /** Bumps when clearing search or starting a new debounced fetch so stale/aborted requests cannot leave loading stuck. */
-  const playerSearchEpochRef = useRef(0);
+  // Read once: this only partitions the client-side search cache per operator.
+  // The fetcher still reads the live token, so a token refresh is picked up.
+  const [searchToken] = useState(() => storage.get(TOKEN_KEY) ?? "");
   const [messageInput, setMessageInput] = useState("");
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(
     null,
@@ -731,113 +730,59 @@ export function ChatComponent() {
     [visibleMessages],
   );
 
-  useEffect(() => {
-    const trimmed = searchQuery.trim();
-    const token = storage.get(TOKEN_KEY);
-    if (!trimmed) {
-      playerSearchEpochRef.current += 1;
-      playerSearchAbortRef.current?.abort();
-      playerSearchAbortRef.current = null;
-      setServerSearchPlayers([]);
-      setServerSearchForQuery("");
-      setIsPlayerSearchLoading(false);
-      return;
-    }
+  // Server player search. Debounced, cached and cancellable — see usePlayerSearch.
+  // Errors are reported once per failed query rather than once per keystroke.
+  const {
+    results: serverSearchPlayers,
+    resultsQuery: serverSearchForQuery,
+    isLoading: isPlayerSearchLoading,
+    isStale: isPlayerSearchStale,
+    normalizedQuery: normalizedSearchQuery,
+    charactersRemaining: searchCharactersRemaining,
+  } = usePlayerSearch<Player>({
+    query: searchQuery,
+    cacheScope: searchToken,
+    fetcher: useCallback(
+      async (normalizedQuery: string, signal: AbortSignal) => {
+        const token = storage.get(TOKEN_KEY);
+        if (!token) return [];
 
-    if (!token) {
-      playerSearchEpochRef.current += 1;
-      playerSearchAbortRef.current?.abort();
-      setServerSearchPlayers([]);
-      setServerSearchForQuery("");
-      setIsPlayerSearchLoading(false);
-      return;
-    }
-
-    playerSearchEpochRef.current += 1;
-    const epochAtSchedule = playerSearchEpochRef.current;
-    setIsPlayerSearchLoading(true);
-
-    const timer = setTimeout(() => {
-      if (epochAtSchedule !== playerSearchEpochRef.current) {
-        return;
-      }
-      const ac = new AbortController();
-      playerSearchAbortRef.current?.abort();
-      playerSearchAbortRef.current = ac;
-
-      void (async () => {
-        try {
-          const res = await fetch(
-            `/${API_ENDPOINTS.CHAT.SEARCH_PLAYERS}?query=${encodeURIComponent(trimmed)}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
-              },
-              signal: ac.signal,
+        const res = await fetch(
+          `/${API_ENDPOINTS.CHAT.SEARCH_PLAYERS}?query=${encodeURIComponent(normalizedQuery)}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
-          );
+            signal,
+          },
+        );
 
-          if (!res.ok) {
-            const errJson = (await res.json().catch(() => ({}))) as {
-              message?: string;
-            };
-            throw new Error(errJson.message || `Search failed (${res.status})`);
-          }
-
-          const data = (await res.json()) as Record<string, unknown>;
-          const arr = extractPlayerArrayFromAdminChatResponse(data);
-          const mapped = arr.map((row) => mapAdminSearchRowToChatUser(row));
-
-          if (!IS_PROD && mapped.length === 0) {
-            console.debug(
-              "[chat-search-players] No rows after parse. Keys:",
-              Object.keys(data),
-              "sample:",
-              JSON.stringify(data).slice(0, 800),
-            );
-          }
-
-          if (
-            !ac.signal.aborted &&
-            epochAtSchedule === playerSearchEpochRef.current
-          ) {
-            setServerSearchPlayers(mapped);
-            setServerSearchForQuery(trimmed);
-          }
-        } catch (e) {
-          if (e instanceof Error && e.name === "AbortError") {
-            return;
-          }
-          console.error("Player search failed:", e);
-          addToast({
-            type: "error",
-            title: "Search failed",
-            description:
-              e instanceof Error ? e.message : "Could not search players",
-          });
-          if (
-            !ac.signal.aborted &&
-            epochAtSchedule === playerSearchEpochRef.current
-          ) {
-            setServerSearchPlayers([]);
-            // Mark query complete so the list stays server-driven (empty) instead of a mismatched-query state.
-            setServerSearchForQuery(trimmed);
-          }
-        } finally {
-          if (epochAtSchedule === playerSearchEpochRef.current) {
-            setIsPlayerSearchLoading(false);
-          }
+        if (!res.ok) {
+          const errJson = (await res.json().catch(() => ({}))) as {
+            message?: string;
+          };
+          throw new Error(errJson.message || `Search failed (${res.status})`);
         }
-      })();
-    }, 300);
 
-    return () => {
-      clearTimeout(timer);
-      playerSearchAbortRef.current?.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- addToast is stable; omitting avoids aborting search on toast identity churn
-  }, [searchQuery]);
+        const data = (await res.json()) as Record<string, unknown>;
+        return extractPlayerArrayFromAdminChatResponse(data).map((row) =>
+          mapAdminSearchRowToChatUser(row),
+        );
+      },
+      [],
+    ),
+    onError: useCallback(
+      (message: string) => {
+        addToast({
+          type: "error",
+          title: "Search failed",
+          description: message,
+        });
+      },
+      [addToast],
+    ),
+  });
 
   const displayedPlayers = useMemo(() => {
     if (!IS_PROD) {
@@ -1152,11 +1097,9 @@ export function ChatComponent() {
       return players;
     }
 
-    // Player list search is server-only: never filter the loaded directory client-side.
-    const serverResultsReady =
-      !isPlayerSearchLoading && serverSearchForQuery === trimmedSearch;
-
-    if (!serverResultsReady) {
+    // Below the minimum length nothing is searched, so show the hint rather than
+    // a list that looks broken or an empty "no results" state.
+    if (searchCharactersRemaining > 0) {
       return [];
     }
 
@@ -1246,16 +1189,34 @@ export function ChatComponent() {
       }
     }
 
-    return fromServer;
+    // Results for the current query are authoritative once they land.
+    if (serverSearchForQuery === normalizedSearchQuery) {
+      return fromServer;
+    }
+
+    // While the request is in flight, filter what is already loaded so the list
+    // reacts on the keystroke. These rows are a preview, not the final answer —
+    // the server results replace them as soon as they arrive.
+    const localMatches = players.filter((player) =>
+      playerMatchesSearchQuery(player, normalizedSearchQuery),
+    );
+    if (localMatches.length > 0) {
+      return localMatches;
+    }
+
+    // Nothing local to show: fall back to the previous server rows rather than
+    // blanking the list, so the panel does not flash empty between keystrokes.
+    return serverSearchForQuery ? fromServer : [];
   }, [
     activeTab,
     apiOnlinePlayers,
     activeChatsUsers,
     allPlayers,
     searchQuery,
+    searchCharactersRemaining,
+    normalizedSearchQuery,
     serverSearchPlayers,
     serverSearchForQuery,
-    isPlayerSearchLoading,
   ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
@@ -3392,6 +3353,9 @@ export function ChatComponent() {
         playersWithChatsTotalCount={playersWithChatsTotalCount}
         isCurrentTabLoading={isCurrentTabLoading}
         isPlayerSearchLoading={isPlayerSearchLoading}
+        isPlayerSearchStale={isPlayerSearchStale}
+        searchCharactersRemaining={searchCharactersRemaining}
+        searchQueryNormalized={normalizedSearchQuery}
         isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
         isLoadingMore={isLoadingMore}
         hasMorePlayers={hasMorePlayers}
