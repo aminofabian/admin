@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildUpstreamError, createErrorRequestId } from '@/lib/api/upstream-error';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
 
 /**
  * API Proxy for REST API endpoint: /api/v1/admin/chat/?request_type=online_players
@@ -13,7 +15,9 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
     
     console.log('🔵 Proxying online players request to:', apiUrl);
-    console.log('🔑 Authorization header:', authHeader ? `Bearer ${authHeader.substring(7, 30)}...` : 'MISSING');
+    // Log presence only: a token prefix exposes the JWT header and payload
+    // (user id, role, expiry) to whatever aggregates these logs.
+    console.log('🔑 Authorization header:', authHeader ? 'present' : 'MISSING');
 
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -28,50 +32,23 @@ export async function GET(request: NextRequest) {
       'Authorization': authHeader,
     };
 
-    // Create AbortController for timeout (30 seconds for online players API)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
-
-    let response: Response;
-    try {
-      response = await fetch(apiUrl, {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      // Handle timeout/abort errors
-      if (fetchError instanceof Error && (fetchError.name === 'AbortError' || fetchError.message.includes('timeout'))) {
-        console.error('❌ Request timeout after 30 seconds');
-        return NextResponse.json({
-          status: 'error',
-          message: 'Request timeout. The server is taking too long to respond. Please try again.',
-          detail: 'Connection timeout after 30 seconds',
-        }, { status: 408 });
-      }
-      
-      // Handle connection errors
-      if (fetchError instanceof Error && (fetchError.message.includes('fetch failed') || fetchError.message.includes('ConnectTimeoutError'))) {
-        console.error('❌ Connection error:', fetchError.message);
-        return NextResponse.json({
-          status: 'error',
-          message: 'Failed to connect to server. Please check your connection and try again.',
-          detail: fetchError.message,
-        }, { status: 503 });
-      }
-      
-      // Re-throw other errors to be handled by outer catch
-      throw fetchError;
-    }
+    // Timeout, caller-disconnect propagation and network-error normalisation are
+    // handled by the shared helper (see lib/api/proxy-fetch.ts).
+    const response = await proxyFetch(apiUrl, {
+      method: 'GET',
+      headers,
+      callerSignal: request.signal,
+      label: 'chat-online-players',
+    });
 
     console.log('📥 Backend response status:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
+      const requestId = createErrorRequestId();
+      const safe = buildUpstreamError(response.status, errorText, requestId);
+      // Full upstream body is logged, never returned to the browser.
+      console.error(`[chat-proxy ${requestId}] upstream ${response.status}:`, errorText);
       console.error('❌ Backend error response:', errorText.substring(0, 500));
       
       if (response.status === 401) {
@@ -83,10 +60,12 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(
-        { 
-          status: 'error', 
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+        {
+          status: 'error',
+          message: safe.message,
+          detail: safe.detail,
+          request_id: safe.requestId,
+          upstream_status: safe.upstreamStatus,
         },
         { status: response.status }
       );

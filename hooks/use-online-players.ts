@@ -19,8 +19,8 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Performance constants
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes cache for REST API
-const REFRESH_INTERVAL = 60 * 1000; // Auto-refresh every 60 seconds
-const WS_RECONNECT_DELAY = 5000; // 5 seconds reconnect delay
+// Delay before refetching when a player comes online that we hold no data for.
+const ONLINE_REFRESH_DELAY = 1500;
 
 interface UseOnlinePlayersParams {
   adminId: number;
@@ -129,7 +129,9 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
  * Strategy:
  * 1. Initial load: Fetch from REST API (fast, cached)
  * 2. Real-time updates: Listen to WebSocket for status changes
- * 3. Periodic refresh: Auto-refresh from API every 60s for accuracy
+ * 3. On-demand refresh: A `live_status` for a player we hold no data for
+ *    schedules a debounced refetch, so someone coming online appears without a
+ *    manual refresh. There is no periodic poll.
  * 4. Smart caching: Cache REST responses to minimize API calls
  */
 export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersParams): UseOnlinePlayersReturn {
@@ -153,6 +155,19 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     allPlayersTotalCount: number | null;
   } | null>(null);
   const isMountedRef = useRef(true);
+
+  /**
+   * Mirror of the ids currently in `onlinePlayers`.
+   *
+   * The `live_status` handler needs to know whether a player is already listed
+   * *before* deciding to refetch. Reading that from inside a `setState` updater
+   * would mean running a side effect in a function React may invoke twice, so
+   * the membership check is done against this ref instead.
+   */
+  const onlinePlayerIdsRef = useRef<Set<number>>(new Set());
+
+  /** Debounce handle for the "a player came online" background refetch. */
+  const onlineRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Fetch online players from REST API
@@ -316,6 +331,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
         allPlayersTotalCount: serverCounts.allPlayersCount,
       };
+      onlinePlayerIdsRef.current = new Set(
+        transformedPlayers.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
+      );
 
       !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
       return transformedPlayers;
@@ -324,6 +342,32 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       console.error('❌ [Online Players] API error:', errorMessage);
       throw err;
     }
+  }, []);
+
+  /**
+   * Refetch after a player appears online that we do not have data for.
+   *
+   * Debounced so a burst of `live_status` events costs one request rather than
+   * one each. Without this, a player who comes online is never added — there is
+   * no polling to fall back on.
+   */
+  const scheduleOnlineRefresh = useCallback(() => {
+    if (onlineRefreshTimerRef.current) return;
+    onlineRefreshTimerRef.current = setTimeout(() => {
+      onlineRefreshTimerRef.current = null;
+      void fetchFromApi(true).catch((err) => {
+        console.error('❌ [Online Players] Background refresh failed:', err);
+      });
+    }, ONLINE_REFRESH_DELAY);
+  }, [fetchFromApi]);
+
+  useEffect(() => {
+    return () => {
+      if (onlineRefreshTimerRef.current) {
+        clearTimeout(onlineRefreshTimerRef.current);
+        onlineRefreshTimerRef.current = null;
+      }
+    };
   }, []);
 
   /**
@@ -362,24 +406,27 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
               !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
+              // A player we have no data for cannot be rendered, so schedule a
+              // background fetch. Checked against the id mirror rather than
+              // inside the state updater.
+              if (isActive && !onlinePlayerIdsRef.current.has(playerId)) {
+                !IS_PROD && console.log(`➕ [Online Players] Player ${playerId} came online; scheduling refresh`);
+                scheduleOnlineRefresh();
+              }
+
               setOnlinePlayers((prev) => {
                 if (isActive) {
-                  // Player came online - add if not already present
-                  const exists = prev.some(p => p.user_id === playerId);
-                  if (!exists) {
-                    !IS_PROD && console.log(`➕ [Online Players] Adding player ${playerId} to online list`);
-                    // We might not have full player data, so trigger a background refresh
-                    return prev;
-                  }
+                  // Already present (or being fetched) — the existing row,
+                  // including its last message, stays as it is.
                   return prev;
-                } else {
-                  // Player went offline - remove from list
-                  const filtered = prev.filter(p => p.user_id !== playerId);
-                  if (filtered.length !== prev.length) {
-                    !IS_PROD && console.log(`➖ [Online Players] Removed player ${playerId} from online list`);
-                  }
-                  return filtered;
                 }
+                // Player went offline - remove from list
+                onlinePlayerIdsRef.current.delete(playerId);
+                const filtered = prev.filter(p => p.user_id !== playerId);
+                if (filtered.length !== prev.length) {
+                  !IS_PROD && console.log(`➖ [Online Players] Removed player ${playerId} from online list`);
+                }
+                return filtered;
               });
             }
             // Also handle full chat list updates if available
@@ -474,7 +521,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       setError('Failed to connect to WebSocket');
     }
     })();
-  }, [adminId, enabled]);
+  }, [adminId, effectiveEnabled, scheduleOnlineRefresh]);
 
   /**
    * Disconnect WebSocket
@@ -505,6 +552,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       const players = await fetchFromApi(true); // Force refresh
       if (isMountedRef.current) {
         setOnlinePlayers(players);
+        onlinePlayerIdsRef.current = new Set(
+          players.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
+        );
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
@@ -516,7 +566,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         setIsLoading(false);
       }
     }
-  }, [enabled, fetchFromApi]);
+  }, [effectiveEnabled, fetchFromApi]);
 
   /**
    * Initial load and periodic refresh
@@ -544,7 +594,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
     })();
 
-    // No polling - websocket handles real-time updates
+    // No polling — a player coming online triggers a debounced refetch above.
     // Removed auto-refresh interval to prevent unnecessary API calls
 
     return () => {

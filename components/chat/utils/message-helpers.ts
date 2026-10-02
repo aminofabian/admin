@@ -54,13 +54,34 @@ export const linkifyText = (text: string): string => {
   });
 };
 
-// Strip HTML tags for preview text (SSR-safe fallback when document is unavailable)
-export const stripHtml = (html: string): string => {
+/**
+ * Strip HTML tags for preview text (SSR-safe fallback when document is unavailable)
+ *
+ * Memoised because it is the single hottest function in the chat render path.
+ * Every classifier (`isAutoMessage`, `isPurchaseNotification`,
+ * `isPrizeWheelMessage`, `isKycVerificationMessage`, `parseTransactionMessage`)
+ * strips the same message text, and each row is classified twice per render —
+ * once in the parent list and again inside the bubble — plus once more on the
+ * *previous* message to decide whether to show an avatar. That worked out to
+ * roughly nineteen HTML parses per row per render; with this cache the same text
+ * is parsed once and every later call is a map lookup.
+ */
+const stripHtmlCache = new Map<string, string>();
+const STRIP_HTML_CACHE_MAX = 500;
+
+const stripHtmlUncached = (html: string): string => {
   if (!html) return "";
-  if (typeof document !== "undefined") {
-    const tmp = document.createElement("DIV");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
+  if (typeof DOMParser !== "undefined") {
+    // DOMParser parses without executing scripts and, unlike assigning
+    // `innerHTML` to a detached element, does not initiate network requests for
+    // resources such as `<img src>`. This input is player-authored, so a
+    // classification pass must never be able to fire a request.
+    try {
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      return parsed.body?.textContent || parsed.documentElement?.textContent || "";
+    } catch {
+      // Fall through to the regex strip below.
+    }
   }
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -73,6 +94,27 @@ export const stripHtml = (html: string): string => {
     .replace(/&#39;/g, "'")
     .trim();
 };
+
+export const stripHtml = (html: string): string => {
+  if (!html) return "";
+
+  const cached = stripHtmlCache.get(html);
+  if (cached !== undefined) return cached;
+
+  const stripped = stripHtmlUncached(html);
+
+  // Bounded so a long session cannot grow without limit. Clearing wholesale is
+  // O(1) and keeps the hot path free of reordering bookkeeping.
+  if (stripHtmlCache.size >= STRIP_HTML_CACHE_MAX) stripHtmlCache.clear();
+  stripHtmlCache.set(html, stripped);
+
+  return stripped;
+};
+
+/** Test-only: drop the memo so a suite can assert on fresh computation. */
+export function clearStripHtmlCache() {
+  stripHtmlCache.clear();
+}
 
 /**
  * Informal signup-bonus chat (e.g. "Added 20 signup bonus for u") — regular bubble.
@@ -473,10 +515,15 @@ export const isAutoMessage = (message: {
     return false;
   }
 
-  // Check if userId is 0 or undefined (system messages often have no user ID)
-  // But ONLY if it's not a purchase notification
+  // A missing `userId` is NOT evidence that a message is automated. The player
+  // list builds its previews from a bare `{ text }` object, so every customer
+  // message arrived here with `userId === undefined` and was rendered as a
+  // system transaction card (heading stripped, `Winnings:` line deleted,
+  // amounts recoloured). An explicit `0` is a real system marker, so only that
+  // is honoured; everything else falls through to the pattern check below,
+  // which decides based on what the text actually says.
   if (
-    (message.userId === 0 || message.userId === undefined) &&
+    message.userId === 0 &&
     !isPurchaseNotification(message) &&
     !isPrizeWheelMessage(message)
   ) {
@@ -809,15 +856,26 @@ export function getTransactionCardClass(kind: TransactionVisualKind): string {
  * Now simplified to show the message as it appears from the source,
  * only applying color to bolded elements.
  */
-export const formatTransactionMessage = (message: {
-  text: string;
-  userBalance?: string;
-  winningBalance?: string;
-  type?: string;
-  operationType?: "increase" | "decrease" | null;
-  bonusAmount?: string | null;
-  paymentMethod?: string | null;
-}): string => {
+export const formatTransactionMessage = (
+  message: {
+    text: string;
+    userBalance?: string;
+    winningBalance?: string;
+    type?: string;
+    operationType?: "increase" | "decrease" | null;
+    bonusAmount?: string | null;
+    paymentMethod?: string | null;
+  },
+  /**
+   * Pre-parsed details, when the caller already has them.
+   *
+   * The bubble parses the message to pick a card tint and then called this
+   * function, which parsed the same text all over again (~20 `String.match`
+   * calls plus two more HTML strips). Passing the result through removes that
+   * second pass entirely.
+   */
+  precomputedDetails?: TransactionDetails,
+): string => {
   if (!message.text) return "";
 
   // Remove automated headings like "Recharge" or "Redeem" as requested
@@ -825,11 +883,9 @@ export const formatTransactionMessage = (message: {
     removeAutomatedMessageHeading(message.text),
   );
 
-  const details = parseTransactionMessage(
-    message.text,
-    message.type,
-    message.operationType,
-  );
+  const details =
+    precomputedDetails ??
+    parseTransactionMessage(message.text, message.type, message.operationType);
   const visualKind = transactionTypeToVisualKind(details.type);
   const colorClass = getTransactionTextColorClass(visualKind);
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;

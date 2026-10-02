@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Input } from '@/components/ui';
 import { usePlayerRouletteSpinInfo } from '@/hooks/use-player-roulette-spin-info';
+import { useOverlayBehaviour } from '../hooks/use-overlay-behaviour';
 import type { PlayerSpinBalanceAdjustmentType } from '@/lib/api/roulette-player-spin-balances';
 
 interface EditSpinsDrawerProps {
@@ -62,10 +63,14 @@ export function EditSpinsDrawer({
   const reasonBlocked = !reason.trim();
   const primaryDisabled = isUpdating || amountBlocked || reasonBlocked || isUnlimited;
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayBehaviour({ isOpen, onClose, panelRef });
+
   if (!isOpen || !mounted) return null;
 
   const drawer = (
     <div
+      ref={panelRef}
       className="fixed inset-0 z-[120] overflow-hidden max-lg:top-16 max-lg:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
       role="dialog"
       aria-modal="true"

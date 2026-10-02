@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 interface BannerFormProps {
@@ -437,8 +438,10 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
   // Helper function to convert image URL to File object using proxy to avoid CORS
   const urlToFile = async (url: string, filename: string): Promise<File> => {
     try {
+      const fetchUrl = toR2ImageUrl(url);
       console.log('📥 Fetching image via proxy:', {
         original: url,
+        fetchUrl,
         filename,
       });
       
@@ -448,7 +451,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
       const token = storage.get(TOKEN_KEY);
       
       // Use Next.js API route to proxy the image fetch (avoids CORS)
-      const proxyUrl = `/api/banner-image-proxy?url=${encodeURIComponent(url)}`;
+      const proxyUrl = `/api/banner-image-proxy?url=${encodeURIComponent(fetchUrl)}`;
       
       const response = await fetch(proxyUrl, {
         method: 'GET',
@@ -768,7 +771,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               <div className="hidden sm:block">
                 <div className="max-h-[85vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
                   <Image
-                    src={previews.web_banner || initialData?.web_banner || ''}
+                    src={previews.web_banner || toR2ImageUrl(initialData?.web_banner) || ''}
                     alt="Web banner preview (desktop)"
                     width={800}
                     height={600}
@@ -778,7 +781,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               </div>
               <div className="sm:hidden">
                 <Image
-                  src={previews.web_banner || initialData?.web_banner || ''}
+                  src={previews.web_banner || toR2ImageUrl(initialData?.web_banner) || ''}
                   alt="Web banner preview (mobile view)"
                   width={400}
                   height={128}
@@ -830,7 +833,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               <div className="block sm:hidden">
                 <div className="max-h-[65vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
                   <Image
-                    src={previews.mobile_banner || initialData?.mobile_banner || ''}
+                    src={previews.mobile_banner || toR2ImageUrl(initialData?.mobile_banner) || ''}
                     alt="Mobile banner preview (mobile)"
                     width={400}
                     height={600}
@@ -840,7 +843,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               </div>
               <div className="hidden sm:block">
                 <Image
-                  src={previews.mobile_banner || initialData?.mobile_banner || ''}
+                  src={previews.mobile_banner || toR2ImageUrl(initialData?.mobile_banner) || ''}
                   alt="Mobile banner preview (desktop view)"
                   width={400}
                   height={128}

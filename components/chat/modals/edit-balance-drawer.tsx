@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useOverlayBehaviour } from '../hooks/use-overlay-behaviour';
 import {
   parseLedgerAmount,
   validateExternalCashoutAmount,
@@ -113,10 +114,14 @@ export function EditBalanceDrawer({
     return `Deduct $${balanceValue}`;
   }, [balanceValue, meta.direction, amountBlocked]);
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayBehaviour({ isOpen, onClose, panelRef });
+
   if (!isOpen || !mounted) return null;
 
   const drawer = (
     <div
+      ref={panelRef}
       className="fixed inset-0 z-[120] overflow-hidden max-lg:top-16 max-lg:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
       role="dialog"
       aria-modal="true"

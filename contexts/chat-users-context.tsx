@@ -23,6 +23,8 @@ interface ChatUsersContextType {
   chatListOnlinePlayersCount: number | null;
   chatListAllPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>;
+  /** Drop the cached all-players snapshot; call after any mutation. */
+  invalidatePlayersCache: () => void;
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
   markChatAsReadDebounced: (params: { chatId?: string; userId?: number }) => void;

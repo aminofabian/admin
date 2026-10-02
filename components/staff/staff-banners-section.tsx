@@ -17,6 +17,7 @@ import {
 } from '@/components/ui';
 import { ErrorState, EmptyState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 import type { Banner } from '@/types';
 
 const SECTION_TITLE = 'Banners';
@@ -94,7 +95,7 @@ function BannersTable({ data }: { data: Banner[] }) {
 
 function BannersTableRow({ banner }: { banner: Banner }) {
   // Prefer web_banner, fallback to mobile_banner
-  const thumbnailUrl = banner.web_banner || banner.mobile_banner;
+  const thumbnailUrl = toR2ImageUrl(banner.web_banner || banner.mobile_banner);
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">

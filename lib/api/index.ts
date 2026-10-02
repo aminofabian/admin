@@ -19,7 +19,6 @@ export * from './cashout-24h-limit';
 export * from './game-settings';
 export * from './payment-methods';
 export * from './chat-links';
-export * from './chat';
 export * from './game-operations';
 export * from './roulette-rewards';
 export * from './meta-capi-events';

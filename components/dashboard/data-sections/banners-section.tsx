@@ -18,6 +18,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { BannerForm } from '@/components/features';
 import { LoadingState, ErrorState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 export function BannersSection() {
@@ -229,7 +230,7 @@ export function BannersSection() {
                       {banner.web_banner || banner.mobile_banner ? (
                         <div className="relative overflow-hidden border border-border/30 shadow-sm">
                           <Image
-                            src={banner.web_banner || banner.mobile_banner || ''}
+                            src={toR2ImageUrl(banner.web_banner || banner.mobile_banner || '')}
                             alt={`${banner.title} preview`}
                             width={64}
                             height={40}

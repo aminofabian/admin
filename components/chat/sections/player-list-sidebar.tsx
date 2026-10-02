@@ -13,14 +13,15 @@ import {
   isKycVerificationMessage,
   formatTransactionMessage,
   prepareChatMessageHtmlForDisplay,
+  stripHtml as stripHtmlForPreview,
 } from '../utils/message-helpers';
+import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
+import { PlayerAvatar } from '../components/player-avatar';
 
-// Strip HTML tags for preview text
-const stripHtml = (html: string): string => {
-  const tmp = document.createElement('DIV');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-};
+// Strip HTML for preview text. Shared implementation lives in
+// `../utils/message-helpers` — see the note there on why it uses DOMParser
+// rather than assigning `innerHTML`.
+const stripHtml = stripHtmlForPreview;
 
 const MAX_UNREAD_BADGE_COUNT = 99;
 
@@ -104,6 +105,10 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
     <button
       ref={itemRef}
       onClick={() => onSelect(player)}
+      // Row of a single-select listbox (see PlayerListSidebar).
+      role="option"
+      aria-selected={isSelected}
+      type="button"
       className={`w-full p-1.5 md:p-2 transition-all duration-200 ease-out group relative border-b border-border/30 last:border-b-0 dark:border-transparent cursor-pointer ${isSelected
         ? 'bg-primary/10 border-l-2 border-l-primary'
         : 'border-l-2 border-l-transparent hover:bg-muted/60 hover:border-l-primary/30 active:scale-[0.998] dark:hover:bg-muted/40'
@@ -124,7 +129,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
             : 'group-hover:scale-[1.02] group-hover:shadow-lg group-hover:shadow-blue-500/25'
             } ${isNewMessage ? 'ring-2 ring-primary/50 scale-105' : ''
             }`}>
-            {player.avatar || player.username.charAt(0).toUpperCase()}
+            <PlayerAvatar avatarUrl={player.avatar} username={player.username} size={28} className="md:h-7 md:w-7" />
           </div>
           <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-background shadow-sm ${player.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         </div>
@@ -179,7 +184,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
                 <p
                   className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-muted-foreground/90'
                     }`}
-                  dangerouslySetInnerHTML={{ __html: previewText }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(previewText) }}
                 />
               );
             }
@@ -469,9 +474,15 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       {/* Tabs: counts only (no icons); refresh beside strip */}
       <div className="border-b border-border/40 px-1.5 pb-1 pt-1 md:px-2">
         <div className="flex items-stretch gap-0.5">
-          <div className="flex min-w-0 flex-1 gap-0.5 rounded-md bg-muted/40 p-0.5">
+          <div
+            role="tablist"
+            aria-label="Player list filter"
+            className="flex min-w-0 flex-1 gap-0.5 rounded-md bg-muted/40 p-0.5"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === 'online'}
               onClick={() => setActiveTab('online')}
               title="Players connected right now"
               className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'online'
@@ -489,6 +500,8 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === 'all-chats'}
               onClick={() => setActiveTab('all-chats')}
               title={`${withChatsDisplayCount} players have an active chat in the directory`}
               className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'all-chats'
@@ -529,6 +542,11 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       <div
         className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain"
         ref={scrollContainerRef}
+        // The rows are a single-select list: announcing N anonymous buttons with
+        // no selected state gave a screen reader no way to know who was open.
+        role="listbox"
+        aria-label="Players"
+        tabIndex={0}
       >
         {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
           <div className="p-2">

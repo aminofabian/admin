@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'pub-0dd4bbe75add476fa861bf35802ca3db.r2.dev',
+      },
+      {
+        protocol: 'https',
         hostname: 'api.bruii.com',
       },
       {

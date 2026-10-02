@@ -18,6 +18,7 @@ import {
   Drawer,
 } from '@/components/ui';
 import { ErrorState, EmptyState, BannerForm } from '@/components/features';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
@@ -109,7 +110,7 @@ interface BannersTableRowProps {
 
 function BannersTableRow({ banner, onEdit, onDelete }: BannersTableRowProps) {
   // Prefer web_banner, fallback to mobile_banner
-  const thumbnailUrl = banner.web_banner || banner.mobile_banner;
+  const thumbnailUrl = toR2ImageUrl(banner.web_banner || banner.mobile_banner);
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">

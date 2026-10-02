@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Download, X } from 'lucide-react';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 
 interface ExpandedImageModalProps {
   imageUrl: string | null;
@@ -13,11 +14,13 @@ export function ExpandedImageModal({
   imageUrl,
   onClose,
 }: ExpandedImageModalProps) {
+  const resolvedUrl = imageUrl ? toR2ImageUrl(imageUrl) : null;
+
   const handleDownload = useCallback(async () => {
-    if (!imageUrl) return;
+    if (!resolvedUrl) return;
     const filename = `chat-image-${Date.now()}.png`;
     try {
-      const res = await fetch(imageUrl, { mode: 'cors' });
+      const res = await fetch(resolvedUrl, { mode: 'cors' });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -29,7 +32,7 @@ export function ExpandedImageModal({
       URL.revokeObjectURL(url);
     } catch {
       const link = document.createElement('a');
-      link.href = imageUrl;
+      link.href = resolvedUrl;
       link.download = filename;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
@@ -37,11 +40,11 @@ export function ExpandedImageModal({
       link.click();
       document.body.removeChild(link);
     }
-  }, [imageUrl]);
+  }, [resolvedUrl]);
 
   // Handle ESC key to close modal
   useEffect(() => {
-    if (!imageUrl) return;
+    if (!resolvedUrl) return;
 
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -53,9 +56,9 @@ export function ExpandedImageModal({
     return () => {
       window.removeEventListener('keydown', handleEscKey);
     };
-  }, [imageUrl, onClose]);
+  }, [resolvedUrl, onClose]);
 
-  if (!imageUrl) return null;
+  if (!resolvedUrl) return null;
 
   return (
     <div 
@@ -88,7 +91,7 @@ export function ExpandedImageModal({
 
       {/* Expanded image */}
       <Image
-        src={imageUrl}
+        src={resolvedUrl}
         alt="Expanded view"
         width={1200}
         height={800}

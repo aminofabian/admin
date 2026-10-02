@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
 
 type PinAction = 'pin' | 'unpin';
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
     const endpoint = `${backendUrl}/api/v1/admin/chat/?request_type=${ACTION_TO_REQUEST_TYPE[action]}`;
 
-    const backendResponse = await fetch(endpoint, {
+    const backendResponse = await proxyFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,6 +63,8 @@ export async function POST(request: NextRequest) {
         chat_id: chatId,
         message_id: messageId,
       }),
+      callerSignal: request.signal,
+      label: 'chat-message-pin',
     });
 
     const rawText = await backendResponse.text();

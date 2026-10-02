@@ -8,6 +8,7 @@ import { isPlayerIdentityVerified } from '@/lib/players/player-verification';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import { storage } from '@/lib/utils/storage';
 import type { ChatUser, Player } from '@/types';
+import { PlayerAvatar } from '../components/player-avatar';
 
 interface ChatHeaderProps {
   selectedPlayer: ChatUser;
@@ -104,6 +105,7 @@ export const ChatHeader = memo(function ChatHeader({
         onClick={() => setMobileView('list')}
         className="md:hidden p-2 -ml-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 mr-1 active:scale-95"
         aria-label="Back to list"
+        type="button"
       >
         <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -118,9 +120,12 @@ export const ChatHeader = memo(function ChatHeader({
         title="Player info"
       >
         <div className="relative shrink-0">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-[10px] font-bold text-white shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 md:h-8 md:w-8 md:text-xs">
-            {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-          </div>
+          <PlayerAvatar
+            avatarUrl={selectedPlayer.avatar}
+            username={selectedPlayer.username}
+            size={32}
+            className="md:h-8 md:w-8 md:text-xs"
+          />
           <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'animate-pulse bg-green-500' : 'bg-red-500'}`} />
         </div>
         <div className="min-w-0 flex-1">

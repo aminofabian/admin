@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
+import { proxyErrorResponse } from '@/lib/api/proxy-route-response';
+
+const ROUTE_LABEL = 'chat-purchases';
+import { buildUpstreamError, createErrorRequestId } from '@/lib/api/upstream-error';
 
 /**
  * API Proxy for JWT-authenticated endpoint: /api/v1/admin/chat/?request_type=purchases_list
@@ -32,7 +37,9 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
     
     console.log('🔵 Proxying purchase history request to:', apiUrl);
-    console.log('🔑 Authorization header:', authHeader ? `Bearer ${authHeader.substring(7, 30)}...` : 'MISSING');
+    // Log presence only: a token prefix exposes the JWT header and payload
+    // (user id, role, expiry) to whatever aggregates these logs.
+    console.log('🔑 Authorization header:', authHeader ? 'present' : 'MISSING');
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -49,15 +56,21 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const response = await fetch(apiUrl, {
+    const response = await proxyFetch(apiUrl, {
       method: 'GET',
       headers,
+      callerSignal: request.signal,
+      label: ROUTE_LABEL,
     });
 
     console.log('📥 Backend response status:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
+      const requestId = createErrorRequestId();
+      const safe = buildUpstreamError(response.status, errorText, requestId);
+      // Full upstream body is logged, never returned to the browser.
+      console.error(`[chat-proxy ${requestId}] upstream ${response.status}:`, errorText);
       console.error('❌ Backend error response status:', response.status);
       console.error('❌ Backend error headers:', Object.fromEntries(response.headers.entries()));
       console.error('❌ Backend error body:', errorText.substring(0, 1000));
@@ -80,10 +93,12 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(
-        { 
-          status: 'error', 
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+        {
+          status: 'error',
+          message: safe.message,
+          detail: safe.detail,
+          request_id: safe.requestId,
+          upstream_status: safe.upstreamStatus,
         },
         { status: response.status }
       );
@@ -94,13 +109,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('❌ Error proxying purchase history request:', error);
-    
-    return NextResponse.json({
-      status: 'error',
-      message: 'Failed to fetch purchase history',
-      detail: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+    return proxyErrorResponse(error, 'chat-purchases');
   }
 }
 

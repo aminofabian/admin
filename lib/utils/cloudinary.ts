@@ -56,8 +56,12 @@ export async function uploadToCloudinary(
       {
         folder: folder,
         public_id: uniqueFileName,
-        resource_type: 'auto', // Let Cloudinary auto-detect the resource type
-        // Don't specify format - let Cloudinary auto-detect it
+        // Pin the resource type and format allowlist rather than using
+        // `resource_type: 'auto'`, which would let Cloudinary store whatever
+        // bytes arrived (SVG/HTML are both reachable from a crafted upload).
+        // Callers validate the content by magic number before reaching here.
+        resource_type: 'image',
+        allowed_formats: ['png', 'jpg', 'gif', 'webp'],
       },
       (error, result) => {
         if (error) {

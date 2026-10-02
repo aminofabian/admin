@@ -13,6 +13,7 @@ import { playersApi } from '@/lib/api/users';
 import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { PlayerRouletteSpinBalanceDisplay } from '@/components/dashboard/players/player-roulette-spin-balance-display';
+import { PlayerAvatar } from '../components/player-avatar';
 
 interface PlayerInfoSidebarProps {
   selectedPlayer: ChatUser;
@@ -166,10 +167,16 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               <button
                 type="button"
                 onClick={onNavigateToPlayer}
-                className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white shadow-md shadow-blue-500/25 ring-2 ring-white/30 transition-transform active:scale-[0.98] dark:ring-white/10 md:h-10 md:w-10 md:rounded-lg md:text-xs"
+                className="relative flex h-14 w-14 items-center justify-center md:h-10 md:w-10"
                 title="Open full profile"
               >
-                {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
+                <PlayerAvatar
+                  avatarUrl={selectedPlayer.avatar}
+                  username={selectedPlayer.username}
+                  size={56}
+                  wrapperClassName="h-14 w-14 rounded-2xl ring-2 ring-white/30 md:h-10 md:w-10 md:rounded-lg dark:ring-white/10"
+                  className="text-lg md:text-xs"
+                />
               </button>
               <span
                 className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-card shadow-sm md:h-2 md:w-2 md:border-2 ${selectedPlayer.isOnline ? 'bg-primary' : 'bg-muted-foreground/60'}`}

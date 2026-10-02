@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import type { ChatMessage } from '@/types';
 import { prepareChatMessageHtmlForDisplay } from '../utils/message-helpers';
+import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
 
 // Check if a URL points to an image
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
@@ -99,7 +100,8 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                           return shouldRenderAsHtml ? (
                             <span 
                               className="[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80"
-                              dangerouslySetInnerHTML={{ __html: linkedText }} 
+                              // Pinned messages are player-authored — sanitise before injecting.
+                              dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(linkedText) }}
                             />
                           ) : (
                             raw

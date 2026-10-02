@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 
@@ -26,10 +27,12 @@ export async function POST(request: NextRequest) {
     const backendUrl = `${BACKEND_URL}/api/v1/chat/send/`;
 
     // 1. Same body as chat REST fallback: sender_id, receiver_id, message, is_player_sender, sent_time
-    let response = await fetch(backendUrl, {
+    let response = await proxyFetch(backendUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
+      callerSignal: request.signal,
+      label: 'chat-send',
     });
 
     // 2. If 400, try Postman format with explicit chatroom_id (never use receiver_id as chatroom_id)
@@ -39,10 +42,12 @@ export async function POST(request: NextRequest) {
         chatroom_id: chatroomId,
         message: body.message,
       };
-      response = await fetch(backendUrl, {
+      response = await proxyFetch(backendUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(postmanBody),
+        callerSignal: request.signal,
+        label: 'chat-send-retry',
       });
     }
 

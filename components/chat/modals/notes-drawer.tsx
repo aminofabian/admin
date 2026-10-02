@@ -6,6 +6,7 @@ import { Button, useToast } from '@/components/ui';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser } from '@/types';
+import { useOverlayBehaviour } from '../hooks/use-overlay-behaviour';
 
 interface NotesDrawerProps {
   isOpen: boolean;
@@ -148,10 +149,14 @@ export function NotesDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer, editedNotes, addToast, onNotesSaved]);
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayBehaviour({ isOpen, onClose, panelRef });
+
   if (!isOpen || !mounted) return null;
 
   const drawer = (
     <div
+      ref={panelRef}
       className="fixed inset-0 z-[120] overflow-hidden max-lg:top-16 max-lg:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
       role="dialog"
       aria-modal="true"

@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
+import { proxyErrorResponse } from '@/lib/api/proxy-route-response';
+
+const ROUTE_LABEL = 'link-detail';
+import { buildUpstreamError, createErrorRequestId } from '@/lib/api/upstream-error';
 
 export async function GET(
   request: NextRequest,
@@ -18,21 +23,29 @@ export async function GET(
       );
     }
 
-    const response = await fetch(apiUrl, {
+    const response = await proxyFetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         Authorization: authHeader,
       },
+      callerSignal: request.signal,
+      label: 'chat-link-detail',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
+      const requestId = createErrorRequestId();
+      const safe = buildUpstreamError(response.status, errorText, requestId);
+      // Full upstream body is logged, never returned to the browser.
+      console.error(`[chat-proxy ${requestId}] upstream ${response.status}:`, errorText);
       return NextResponse.json(
         {
           status: 'error',
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+          message: safe.message,
+          detail: safe.detail,
+          request_id: safe.requestId,
+          upstream_status: safe.upstreamStatus,
         },
         { status: response.status }
       );
@@ -41,14 +54,7 @@ export async function GET(
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('❌ Error proxying chat link GET request:', error);
-    return NextResponse.json(
-      {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to fetch chat link',
-      },
-      { status: 500 }
-    );
+    return proxyErrorResponse(error, 'chat-link-detail');
   }
 }
 
@@ -65,7 +71,9 @@ export async function PATCH(
     const body = await request.json();
 
     console.log('🔵 Proxying chat link update request to:', apiUrl);
-    console.log('🔑 Authorization header:', authHeader ? `Bearer ${authHeader.substring(7, 30)}...` : 'MISSING');
+    // Log presence only: a token prefix exposes the JWT header and payload
+    // (user id, role, expiry) to whatever aggregates these logs.
+    console.log('🔑 Authorization header:', authHeader ? 'present' : 'MISSING');
 
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -83,23 +91,31 @@ export async function PATCH(
       Authorization: authHeader,
     };
 
-    const response = await fetch(apiUrl, {
+    const response = await proxyFetch(apiUrl, {
       method: 'PATCH',
       headers,
+      callerSignal: request.signal,
       body: JSON.stringify(body),
+      label: ROUTE_LABEL,
     });
 
     console.log('📥 Backend response status:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
+      const requestId = createErrorRequestId();
+      const safe = buildUpstreamError(response.status, errorText, requestId);
+      // Full upstream body is logged, never returned to the browser.
+      console.error(`[chat-proxy ${requestId}] upstream ${response.status}:`, errorText);
       console.error('❌ Backend error response:', errorText.substring(0, 500));
 
       return NextResponse.json(
         {
           status: 'error',
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+          message: safe.message,
+          detail: safe.detail,
+          request_id: safe.requestId,
+          upstream_status: safe.upstreamStatus,
         },
         { status: response.status }
       );
@@ -109,14 +125,7 @@ export async function PATCH(
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('❌ Error proxying chat link update request:', error);
-    return NextResponse.json(
-      {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update chat link',
-      },
-      { status: 500 }
-    );
+    return proxyErrorResponse(error, 'chat-link-update');
   }
 }
 

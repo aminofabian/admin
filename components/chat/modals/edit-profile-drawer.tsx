@@ -1,5 +1,8 @@
 'use client';
 
+import { useRef } from 'react';
+import { useOverlayBehaviour } from '../hooks/use-overlay-behaviour';
+
 import { Button, Input, DateSelect } from '@/components/ui';
 
 interface EditProfileDrawerProps {
@@ -33,10 +36,19 @@ export function EditProfileDrawer({
   isUpdating,
   onUpdate,
 }: EditProfileDrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayBehaviour({ isOpen, onClose, panelRef });
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] overflow-hidden">
+    <div
+      ref={panelRef}
+      className="fixed inset-0 z-[110] overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit player profile"
+    >
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/80"

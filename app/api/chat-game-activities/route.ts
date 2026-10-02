@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildUpstreamError, createErrorRequestId } from '@/lib/api/upstream-error';
+import { proxyFetch } from '@/lib/api/proxy-fetch';
+import { proxyErrorResponse } from '@/lib/api/proxy-route-response';
 
 /**
  * API Proxy for JWT-authenticated endpoint: /api/v1/admin/chat/?request_type=game_activities
@@ -22,16 +25,22 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const response = await fetch(apiUrl, {
+    const response = await proxyFetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         Authorization: authHeader,
       },
+      callerSignal: request.signal,
+      label: 'chat-game-activities',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
+      const requestId = createErrorRequestId();
+      const safe = buildUpstreamError(response.status, errorText, requestId);
+      // Full upstream body is logged, never returned to the browser.
+      console.error(`[chat-proxy ${requestId}] upstream ${response.status}:`, errorText);
       if (response.status === 401) {
         return NextResponse.json({
           status: 'error',
@@ -45,8 +54,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           status: 'error',
-          message: `Backend error: ${response.status} ${response.statusText}`,
-          detail: errorText.substring(0, 200),
+          message: safe.message,
+          detail: safe.detail,
+          request_id: safe.requestId,
+          upstream_status: safe.upstreamStatus,
         },
         { status: response.status }
       );
@@ -55,11 +66,6 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('❌ Error proxying game activities request:', error);
-    return NextResponse.json({
-      status: 'error',
-      message: 'Failed to fetch game activities',
-      detail: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+    return proxyErrorResponse(error, 'chat-game-activities');
   }
 }

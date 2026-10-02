@@ -49,21 +49,136 @@ import {
 import { MessageBubble } from "./components/message-bubble";
 import { ChatLoadingBoxes } from "./components/chat-loading-boxes";
 import {
-  isAutoMessage,
   isPurchaseNotification,
-  isPrizeWheelMessage,
-  isKycVerificationMessage,
   parseTransactionMessage,
 } from "./utils/message-helpers";
 import { MessageHistorySkeleton } from "./skeletons";
 import { useScrollManagement } from "./hooks/use-scroll-management";
 import { usePlayerSearch } from "./hooks/use-player-search";
+import { useConversationDrafts } from "./hooks/use-conversation-drafts";
 import { playerMatchesSearchQuery } from "@/lib/chat/player-search";
+import { classifyMessage } from "./utils/message-classification";
+import { useTrackedRef } from "@/lib/utils/use-tracked-ref";
+import { useChatUrlSync } from "./hooks/use-chat-url-sync";
 
 type Player = ChatUser;
 type Message = ChatMessage;
 
-// Production mode check
+/**
+ * Constant emoji palette.
+ *
+ * Module scope deliberately: this was rebuilt on every render, which handed the
+ * memoised composer a fresh 105-element array each time and defeated
+ * `React.memo` on every keystroke.
+ */
+const commonEmojis = [
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😅",
+  "😂",
+  "🤣",
+  "😊",
+  "😇",
+  "🙂",
+  "🙃",
+  "😉",
+  "😌",
+  "😍",
+  "🥰",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😋",
+  "😛",
+  "😝",
+  "😜",
+  "🤪",
+  "🤨",
+  "🧐",
+  "🤓",
+  "😎",
+  "🤩",
+  "🥳",
+  "😏",
+  "😒",
+  "😞",
+  "😔",
+  "😟",
+  "😕",
+  "🙁",
+  "☹️",
+  "😣",
+  "😖",
+  "😫",
+  "😩",
+  "🥺",
+  "😢",
+  "😭",
+  "😤",
+  "😠",
+  "😡",
+  "🤬",
+  "🤯",
+  "😳",
+  "🥵",
+  "🥶",
+  "😱",
+  "😨",
+  "😰",
+  "👍",
+  "👎",
+  "👏",
+  "🙌",
+  "👐",
+  "🤝",
+  "🙏",
+  "✌️",
+  "🤞",
+  "🤟",
+  "🤘",
+  "🤙",
+  "💪",
+  "🦾",
+  "🖕",
+  "✍️",
+  "❤️",
+  "🧡",
+  "💛",
+  "💚",
+  "💙",
+  "💜",
+  "🖤",
+  "🤍",
+  "💔",
+  "❣️",
+  "💕",
+  "💞",
+  "💓",
+  "💗",
+  "💖",
+  "💘",
+  "🔥",
+  "⭐",
+  "✨",
+  "💫",
+  "🌟",
+  "💥",
+  "💯",
+  "",
+  "❌",
+  "⚠️",
+  "🎉",
+  "🎊",
+  "🎈",
+  "🎁",
+  "🏆",
+  "🥇",
+
+];
+
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_STORAGE_KEY = "user";
 const NO_ADMIN_USER_ID = 0;
@@ -155,6 +270,12 @@ const DEFAULT_MARK_AS_READ = true;
 export function ChatComponent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  /**
+   * Single owner of the conversation URL. Writes `?playerId=` on selection
+   * instead of stripping it, so the URL is shareable and Back returns to the
+   * previous conversation instead of leaving the console.
+   */
+  const { selectPlayerInApp, consumeInAppSelection } = useChatUrlSync();
   const [adminUserId] = useState(() => getAdminUserId());
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -163,7 +284,6 @@ export function ChatComponent() {
   // Read once: this only partitions the client-side search cache per operator.
   // The fetcher still reads the live token, so a token refresh is picked up.
   const [searchToken] = useState(() => storage.get(TOKEN_KEY) ?? "");
-  const [messageInput, setMessageInput] = useState("");
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(
     null,
   );
@@ -196,8 +316,26 @@ export function ChatComponent() {
   const [spinsReason, setSpinsReason] = useState("Spin adjustment");
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+  /** True while a send is in flight; prevents a second concurrent send. */
+  const isSendingRef = useRef(false);
+
+  /**
+   * Per-conversation composer state.
+   *
+   * The composer previously held one shared `messageInput` / `selectedImage`
+   * that survived a conversation switch, so an agent who typed half an
+   * explanation to player A, clicked player B, and hit Enter sent A's context
+   * to B. Each conversation now keeps its own draft.
+   */
+  const {
+    text: messageInput,
+    file: selectedImage,
+    previewUrl: imagePreviewUrl,
+    openConversation,
+    setText: setMessageInput,
+    setFile: setDraftFile,
+  } = useConversationDrafts();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [hasNewMessagesWhileScrolled, setHasNewMessagesWhileScrolled] =
@@ -209,22 +347,24 @@ export function ChatComponent() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasScrolledToInitialLoadRef = useRef(false);
   const previousPlayerIdRef = useRef<number | null>(null); // Track previous player to detect actual player changes
-  const isRefreshingMessagesRef = useRef(false); // Track if we're refreshing messages to prevent scroll conflicts
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce refresh calls
-  const scrollPositionBeforeRefreshRef = useRef<number | null>(null); // Preserve scroll position during refresh
-  const displayedMessageIdsRef = useRef<Set<string>>(new Set()); // Track displayed messages for animation
   const hasScrolledForQueryParamsRef = useRef<string | null>(null); // Track if we've scrolled for query param navigation
   const processedQueryPlayerIdRef = useRef<number | null>(null); // Track which playerId we've already processed
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
-  const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
+  // The player selected via query params, kept in the list even when they are on
+  // a later directory page. Tracked so the two memos that read it can list it as
+  // a dependency — a plain ref was invisible to React's tracking, so the
+  // guarantee only held when unrelated deps happened to change.
+  const pinnedQueryPlayer = useTrackedRef<Player | null>(null);
   const queryUsernameResolveInFlightRef = useRef<string | null>(null);
   const queryPlayerIdResolveInFlightRef = useRef<number | null>(null);
   const chatroomResolveUserRef = useRef<number | null>(null);
   /** True while deep-link is still resolving chatroom_id (avoid false "No chat history"). */
   const [isResolvingChatroom, setIsResolvingChatroom] = useState(false);
-  // Track last manual payment operation to help determine message type for balanceUpdated messages
-  const lastManualPaymentRef = useRef<{
+  // Track last manual payment operation to help determine message type for balanceUpdated messages.
+  // Tracked for the same reason: the visibleMessages memo reads it to stamp
+  // increase/decrease on the right bubble.
+  const lastManualPayment = useTrackedRef<{
     playerId: number;
     amount: number;
     operation: "increase" | "decrease";
@@ -234,112 +374,6 @@ export function ChatComponent() {
   const { addToast } = useToast();
 
   // Common emojis for quick access
-  const commonEmojis = [
-    "😀",
-    "😃",
-    "😄",
-    "😁",
-    "😅",
-    "😂",
-    "🤣",
-    "😊",
-    "😇",
-    "🙂",
-    "🙃",
-    "😉",
-    "😌",
-    "😍",
-    "🥰",
-    "😘",
-    "😗",
-    "😙",
-    "😚",
-    "😋",
-    "😛",
-    "😝",
-    "😜",
-    "🤪",
-    "🤨",
-    "🧐",
-    "🤓",
-    "😎",
-    "🤩",
-    "🥳",
-    "😏",
-    "😒",
-    "😞",
-    "😔",
-    "😟",
-    "😕",
-    "🙁",
-    "☹️",
-    "😣",
-    "😖",
-    "😫",
-    "😩",
-    "🥺",
-    "😢",
-    "😭",
-    "😤",
-    "😠",
-    "😡",
-    "🤬",
-    "🤯",
-    "😳",
-    "🥵",
-    "🥶",
-    "😱",
-    "😨",
-    "😰",
-    "👍",
-    "👎",
-    "👏",
-    "🙌",
-    "👐",
-    "🤝",
-    "🙏",
-    "✌️",
-    "🤞",
-    "🤟",
-    "🤘",
-    "🤙",
-    "💪",
-    "🦾",
-    "🖕",
-    "✍️",
-    "❤️",
-    "🧡",
-    "💛",
-    "💚",
-    "💙",
-    "💜",
-    "🖤",
-    "🤍",
-    "💔",
-    "❣️",
-    "💕",
-    "💞",
-    "💓",
-    "💗",
-    "💖",
-    "💘",
-    "🔥",
-    "⭐",
-    "✨",
-    "💫",
-    "🌟",
-    "💥",
-    "💯",
-    "",
-    "❌",
-    "⚠️",
-    "🎉",
-    "🎊",
-    "🎈",
-    "🎁",
-    "🏆",
-    "🥇",
-  ];
 
   // Get chat users from shared context
   const {
@@ -357,8 +391,8 @@ export function ChatComponent() {
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
     refreshActiveChats,
+    invalidatePlayersCache,
     updateChatLastMessage,
-    markChatAsRead,
     markChatAsReadDebounced,
   } = useChatUsersContext();
 
@@ -572,8 +606,8 @@ export function ChatComponent() {
     const FIVE_SECONDS = 5000;
 
     // Pass 1: Handle operationType attribution (workaround for backend bug)
-    if (lastManualPaymentRef.current) {
-      const lastOp = lastManualPaymentRef.current;
+    if (lastManualPayment.current) {
+      const lastOp = lastManualPayment.current;
       messages = messages.map((msg) => {
         if (
           msg.type?.toLowerCase() !== "balanceupdated" &&
@@ -723,7 +757,7 @@ export function ChatComponent() {
       .map((m) =>
         enhancements.has(m.id) ? { ...m, ...enhancements.get(m.id) } : m,
       );
-  }, [wsMessages, selectedPlayer?.user_id]);
+  }, [wsMessages, selectedPlayer?.user_id, lastManualPayment]);
 
   const groupedMessages = useMemo(
     () => groupMessagesByDate(visibleMessages),
@@ -1033,30 +1067,30 @@ export function ChatComponent() {
 
       // Always include the player selected via query params, even if they're not in loaded data
       // This ensures they stay visible even if they're on a later page of pagination
-      if (queryParamPlayerRef.current && queryParamPlayerRef.current.user_id) {
-        const queryPlayerId = queryParamPlayerRef.current.user_id;
+      if (pinnedQueryPlayer.current && pinnedQueryPlayer.current.user_id) {
+        const queryPlayerId = pinnedQueryPlayer.current.user_id;
         const existingInList = seenUserIds.get(queryPlayerId);
         if (!existingInList) {
           // Player not found in loaded data, add them from the ref
-          seenUserIds.set(queryPlayerId, queryParamPlayerRef.current);
+          seenUserIds.set(queryPlayerId, pinnedQueryPlayer.current);
         } else {
           // Player exists, but merge with query param player data to ensure we have latest info
           seenUserIds.set(queryPlayerId, {
             ...existingInList,
-            ...queryParamPlayerRef.current,
+            ...pinnedQueryPlayer.current,
             // Preserve real-time data from existing
             unreadCount:
               existingInList.unreadCount ??
-              queryParamPlayerRef.current.unreadCount ??
+              pinnedQueryPlayer.current.unreadCount ??
               0,
             lastMessage:
               existingInList.lastMessage ||
-              queryParamPlayerRef.current.lastMessage,
+              pinnedQueryPlayer.current.lastMessage,
             lastMessageTime: isValidTimestamp(existingInList.lastMessageTime)
               ? existingInList.lastMessageTime
-              : queryParamPlayerRef.current.lastMessageTime,
+              : pinnedQueryPlayer.current.lastMessageTime,
             isOnline:
-              existingInList.isOnline ?? queryParamPlayerRef.current.isOnline,
+              existingInList.isOnline ?? pinnedQueryPlayer.current.isOnline,
           });
         }
       }
@@ -1179,10 +1213,10 @@ export function ChatComponent() {
     // (merge above still sets green/red from REST + WebSocket when available).
     const fromServer = serverSearchPlayers.map(mergeSearchRowWithChats);
 
-    if (queryParamPlayerRef.current?.user_id) {
-      const queryPlayerId = queryParamPlayerRef.current.user_id;
+    if (pinnedQueryPlayer.current?.user_id) {
+      const queryPlayerId = pinnedQueryPlayer.current.user_id;
       if (!fromServer.find((p) => p.user_id === queryPlayerId)) {
-        const qp = mergeSearchRowWithChats(queryParamPlayerRef.current);
+        const qp = mergeSearchRowWithChats(pinnedQueryPlayer.current);
         if (activeTab !== "online" || qp.isOnline) {
           return [qp, ...fromServer];
         }
@@ -1217,6 +1251,7 @@ export function ChatComponent() {
     normalizedSearchQuery,
     serverSearchPlayers,
     serverSearchForQuery,
+    pinnedQueryPlayer,
   ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
@@ -1431,8 +1466,9 @@ export function ChatComponent() {
     fetchAllPlayers();
   }, [activeTab, allPlayers.length, fetchAllPlayers]);
 
-  const handleSendMessage = useCallback(async () => {
-    if ((!messageInput.trim() && !selectedImage) || !selectedPlayer) return;
+  /** The actual send. Wrapped by `handleSendMessage`, which guards concurrency. */
+  const performSend = useCallback(async () => {
+    if (!selectedPlayer) return;
 
     // If there's an image to upload
     if (selectedImage) {
@@ -1484,8 +1520,7 @@ export function ChatComponent() {
         }
 
         // Clear image preview and input
-        setSelectedImage(null);
-        setImagePreviewUrl(null);
+        setDraftFile(null, null);
         setMessageInput("");
 
         // Update the chat list with the sent message
@@ -1555,13 +1590,40 @@ export function ChatComponent() {
     adminUserId,
     addToast,
     scrollToBottom,
+    setMessageInput,
+    setDraftFile,
   ]);
+
+  /**
+   * Guarded entry point for both the Send button and the Enter key.
+   *
+   * The Send button is disabled while an image uploads, but Enter was not, and
+   * `selectedImage` / `messageInput` are only cleared *after* the upload
+   * resolves — so pressing Enter twice during an upload started a second
+   * concurrent upload and the customer received the image twice.
+   */
+  const handleSendMessage = useCallback(async () => {
+    if ((!messageInput.trim() && !selectedImage) || !selectedPlayer) return;
+    if (isSendingRef.current) return;
+
+    isSendingRef.current = true;
+    try {
+      await performSend();
+    } finally {
+      isSendingRef.current = false;
+    }
+  }, [messageInput, selectedImage, selectedPlayer, performSend]);
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
+      // `isComposing` is true while an IME candidate window is open. Without
+      // this guard, confirming a Japanese/Chinese/Korean candidate fired Enter
+      // and sent a half-composed string — those agents could not type at all.
+      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSendMessage();
+        void handleSendMessage();
       }
     },
     [handleSendMessage],
@@ -1593,12 +1655,9 @@ export function ChatComponent() {
         return;
       }
 
-      setSelectedImage(file);
-
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreviewUrl(reader.result as string);
+        setDraftFile(file, reader.result as string);
       };
       reader.readAsDataURL(file);
 
@@ -1607,13 +1666,12 @@ export function ChatComponent() {
         e.target.value = "";
       }
     },
-    [addToast],
+    [addToast, setDraftFile],
   );
 
   const handleClearImage = useCallback(() => {
-    setSelectedImage(null);
-    setImagePreviewUrl(null);
-  }, []);
+    setDraftFile(null, null);
+  }, [setDraftFile]);
 
   const handleAttachClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -1676,13 +1734,10 @@ export function ChatComponent() {
         });
       }
 
-      // Clear URL params when manually selecting a player from the chat list
-      // This prevents the query param useEffect from re-selecting the original player
-      const currentPlayerId = searchParams.get("playerId");
-      const currentUsername = searchParams.get("username");
-      if (currentPlayerId || currentUsername) {
-        router.replace("/dashboard/chat", { scroll: false });
-      }
+      // Record the conversation in the URL so Back returns here rather than
+      // leaving the console, and so the link is shareable. Marked as an in-app
+      // selection so the deep-link effect does not resolve it a second time.
+      selectPlayerInApp(playerWithNotes.user_id);
 
       if (shouldMarkAsRead) {
         markChatAsReadDebounced({
@@ -1700,21 +1755,37 @@ export function ChatComponent() {
       if (isPlayerChange) {
         // Reset scroll state to ensure we start fresh
         latestMessageIdRef.current = null;
-        // Clear any pending refresh
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-          refreshTimeoutRef.current = null;
-        }
-        isRefreshingMessagesRef.current = false;
-        scrollPositionBeforeRefreshRef.current = null;
-        displayedMessageIdsRef.current.clear(); // Reset animation tracking
-        // Reset query param scroll tracking when player changes
         hasScrolledForQueryParamsRef.current = null;
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [markChatAsRead, activeTab, searchParams, router],
+    // `markChatAsReadDebounced` is the function actually called above. It was
+    // missing from this list (and `markChatAsRead` was listed but never
+    // invoked), so a changed debouncer identity meant the conversation was
+    // selected but never marked read.
+    [markChatAsReadDebounced, activeTab, selectPlayerInApp],
   );
+
+  const selectedPlayerAvatarUrl = selectedPlayer?.avatar;
+  const selectedPlayerUsername = selectedPlayer?.username ?? '';
+
+  /**
+   * Text for the transcript's live region.
+   *
+   * Only the most recent *player* message is announced, and only when it is
+   * genuinely new. The scroller itself is no longer a live region, so paging
+   * back through history no longer floods a screen reader with announcements.
+   */
+  const liveAnnouncement = useMemo(() => {
+    const latest = wsMessages[wsMessages.length - 1];
+    if (!latest || latest.sender !== "player") return "";
+    const text = (latest.text ?? "").replace(/<[^>]*>/g, "").trim().slice(0, 160);
+    if (!text) return "";
+    return `${latest.sender === "player" ? selectedPlayerUsername || "Player" : ""}: ${text}`;
+  }, [wsMessages, selectedPlayerUsername]);
+
+  const handleTogglePinnedExpanded = useCallback(() => {
+    setIsPinnedMessagesExpanded((prev) => !prev);
+  }, []);
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
@@ -1727,6 +1798,14 @@ export function ChatComponent() {
       setPendingPinMessageId(null);
     }
   }, [selectedPlayer]);
+
+  /**
+   * Point the composer at whichever conversation is open, so each one keeps its
+   * own draft instead of inheriting the previous player's text and image.
+   */
+  useEffect(() => {
+    openConversation(selectedPlayer?.user_id ?? null);
+  }, [selectedPlayer?.user_id, openConversation]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -1752,10 +1831,13 @@ export function ChatComponent() {
     };
   }, [showEmojiPicker]);
 
-  const handleEmojiSelect = useCallback((emoji: string) => {
-    setMessageInput((prev) => prev + emoji);
-    setShowEmojiPicker(false);
-  }, []);
+  const handleEmojiSelect = useCallback(
+    (emoji: string) => {
+      setMessageInput(messageInput + emoji);
+      setShowEmojiPicker(false);
+    },
+    [messageInput, setMessageInput],
+  );
 
   const toggleEmojiPicker = useCallback(() => {
     setShowEmojiPicker((prev) => !prev);
@@ -1802,9 +1884,18 @@ export function ChatComponent() {
     [reportMessageActionFailure, wsDeleteMessage],
   );
 
+  /**
+   * Depends on the chatroom id rather than the whole `selectedPlayer` object.
+   *
+   * `setSelectedPlayer` runs on every `balanceUpdated` event, so an object
+   * dependency changed identity on each one and every `MessageBubble` in the
+   * transcript re-rendered. The body only reads `.id`.
+   */
+  const selectedPlayerChatId = selectedPlayer?.id ?? '';
+
   const handleTogglePin = useCallback(
     async (messageId: string, isPinned: boolean) => {
-      if (!selectedPlayer) {
+      if (!selectedPlayerChatId) {
         addToast({
           type: "error",
           title: "Select a conversation first",
@@ -1826,7 +1917,7 @@ export function ChatComponent() {
         return;
       }
 
-      const chatId = asPositiveNumber(selectedPlayer.id);
+      const chatId = asPositiveNumber(selectedPlayerChatId);
       const numericMessageId = asPositiveNumber(messageId);
 
       if (!chatId || !numericMessageId) {
@@ -1956,7 +2047,7 @@ export function ChatComponent() {
         setPendingPinMessageId(null);
       }
     },
-    [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState],
+    [selectedPlayerChatId, pendingPinMessageId, addToast, updateMessagePinnedState],
   );
 
   const handleNotesSaved = useCallback(
@@ -2264,17 +2355,22 @@ export function ChatComponent() {
         (rawPayment as ManualPaymentResponse);
 
       const manualPaymentTs = Date.now();
-      lastManualPaymentRef.current = {
+      lastManualPayment.set({
         playerId: selectedPlayer.user_id,
         amount: balanceValue,
         operation,
         adjustmentKind: balanceAdjustmentKind,
         timestamp: manualPaymentTs,
-      };
+      });
+
+      // The all-players snapshot is cached for 5 minutes and nothing used to
+      // invalidate it, so switching to the all-chats tab could re-render the
+      // pre-adjustment balance.
+      invalidatePlayersCache();
 
       setTimeout(() => {
-        if (lastManualPaymentRef.current?.timestamp === manualPaymentTs) {
-          lastManualPaymentRef.current = null;
+        if (lastManualPayment.current?.timestamp === manualPaymentTs) {
+          lastManualPayment.set(null);
         }
       }, 10000);
 
@@ -2366,6 +2462,8 @@ export function ChatComponent() {
     isUpdatingBalance,
     addToast,
     refreshActiveChats,
+    invalidatePlayersCache,
+    lastManualPayment,
   ]);
 
   // Log online players connection status
@@ -2451,6 +2549,13 @@ export function ChatComponent() {
       return;
     }
 
+    // The agent just clicked this player in the list and the URL was updated to
+    // match. Resolving it again here would re-fetch a conversation we already
+    // have, so skip straight past.
+    if (consumeInAppSelection(targetUserId)) {
+      return;
+    }
+
     // Reset processed ref if queryPlayerId changed to a different player
     if (
       processedQueryPlayerIdRef.current !== null &&
@@ -2472,7 +2577,7 @@ export function ChatComponent() {
 
     // Switch to "all-chats" tab when query params are present
     setActiveTab("all-chats");
-  }, [queryPlayerId, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
+  }, [queryPlayerId, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers, consumeInAppSelection]);
 
   // Separate effect to find and select player when data is available
   // Uses refs to prevent re-render loops when allPlayers/activeChatsUsers arrays change
@@ -2513,10 +2618,10 @@ export function ChatComponent() {
     // If not found in loaded data, check if we have them in the ref (from a previous find)
     if (
       !candidate &&
-      queryParamPlayerRef.current &&
-      queryParamPlayerRef.current.user_id === targetUserId
+      pinnedQueryPlayer.current &&
+      pinnedQueryPlayer.current.user_id === targetUserId
     ) {
-      candidate = queryParamPlayerRef.current;
+      candidate = pinnedQueryPlayer.current;
     }
 
     // FIX: If player not found anywhere, resolve via player-details + chat search.
@@ -2558,7 +2663,7 @@ export function ChatComponent() {
             });
 
           // Store in ref immediately so displayedPlayers includes them
-          queryParamPlayerRef.current = chatUser;
+          pinnedQueryPlayer.set(chatUser);
           processedQueryPlayerIdRef.current = targetUserId;
 
           // Set search query
@@ -2585,10 +2690,6 @@ export function ChatComponent() {
             });
           }
 
-          // Clear URL params after a short delay
-          setTimeout(() => {
-            router.replace("/dashboard/chat", { scroll: false });
-          }, 100);
         } catch (error) {
           console.error("❌ [Query Param] Error fetching player:", error);
           setIsResolvingChatroom(false);
@@ -2610,7 +2711,7 @@ export function ChatComponent() {
 
       // Store the player in ref to ensure they always appear in the list
       // This prevents them from disappearing if they're not in the first page of allPlayers
-      queryParamPlayerRef.current = candidate;
+      pinnedQueryPlayer.set(candidate);
 
       // Set search query only if not already set for this player
       if (
@@ -2643,10 +2744,6 @@ export function ChatComponent() {
           });
         }
 
-        // Clear URL params after a short delay to ensure state is set
-        setTimeout(() => {
-          router.replace("/dashboard/chat", { scroll: false });
-        }, 100);
       } else if (!candidateHasChatroom) {
         setIsResolvingChatroom(true);
       } else {
@@ -2676,12 +2773,12 @@ export function ChatComponent() {
               if (resolveSafeChatroomId(prev.id, targetUserId)) return prev;
               return { ...prev, ...resolved, id: resolvedId, user_id: targetUserId };
             });
-            queryParamPlayerRef.current = {
+            pinnedQueryPlayer.set({
               ...candidate,
               ...resolved,
               id: resolvedId,
               user_id: targetUserId,
-            };
+            });
             setIsResolvingChatroom(false);
             markChatAsReadDebounced({
               chatId: resolvedId,
@@ -2701,17 +2798,17 @@ export function ChatComponent() {
         })();
       }
     } else if (
-      queryParamPlayerRef.current &&
-      queryParamPlayerRef.current.user_id === targetUserId
+      pinnedQueryPlayer.current &&
+      pinnedQueryPlayer.current.user_id === targetUserId
     ) {
       // If we have the player in ref but they're not in the data yet, still select them
       // This handles the case where the player appears in the list but data hasn't loaded
       if (
         !selectedPlayer ||
-        selectedPlayer.user_id !== queryParamPlayerRef.current.user_id
+        selectedPlayer.user_id !== pinnedQueryPlayer.current.user_id
       ) {
         setActiveTab("all-chats");
-        const player = queryParamPlayerRef.current;
+        const player = pinnedQueryPlayer.current;
         // Set player state directly first
         setSelectedPlayer(player);
         setPendingPinMessageId(null);
@@ -2725,10 +2822,6 @@ export function ChatComponent() {
           });
         }
 
-        // Clear URL params after a short delay to ensure state is set
-        setTimeout(() => {
-          router.replace("/dashboard/chat", { scroll: false });
-        }, 100);
       }
     }
   }, [
@@ -2738,19 +2831,21 @@ export function ChatComponent() {
     selectedPlayer,
     markChatAsReadDebounced,
     router,
+    pinnedQueryPlayer,
+    consumeInAppSelection,
   ]);
 
   // Fallback effect: Ensure selectedPlayer is set if we have queryPlayerId and player in ref
   // This handles cases where the player is in the list but wasn't selected yet
   useEffect(() => {
-    if (!queryPlayerId || !queryParamPlayerRef.current) {
+    if (!queryPlayerId || !pinnedQueryPlayer.current) {
       return;
     }
 
     const rawUserId = Number(queryPlayerId);
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
 
-    if (!targetUserId || queryParamPlayerRef.current.user_id !== targetUserId) {
+    if (!targetUserId || pinnedQueryPlayer.current.user_id !== targetUserId) {
       return;
     }
 
@@ -2758,7 +2853,7 @@ export function ChatComponent() {
     // Set selectedPlayer directly to avoid handlePlayerSelect clearing URL params too early
     if (!selectedPlayer || selectedPlayer.user_id !== targetUserId) {
       setActiveTab("all-chats");
-      const player = queryParamPlayerRef.current;
+      const player = pinnedQueryPlayer.current;
       // Set player state directly first
       setSelectedPlayer(player);
       setPendingPinMessageId(null);
@@ -2772,12 +2867,8 @@ export function ChatComponent() {
         });
       }
 
-      // Clear URL params after a short delay to ensure state is set
-      setTimeout(() => {
-        router.replace("/dashboard/chat", { scroll: false });
-      }, 100);
     }
-  }, [queryPlayerId, selectedPlayer, markChatAsReadDebounced, router]);
+  }, [queryPlayerId, selectedPlayer, markChatAsReadDebounced, router, pinnedQueryPlayer]);
 
   // Effect to handle username query param player selection
   useEffect(() => {
@@ -2864,12 +2955,12 @@ export function ChatComponent() {
     });
 
     // If not found in loaded data, check if we have them in the ref (from a previous find)
-    if (!candidate && queryParamPlayerRef.current) {
-      const refUsername = (queryParamPlayerRef.current.username || "")
+    if (!candidate && pinnedQueryPlayer.current) {
+      const refUsername = (pinnedQueryPlayer.current.username || "")
         .trim()
         .toLowerCase();
       if (refUsername === targetUsername) {
-        candidate = queryParamPlayerRef.current;
+        candidate = pinnedQueryPlayer.current;
       }
     }
 
@@ -2878,7 +2969,7 @@ export function ChatComponent() {
       processedQueryUsernameRef.current = targetUsername;
 
       // Store the player in ref to ensure they always appear in the list
-      queryParamPlayerRef.current = candidate;
+      pinnedQueryPlayer.set(candidate);
 
       // Set search query only if not already set for this player
       if (
@@ -2902,23 +2993,19 @@ export function ChatComponent() {
           userId: candidate.user_id,
         });
 
-        // Clear URL params after a short delay to ensure state is set
-        setTimeout(() => {
-          router.replace("/dashboard/chat", { scroll: false });
-        }, 100);
       }
-    } else if (queryParamPlayerRef.current) {
+    } else if (pinnedQueryPlayer.current) {
       // If we have the player in ref but they're not in the data yet, still select them
-      const refUsername = (queryParamPlayerRef.current.username || "")
+      const refUsername = (pinnedQueryPlayer.current.username || "")
         .trim()
         .toLowerCase();
       if (refUsername === targetUsername) {
         if (
           !selectedPlayer ||
-          selectedPlayer.user_id !== queryParamPlayerRef.current.user_id
+          selectedPlayer.user_id !== pinnedQueryPlayer.current.user_id
         ) {
           setActiveTab("all-chats");
-          const player = queryParamPlayerRef.current;
+          const player = pinnedQueryPlayer.current;
           setSelectedPlayer(player);
           setPendingPinMessageId(null);
           setMobileView("chat");
@@ -2931,10 +3018,6 @@ export function ChatComponent() {
             });
           }
 
-          // Clear URL params after a short delay to ensure state is set
-          setTimeout(() => {
-            router.replace("/dashboard/chat", { scroll: false });
-          }, 100);
         }
       }
     } else if (queryUsernameResolveInFlightRef.current !== targetUsername) {
@@ -3060,7 +3143,7 @@ export function ChatComponent() {
           }
 
           processedQueryUsernameRef.current = targetUsername;
-          queryParamPlayerRef.current = resolved;
+          pinnedQueryPlayer.set(resolved);
 
           if (
             resolved.username &&
@@ -3085,9 +3168,6 @@ export function ChatComponent() {
             });
           }
 
-          setTimeout(() => {
-            router.replace("/dashboard/chat", { scroll: false });
-          }, 100);
         } catch (error) {
           console.error(
             "❌ [Query Param Username] Error resolving player:",
@@ -3110,6 +3190,7 @@ export function ChatComponent() {
     selectedPlayer,
     markChatAsReadDebounced,
     router,
+    pinnedQueryPlayer,
   ]);
 
   // Select deep-linked player once debounced server search returns (directory pagination)
@@ -3142,7 +3223,7 @@ export function ChatComponent() {
     }
 
     processedQueryUsernameRef.current = targetUsername;
-    queryParamPlayerRef.current = fromServer;
+    pinnedQueryPlayer.set(fromServer);
 
     if (!selectedPlayer || selectedPlayer.user_id !== fromServer.user_id) {
       setActiveTab("all-chats");
@@ -3157,9 +3238,6 @@ export function ChatComponent() {
         });
       }
 
-      setTimeout(() => {
-        router.replace("/dashboard/chat", { scroll: false });
-      }, 100);
     }
   }, [
     queryUsername,
@@ -3171,6 +3249,7 @@ export function ChatComponent() {
     selectedPlayer,
     markChatAsReadDebounced,
     router,
+    pinnedQueryPlayer,
   ]);
 
   // Scroll to bottom when navigating from player page via query params
@@ -3266,11 +3345,6 @@ export function ChatComponent() {
 
     const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
 
-    if (isRefreshingMessagesRef.current) {
-      latestMessageIdRef.current = lastMessage.id;
-      return;
-    }
-
     latestMessageIdRef.current = lastMessage.id;
 
     if (!hasNewLatest) {
@@ -3284,27 +3358,18 @@ export function ChatComponent() {
       return;
     }
 
-    const shouldAutoScroll = !isRefreshingMessagesRef.current && isUserAtBottom;
-
-    if (shouldAutoScroll) {
+    if (isUserAtBottom) {
       setHasNewMessagesWhileScrolled(false);
       scrollToBottom(true);
     } else {
       //  NEW MESSAGE INDICATOR: Show indicator when new messages arrive and user is scrolled up
-      if (!isRefreshingMessagesRef.current && hasNewLatest && !isUserAtBottom) {
-        setHasNewMessagesWhileScrolled(true);
-      }
+      setHasNewMessagesWhileScrolled(true);
     }
   }, [wsMessages, isHistoryLoadingMessages, scrollToBottom, isUserAtBottom]);
 
   useEffect(() => {
     const wasLoading = wasHistoryLoadingRef.current;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
-
-    //  CRITICAL: Don't auto-scroll if we're refreshing messages
-    if (isRefreshingMessagesRef.current) {
-      return;
-    }
 
     //  TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
     // This preserves natural behavior while ensuring latest message for initial scenarios
@@ -3320,15 +3385,17 @@ export function ChatComponent() {
     }
   }, [isHistoryLoadingMessages, wsMessages.length, scrollToBottom]);
 
-  // Cleanup: Clear refresh timeout on unmount
+  /**
+   * Focus target for the conversation panel on mobile.
+   *
+   * Panels are swapped with CSS only, so without this a tap on “Back to list”
+   * left focus on a button inside a container that had just become
+   * `display:none`, dropping keyboard and screen-reader users to `<body>`.
+   */
+  const conversationPanelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-        refreshTimeoutRef.current = null;
-      }
-    };
-  }, []);
+    if (mobileView === "chat") conversationPanelRef.current?.focus();
+  }, [mobileView]);
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-4">
@@ -3367,7 +3434,9 @@ export function ChatComponent() {
 
       {/* Middle Column - Chat Conversation */}
       <div
-        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-r border-border bg-card shadow-sm md:w-auto`}
+        ref={conversationPanelRef}
+        tabIndex={-1}
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-r border-border bg-card shadow-sm focus:outline-none md:w-auto`}
       >
         {selectedPlayer ? (
           <>
@@ -3434,9 +3503,7 @@ export function ChatComponent() {
             <PinnedMessagesSection
               messages={wsMessages}
               isExpanded={isPinnedMessagesExpanded}
-              onToggleExpanded={() =>
-                setIsPinnedMessagesExpanded(!isPinnedMessagesExpanded)
-              }
+              onToggleExpanded={handleTogglePinnedExpanded}
               onTogglePin={handleTogglePin}
               pendingPinMessageId={pendingPinMessageId}
             />
@@ -3444,15 +3511,24 @@ export function ChatComponent() {
             <div
               ref={messagesContainerRef}
               role="log"
-              aria-live="polite"
               aria-label="Chat messages"
-              className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-contain bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth"
+              // Keyboard users must be able to reach the transcript to scroll it
+              // with the arrow keys (WCAG 2.1.1). The live region is the
+              // visually-hidden node below, not this scroller: a live region
+              // wrapping the whole transcript re-announces every backfilled page
+              // of history and buries the one new customer message.
+              tabIndex={0}
+              className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-contain bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
               style={{
                 overscrollBehavior: "contain",
                 WebkitOverflowScrolling: "touch",
               }}
               onScroll={handleScroll}
             >
+              {/* Announces only genuinely new messages, not scrollback. */}
+              <div aria-live="polite" aria-atomic="true" className="sr-only">
+                {liveAnnouncement}
+              </div>
               <div className="min-w-0 space-y-6 px-3 py-4 sm:px-4 sm:py-5 md:px-8 md:py-8">
                 {/* Sentinel for IntersectionObserver-based infinite scroll */}
                 <div
@@ -3528,11 +3604,13 @@ export function ChatComponent() {
                     {dateMessages.map((message, idx) => {
                       const prevMessage =
                         idx > 0 ? dateMessages[idx - 1] : null;
-                      const isAuto = isAutoMessage(message);
-                      const isPurchase = isPurchaseNotification(message);
-                      const isPrizeWheel = isPrizeWheelMessage(message);
-                      const isKyc = isKycVerificationMessage(message);
-                      const isSystemMessage = isAuto || isPurchase || isPrizeWheel || isKyc;
+                      // One cached classification per message, shared with the
+                      // bubble below and with the previous-message check.
+                      const { isSystemMessage } = classifyMessage(message);
+                      const prevIsSystem = prevMessage
+                        ? classifyMessage(prevMessage).isSystemMessage
+                        : true;
+                      // Unchanged logic — only the classifier calls are cached.
                       const showAvatar =
                         !isSystemMessage &&
                         message.sender === "player" &&
@@ -3547,29 +3625,22 @@ export function ChatComponent() {
                                 new Date(
                                   `2000-01-01 ${message.time || ""}`,
                                 ).getTime(),
-                            ) >
-                              5 * 60 * 1000));
+                            ) > 5 * 60 * 1000));
                       const isConsecutive =
                         !isSystemMessage &&
-                        prevMessage &&
-                        !isAutoMessage(prevMessage) &&
-                        !isPurchaseNotification(prevMessage) &&
-                        !isPrizeWheelMessage(prevMessage) &&
-                        !isKycVerificationMessage(prevMessage) &&
-                        prevMessage.sender === message.sender;
+                        Boolean(prevMessage) &&
+                        !prevIsSystem &&
+                        prevMessage!.sender === message.sender;
                       const isAdmin =
                         !isSystemMessage && message.sender === "admin";
                       const isPinning = pendingPinMessageId === message.id;
-
-                      if (!displayedMessageIdsRef.current.has(message.id)) {
-                        displayedMessageIdsRef.current.add(message.id);
-                      }
 
                       return (
                         <div key={message.id} data-message-id={message.id}>
                           <MessageBubble
                             message={message}
-                            selectedPlayer={selectedPlayer}
+                            avatarUrl={selectedPlayerAvatarUrl}
+                            playerUsername={selectedPlayerUsername}
                             isAdmin={isAdmin}
                             showAvatar={Boolean(showAvatar)}
                             isConsecutive={Boolean(isConsecutive)}

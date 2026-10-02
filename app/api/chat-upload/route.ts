@@ -1,50 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/utils/cloudinary';
+import {
+  uploadToCloudinary,
+  isCloudinaryConfigured,
+} from '@/lib/utils/cloudinary';
+import { guardBearerToken } from '@/lib/auth/server-token-guard';
+import {
+  MAX_UPLOAD_BYTES,
+  validateUploadedImage,
+} from '@/lib/utils/image-upload-validation';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate before touching the body: an unauthenticated caller should
+    // not be able to make this endpoint buffer a multi-megabyte payload.
+    const guard = guardBearerToken(request.headers.get('Authorization'), {
+      requireRole: true,
+    });
+    if (!guard.ok) {
+      return guard.response;
+    }
+
+    // Reject an oversized body using the declared length when present. This is
+    // a cheap pre-check; the definitive check is the file's own size below.
+    const declaredLength = Number(request.headers.get('content-length') ?? '0');
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { status: 'error', message: 'Image is too large. Maximum size is 10 MB.' },
+        { status: 413 },
+      );
+    }
+
+    if (!isCloudinaryConfigured()) {
+      // Do not disclose the expected environment variable names to the caller.
+      console.error('chat-upload: Cloudinary is not configured on the server.');
+      return NextResponse.json(
+        { status: 'error', message: 'Image upload service not configured' },
+        { status: 500 },
+      );
+    }
+
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    
-    if (!file) {
+    const file = formData.get('file');
+
+    if (!(file instanceof File)) {
       return NextResponse.json(
         { status: 'error', message: 'No file provided' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get auth token (optional validation)
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
-      return NextResponse.json({
-        status: 'error',
-        message: 'Authentication required. Please log in.',
-      }, { status: 401 });
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
-        { status: 'error', message: 'Only image files are allowed' },
-        { status: 400 }
+        { status: 'error', message: 'Image is too large. Maximum size is 10 MB.' },
+        { status: 413 },
       );
     }
 
-    // Check if Cloudinary is configured
-    if (!isCloudinaryConfigured()) {
-      return NextResponse.json({
-        status: 'error',
-        message: 'Image upload service not configured',
-        detail: 'Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables',
-      }, { status: 500 });
+    // Validate by file content, not the client-supplied Content-Type.
+    const validation = await validateUploadedImage(file);
+    if (!validation.ok) {
+      return NextResponse.json(
+        { status: 'error', message: validation.reason },
+        { status: 400 },
+      );
     }
 
-    // Upload to Cloudinary
-    console.log('☁️ Uploading image to Cloudinary...');
     const result = await uploadToCloudinary(file, 'chat');
 
-    console.log(' Image uploaded successfully:', result.secure_url);
-    
     return NextResponse.json({
       status: 'success',
       file_url: result.secure_url,
@@ -58,15 +80,16 @@ export async function POST(request: NextRequest) {
         height: result.height,
         format: result.format,
         bytes: result.bytes,
-      }
+      },
     });
   } catch (error) {
-    console.error('❌ Error uploading image:', error);
-    
-    return NextResponse.json({
-      status: 'error',
-      message: 'Failed to upload image',
-      detail: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+    console.error('chat-upload failed:', error);
+
+    // Never echo the underlying message: it can contain Cloudinary internals
+    // or configuration detail.
+    return NextResponse.json(
+      { status: 'error', message: 'Failed to upload image' },
+      { status: 500 },
+    );
   }
 }

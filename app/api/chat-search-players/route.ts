@@ -7,6 +7,8 @@ import {
   isSearchablePlayerQuery,
   normalizePlayerSearchQuery,
 } from '@/lib/chat/player-search';
+import { proxyFetch, ProxyNetworkError, ProxyTimeoutError } from '@/lib/api/proxy-fetch';
+import { proxyErrorResponse } from '@/lib/api/proxy-route-response';
 
 /**
  * Module-scoped so the cache survives across requests handled by the same
@@ -57,16 +59,17 @@ export async function GET(request: NextRequest) {
     const data = await searchCache.resolve(
       cacheKey,
       async (signal) => {
-        const response = await fetch(apiUrl, {
+        // The shared helper supplies the timeout; the cache's signal is passed as
+        // the caller signal so an abandoned search cancels the upstream request
+        // even though the cache may be shared by several callers.
+        const response = await proxyFetch(apiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: authHeader,
           },
-          signal,
-          // Search results are per-operator and short-lived; never let an
-          // intermediate cache serve a stale or shared copy.
-          cache: 'no-store',
+          callerSignal: signal,
+          label: 'chat-search-players',
         });
 
         if (!response.ok) {
@@ -91,6 +94,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
+    // Timeout or unreachable upstream: a real, retryable failure.
+    if (error instanceof ProxyTimeoutError || error instanceof ProxyNetworkError) {
+      return proxyErrorResponse(error, 'chat-search-players');
+    }
+
     // The client aborted (typed another character, or navigated away). The
     // upstream request is already cancelled; there is nobody left to answer.
     if (isSearchAbortError(error)) {

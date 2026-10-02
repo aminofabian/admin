@@ -104,6 +104,9 @@ export const MessageInputArea = memo(function MessageInputArea({
             }}
             onKeyDown={onKeyPress}
             rows={1}
+            // Read-only during upload so the caption cannot change mid-request
+            // (the caption is read after the upload resolves).
+            readOnly={isUploadingImage}
             className="w-full min-h-[52px] max-h-[160px] resize-none rounded-2xl border border-border/50 bg-background/90 py-2.5 pl-3 pr-3 text-sm leading-relaxed text-foreground shadow-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/60 dark:border-border/70 dark:bg-input dark:placeholder:text-muted-foreground/70 md:min-h-[100px] md:max-h-[300px] md:px-5 md:py-4 md:pr-5 md:pb-14 md:text-base lg:min-h-[120px] lg:px-6 lg:py-5 lg:text-lg pb-[3.25rem] md:pb-14"
             aria-label="Type a message"
           />

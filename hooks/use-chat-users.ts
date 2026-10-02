@@ -5,7 +5,8 @@ import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createFreshAuthenticatedWebSocketUrl, debounce, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createFreshAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
+import { debounceByKey, type KeyedDebounce } from '@/lib/utils/debounce-by-key';
 import type { ChatUser } from '@/types';
 import {
   extractUnreadCount,
@@ -93,6 +94,8 @@ interface UseChatUsersReturn {
   /** From last `/api/chat-all-players` response `counts.all_players_count` when present. */
   chatListAllPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
+  /** Drop the cached all-players snapshot; call after any mutation. */
+  invalidatePlayersCache: () => void;
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
   markChatAsReadDebounced: (params: { chatId?: string; userId?: number }) => void;
@@ -144,10 +147,45 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   // Store refreshActiveChats in a ref to avoid circular dependency
   const refreshActiveChatsRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
-  // FIX #3: Single debounced function instance for chat updates (not recreated per message)
+  /**
+   * Request hygiene for the chat-list refresh.
+   *
+   * `refreshActiveChats` runs on a 10s poll, on every WebSocket `message`,
+   * `message_edited`, `message_deleted` and `re_arrange`. Without sequencing a
+   * slow response could land after a newer one and overwrite it, and without
+   * coalescing a busy conversation spawned one 100-row fetch per message.
+   */
+  const refreshSeqRef = useRef(0);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const refreshQueuedRef = useRef(false);
+  const refreshAbortRef = useRef<AbortController | null>(null);
+
+  /**
+   * Drop the cached all-players snapshot.
+   *
+   * The 5-minute cache was written on fetch and read on the fast path, but
+   * nothing ever invalidated it: a manual balance adjustment patched local
+   * state and left the cache holding the pre-adjustment figure, so switching to
+   * the all-chats tab re-rendered a stale balance for up to five minutes. Every
+   * mutation path calls this.
+   */
+  const invalidatePlayersCache = useCallback(() => {
+    playersCacheRef.current = null;
+  }, []);
+
+  /** Handle to the read-receipt debouncer, used for unmount cleanup. */
+  const markChatAsReadDebouncedRef = useRef<KeyedDebounce<
+    [{ chatId?: string; userId?: number }]
+  > | null>(null);
+
+  // Coalesce rapid WebSocket updates per conversation.
+  //
+  // This used to be a single shared `debounce`, whose one timer meant a message
+  // for player B cancelled player A's pending update — A's last-message stayed
+  // stale until the next poll. Debouncing per chat id keeps the coalescing
+  // benefit for one busy conversation without ever dropping another's update.
   const debouncedChatUpdateRef = useRef(
-    debounce((...args: unknown[]) => {
-      const updateData = args[0] as Record<string, unknown>;
+    debounceByKey((_chatKey: string, updateData: Record<string, unknown>) => {
       const userId = Number(updateData.user_id ?? updateData.player_id ?? 0);
       const chatId = pickChatroomIdFromRow(updateData, userId);
       const now = Date.now();
@@ -213,7 +251,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         updatedChats.splice(chatIndex, 1);
         return [updatedChat, ...updatedChats];
       });
-    }, WS_UPDATE_COOLDOWN) as (...args: unknown[]) => void
+    }, WS_UPDATE_COOLDOWN)
   );
 
   const connect = useCallback(() => {
@@ -447,6 +485,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           setAllPlayers((prev) =>
             prev.map((player) => (player.user_id === pid ? patch(player) : player)),
           );
+
+          // The cached snapshot still holds the pre-event figures, so a later
+          // cache hit would resurrect them.
+          invalidatePlayersCache();
         }
         return;
       }
@@ -509,7 +551,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         (data.type === 'update_chat' || data.type === 'new_message')) {
         const updateData = (messageWrapper || data) as Record<string, unknown>;
         if (updateData.last_message || updateData.message) {
-          debouncedChatUpdateRef.current(updateData);
+          // Keyed by chatroom id so a message for one player cannot cancel
+          // another player's pending update.
+          const updateUserId = Number(updateData.user_id ?? updateData.player_id ?? 0);
+          const updateChatId = pickChatroomIdFromRow(updateData, updateUserId) || `u:${updateUserId}`;
+          debouncedChatUpdateRef.current(updateChatId, updateData);
         }
       }
 
@@ -631,7 +677,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [setActiveChats, lastApiRefreshRef, API_REFRESH_COOLDOWN, chatLastUpdateRef, WS_UPDATE_COOLDOWN]);
+  }, [setActiveChats, lastApiRefreshRef, API_REFRESH_COOLDOWN, chatLastUpdateRef, WS_UPDATE_COOLDOWN, invalidatePlayersCache]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {
@@ -667,22 +713,52 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const refreshActiveChats = useCallback(async () => {
     if (!IS_PROD) console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
 
-    try {
-      const token = storage.get(TOKEN_KEY);
-      //  Use the correct admin chat endpoint that returns chat context
-      const response = await fetch('/api/chat-all-players?page=1&page_size=100', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
+    // Coalesce: a burst of messages (a busy conversation emits one WS event
+    // each) previously fired one 100-row fetch per message. Collapse them into
+    // a single trailing request.
+    if (refreshInFlightRef.current) {
+      refreshQueuedRef.current = true;
+      if (!IS_PROD) console.log('⏳ [refreshActiveChats] already in flight; queuing one trailing refresh');
+      return refreshInFlightRef.current;
+    }
 
-      if (!response.ok) {
-        console.error('❌ [refreshActiveChats] Failed to fetch:', response.status);
-        return;
-      }
+    // Sequence: a slow response must never overwrite a newer one. Each call
+    // takes a ticket; only the newest ticket is allowed to commit.
+    const ticket = ++refreshSeqRef.current;
+    const isStale = () => ticket !== refreshSeqRef.current;
 
-      const data = await response.json();
+    const run = (async () => {
+      const controller = new AbortController();
+      refreshAbortRef.current = controller;
+
+      try {
+        const token = storage.get(TOKEN_KEY);
+        //  Use the correct admin chat endpoint that returns chat context
+        const response = await fetch('/api/chat-all-players?page=1&page_size=100', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            // Match the WebSocket hook: an expired session should land on login
+            // rather than retrying silently every 10 seconds.
+            setError('Session expired, please log in again');
+          } else if (!isStale()) {
+            setError(`Could not refresh the chat list (${response.status})`);
+          }
+          console.error('❌ [refreshActiveChats] Failed to fetch:', response.status);
+          return;
+        }
+
+        const data = await response.json();
+        if (isStale()) {
+          if (!IS_PROD) console.log('⏭️ [refreshActiveChats] discarding superseded response');
+          return;
+        }
       const listTotal = readChatListTotalCount(data as Record<string, unknown>);
       if (listTotal != null) {
         setPlayersWithChatsTotalCount(listTotal);
@@ -756,9 +832,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       } else {
         console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
       }
-    } catch (error) {
-      console.error('❌ [refreshActiveChats] Error:', error);
-    }
+      } catch (error) {
+        // An abort here is our own cancellation, not a failure.
+        if (error instanceof Error && error.name === 'AbortError') return;
+        console.error('❌ [refreshActiveChats] Error:', error);
+        if (!isStale()) setError('Could not refresh the chat list. Please try again.');
+      } finally {
+        refreshAbortRef.current = null;
+        refreshInFlightRef.current = null;
+      }
+
+      // Run exactly one trailing refresh for anything that arrived mid-flight.
+      if (refreshQueuedRef.current) {
+        refreshQueuedRef.current = false;
+        void refreshActiveChatsRef.current?.();
+      }
+    })();
+
+    refreshInFlightRef.current = run;
+    return run;
   }, []);
 
   // FIX #4: Keep refreshActiveChats ref in sync via useEffect (not self-referencing)
@@ -910,8 +1002,21 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
 
-        // Append new players to existing list
-        setAllPlayers((prev) => [...prev, ...transformedUsers]);
+        // Append new players to existing list.
+        // Dedupe by user_id: the upstream list is ordered by last-message time,
+        // which shifts between requests, so offset pagination can re-serve a
+        // row that was already on the previous page.
+        setAllPlayers((prev) => {
+          const seen = new Set(prev.map((p) => p.user_id));
+          const fresh = transformedUsers.filter((p) => !seen.has(p.user_id));
+          if (fresh.length !== transformedUsers.length) {
+            console.warn(
+              `⚠️ [loadMorePlayers] dropped ${transformedUsers.length - fresh.length} duplicate row(s)`,
+            );
+          }
+          return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
+        invalidatePlayersCache();
 
         // Update pagination state
         if (pagination) {
@@ -933,7 +1038,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       setIsLoadingMore(false);
       if (!IS_PROD) console.log('🏁 loadMorePlayers - Complete');
     }
-  }, [hasMorePlayers, isLoadingMore, isLoadingAllPlayers, currentPage, pageSize, totalPages]);
+  }, [hasMorePlayers, isLoadingMore, isLoadingAllPlayers, currentPage, pageSize, totalPages, invalidatePlayersCache]);
 
   // Connect on mount
   useEffect(() => {
@@ -950,9 +1055,52 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const POLL_INTERVAL_MS = 10_000;
   useEffect(() => {
     if (!effectiveEnabled) return;
-    void refreshActiveChats(); // Initial refresh to establish baseline
-    const interval = setInterval(() => void refreshActiveChats(), POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    // `ChatUsersProvider` wraps the whole dashboard layout, so without this an
+    // admin parked on the transactions page kept polling ~360 times an hour
+    // for a list they cannot see. Background tabs paused too.
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (timer !== null) return;
+      void refreshActiveChats();
+      timer = setInterval(() => void refreshActiveChats(), POLL_INTERVAL_MS);
+    };
+
+    const stop = () => {
+      if (timer === null) return;
+      clearInterval(timer);
+      timer = null;
+    };
+
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      // Wait for the tab to become visible before spending the first request.
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') {
+          document.removeEventListener('visibilitychange', onVisible);
+          start();
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      return () => {
+        document.removeEventListener('visibilitychange', onVisible);
+        stop();
+      };
+    }
+
+    start();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') start();
+      else stop();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stop();
+      // Cancel any request still running for this session.
+      refreshAbortRef.current?.abort();
+    };
   }, [effectiveEnabled, refreshActiveChats]);
 
   // Cleanup on unmount
@@ -1119,18 +1267,33 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, []);
 
   /**
-   * Debounced version of markChatAsRead to prevent rapid calls
+   * Debounced version of markChatAsRead to prevent rapid calls.
+   *
+   * Keyed by chatroom id internally so the call signature stays unchanged. With
+   * a single shared timer, marking chat B read within 300ms of chat A discarded
+   * A's receipt and left its unread badge on screen.
    */
-  const markChatAsReadDebounced = useMemo(
-    () => {
-      const debouncedFn = debounce((...args: unknown[]) => {
-        const params = args[0] as { chatId?: string; userId?: number };
+  const markChatAsReadDebounced = useMemo(() => {
+    const byKey = debounceByKey(
+      (_key: string, params: { chatId?: string; userId?: number }) => {
         markChatAsRead(params);
-      }, 300);
-      return debouncedFn as (params: { chatId?: string; userId?: number }) => void;
-    },
-    [markChatAsRead]
-  );
+      },
+      300
+    );
+    markChatAsReadDebouncedRef.current = byKey;
+    return (params: { chatId?: string; userId?: number }) => {
+      byKey(params.chatId || `u:${params.userId ?? 'unknown'}`, params);
+    };
+  }, [markChatAsRead]);
+
+  // Pending timers must not fire after unmount (setState on an unmounted hook).
+  useEffect(() => {
+    const chatUpdates = debouncedChatUpdateRef.current;
+    return () => {
+      chatUpdates.cancel();
+      markChatAsReadDebouncedRef.current?.cancel();
+    };
+  }, []);
 
   return {
     users: activeChats, // For backward compatibility - return active chats as "users"
@@ -1149,6 +1312,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
     refreshActiveChats,
+    invalidatePlayersCache,
     updateChatLastMessage,
     markChatAsRead,
     markChatAsReadDebounced, // Debounced version for performance

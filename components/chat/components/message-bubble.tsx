@@ -2,33 +2,43 @@
 
 import { memo, useState, useCallback, type ReactNode } from 'react';
 import Image from 'next/image';
-import type { ChatMessage, ChatUser } from '@/types';
+import type { ChatMessage } from '@/types';
 import {
   isImageUrl,
   extractImageUrls,
   hasHtmlContent,
   linkifyText,
   MESSAGE_HTML_CONTENT_CLASS,
-  isAutoMessage,
-  isPurchaseNotification,
-  isPrizeWheelMessage,
-  isKycVerificationMessage,
   parseKycMessage,
   formatTransactionMessage,
   getTransactionCardClass,
-  parseTransactionMessage,
   prepareChatMessageHtmlForDisplay,
   transactionTypeToVisualKind,
   type BinpayVerificationKind,
 } from '../utils/message-helpers';
 import {
+  classifyMessage,
+  getTransactionDetails,
+} from '../utils/message-classification';
+import {
   composeEditedMessageText,
   splitEditableMessageText,
 } from '@/lib/chat/apply-chat-message-event';
+import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
+import { PlayerAvatar } from './player-avatar';
+import { toR2ImageUrl } from '@/lib/utils/media-url';
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  selectedPlayer: ChatUser;
+  /**
+   * Avatar fields only, rather than the whole `ChatUser`.
+   *
+   * `selectedPlayer` is replaced on every `balanceUpdated` event, so passing the
+   * object made this memoised component re-render for every bubble in the
+   * transcript on each balance tick. The bubble only ever needed these two.
+   */
+  avatarUrl?: string | null;
+  playerUsername: string;
   isAdmin: boolean;
   showAvatar: boolean;
   isConsecutive: boolean;
@@ -45,7 +55,8 @@ type ModerationState = 'idle' | 'editing' | 'saving' | 'confirmingDelete' | 'del
 
 export const MessageBubble = memo(function MessageBubble({
   message,
-  selectedPlayer,
+  avatarUrl,
+  playerUsername,
   isAdmin,
   showAvatar,
   isConsecutive,
@@ -96,10 +107,10 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const messageHasHtml = hasHtmlContent(message.text);
-  const isKyc = isKycVerificationMessage(message);
-  const isAuto = isAutoMessage(message);
-  const isPurchase = isPurchaseNotification(message);
-  const isPrizeWheel = isPrizeWheelMessage(message);
+  // Memoised per message object: the parent list already classified this same
+  // object to decide on the avatar, so this is a cache hit rather than a second
+  // full pass of the four classifiers.
+  const { isKyc, isAuto, isPurchase, isPrizeWheel } = classifyMessage(message);
 
   if (isKyc) {
     return <KycVerificationMessage message={message} />;
@@ -119,9 +130,12 @@ export const MessageBubble = memo(function MessageBubble({
         className={`relative flex min-w-0 max-w-[85%] items-end gap-2 md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
       >
         {showAvatar ? (
-          <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10">
-            {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-          </div>
+          <PlayerAvatar
+            avatarUrl={avatarUrl}
+            username={playerUsername}
+            size={28}
+            className="md:h-7 md:w-7"
+          />
         ) : (
           <div className="w-6 md:w-7 shrink-0" />
         )}
@@ -217,16 +231,21 @@ function TransactionMessage({ message, isPurchase }: {
   message: ChatMessage;
   isPurchase: boolean;
 }) {
-  const details = parseTransactionMessage(message.text, message.type, message.operationType);
+  // Parsed once and handed to `formatTransactionMessage`, which used to parse
+  // the same text a second time internally.
+  const details = getTransactionDetails(message);
   const isRecharge = details.type === 'recharge';
   const isRedeem = details.type === 'redeem';
   const isCashout = details.type === 'cashout';
   const isPrizeWheel = details.type === 'prize_wheel';
 
-  const formattedMessage = formatTransactionMessage({
-    ...message,
-    operationType: message.operationType,
-  });
+  const formattedMessage = formatTransactionMessage(
+    {
+      ...message,
+      operationType: message.operationType,
+    },
+    details,
+  );
 
   const formattedText = formattedMessage
     .replace(/\n/g, '<br />')
@@ -243,7 +262,7 @@ function TransactionMessage({ message, isPurchase }: {
         <div className={`bg-muted/40 backdrop-blur-sm border border-border/40 rounded-xl px-4 py-3 shadow-sm ${getTransactionBgClass()}`}>
           <div
             className="text-center text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] space-y-1 text-foreground [&_b]:not-italic [&_b]:font-bold"
-            dangerouslySetInnerHTML={{ __html: formattedText }}
+            dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(formattedText) }}
           />
           {message.time && (
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
@@ -381,8 +400,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
   const [imageError, setImageError] = useState(false);
 
   const imageUrls = message.renderAsText ? [] : extractImageUrls(message.text);
-  const fileUrl = message.fileUrl || imageUrls[0];
-  const isImage = fileUrl && isImageUrl(fileUrl);
+  const fileUrl = toR2ImageUrl(message.fileUrl || imageUrls[0] || '');
+  const isImage = Boolean(fileUrl) && isImageUrl(fileUrl);
 
   if (isImage) {
     if (imageError) {
@@ -514,7 +533,8 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
   return shouldRenderAsHtml ? (
     <div
       className={MESSAGE_HTML_CONTENT_CLASS[isAdmin ? 'admin' : 'player']}
-      dangerouslySetInnerHTML={{ __html: linkedText ?? '' }}
+      // Player-authored text reaches this sink — sanitise before injecting.
+      dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(linkedText) }}
     />
   ) : (
     <p
