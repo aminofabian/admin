@@ -148,6 +148,11 @@ export function usePlayerAdjacentNavigation({
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't steal browser shortcuts (Ctrl/Cmd+C copy, etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
