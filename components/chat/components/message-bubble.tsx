@@ -3,6 +3,7 @@
 import { memo, useState, useCallback, type ReactNode } from 'react';
 import Image from 'next/image';
 import type { ChatMessage } from '@/types';
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui';
 import {
   isImageUrl,
   extractImageUrls,
@@ -27,6 +28,23 @@ import {
 import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
 import { PlayerAvatar } from './player-avatar';
 import { toR2ImageUrl } from '@/lib/utils/media-url';
+
+async function copyMessageText(text: string): Promise<boolean> {
+  try {
+    const plainText = text
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim();
+    await navigator.clipboard.writeText(plainText);
+    return true;
+  } catch {
+    // Clipboard API may fail in insecure contexts
+    return false;
+  }
+}
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -142,23 +160,44 @@ export const MessageBubble = memo(function MessageBubble({
 
         <div className={`group relative flex min-w-0 flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
           {!isDissipating && !isEditing && moderation === 'idle' && (
-            <div
-              className={`pointer-events-none absolute -top-3 z-10 flex items-center gap-0.5 rounded-full border border-border/40 bg-card/90 px-1 py-0.5 shadow-sm backdrop-blur-md opacity-100 md:pointer-events-auto md:opacity-0 md:transition-opacity md:duration-150 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${isAdmin ? 'right-1' : 'left-1'}`}
-            >
-              <div className="pointer-events-auto flex items-center gap-0.5">
-                <CopyButton text={message.text} />
-                <PinButton
+            <>
+              {/* Mobile: compact overflow menu so icons don't cover the bubble */}
+              <div
+                className={`absolute -top-3 z-10 md:hidden ${isAdmin ? 'right-1' : 'left-1'}`}
+              >
+                <MessageActionsMenu
+                  text={message.text}
                   messageId={message.id}
                   isPinned={message.isPinned}
                   isPinning={isPinning}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  align={isAdmin ? 'right' : 'left'}
                   onTogglePin={onTogglePin}
+                  onEdit={startEditing}
+                  onDelete={() => setModeration('confirmingDelete')}
                 />
-                {canEdit && <EditButton onEdit={startEditing} />}
-                {canDelete && (
-                  <DeleteButton onDelete={() => setModeration('confirmingDelete')} />
-                )}
               </div>
-            </div>
+
+              {/* Desktop: full action strip on hover */}
+              <div
+                className={`pointer-events-none absolute -top-3 z-10 hidden items-center gap-0.5 rounded-full border border-border/40 bg-card/90 px-1 py-0.5 opacity-0 shadow-sm backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 md:pointer-events-auto md:flex ${isAdmin ? 'right-1' : 'left-1'}`}
+              >
+                <div className="pointer-events-auto flex items-center gap-0.5">
+                  <CopyButton text={message.text} />
+                  <PinButton
+                    messageId={message.id}
+                    isPinned={message.isPinned}
+                    isPinning={isPinning}
+                    onTogglePin={onTogglePin}
+                  />
+                  {canEdit && <EditButton onEdit={startEditing} />}
+                  {canDelete && (
+                    <DeleteButton onDelete={() => setModeration('confirmingDelete')} />
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
           <div
@@ -594,24 +633,102 @@ function MessageMeta({ message, isAdmin }: {
   );
 }
 
+function MessageActionsMenu({
+  text,
+  messageId,
+  isPinned,
+  isPinning,
+  canEdit,
+  canDelete,
+  align,
+  onTogglePin,
+  onEdit,
+  onDelete,
+}: {
+  text: string;
+  messageId: string;
+  isPinned?: boolean;
+  isPinning: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  align: 'left' | 'right';
+  onTogglePin: (messageId: string, isPinned: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <DropdownMenu
+      align={align}
+      trigger={
+        <button
+          type="button"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-card/95 text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-muted hover:text-foreground"
+          aria-label="Message actions"
+          title="Message actions"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+            />
+          </svg>
+        </button>
+      }
+    >
+      <DropdownMenuItem
+        onClick={() => {
+          void copyMessageText(text);
+        }}
+        className="flex items-center gap-2"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        Copy
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={() => onTogglePin(messageId, Boolean(isPinned))}
+        disabled={isPinning}
+        className="flex items-center gap-2"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
+        </svg>
+        {isPinned ? 'Unpin' : 'Pin'}
+      </DropdownMenuItem>
+      {canEdit && (
+        <DropdownMenuItem onClick={onEdit} className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Edit
+        </DropdownMenuItem>
+      )}
+      {canDelete && (
+        <DropdownMenuItem
+          onClick={onDelete}
+          className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Delete
+        </DropdownMenuItem>
+      )}
+    </DropdownMenu>
+  );
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    try {
-      const plainText = text
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .trim();
-      await navigator.clipboard.writeText(plainText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard API may fail in insecure contexts
-    }
+    const ok = await copyMessageText(text);
+    if (!ok) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }, [text]);
 
   return (
@@ -760,7 +877,7 @@ function EditMessageForm({
         autoFocus
         readOnly={isSaving}
         rows={Math.min(6, Math.max(2, draft.split('\n').length))}
-        className="w-full resize-none rounded-xl border border-border/60 bg-background px-3 py-2 text-[13px] md:text-sm leading-relaxed text-foreground outline-none transition placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-border/70 dark:bg-input dark:text-foreground dark:placeholder:text-muted-foreground/70"
+        className="w-full resize-none rounded-xl border border-border/60 bg-white px-3 py-2 text-[13px] md:text-sm leading-relaxed text-slate-900 outline-none transition [color-scheme:light] placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-50 dark:[color-scheme:dark] dark:[-webkit-text-fill-color:#f8fafc] dark:placeholder:text-slate-500"
         aria-label="Edit message"
       />
       <div className="flex items-center justify-between gap-2">
