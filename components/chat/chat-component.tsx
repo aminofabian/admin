@@ -2666,14 +2666,8 @@ export function ChatComponent() {
           pinnedQueryPlayer.set(chatUser);
           processedQueryPlayerIdRef.current = targetUserId;
 
-          // Set search query
-          if (
-            chatUser.username &&
-            lastSetSearchQueryRef.current !== chatUser.username
-          ) {
-            lastSetSearchQueryRef.current = chatUser.username;
-            setSearchQuery(chatUser.username);
-          }
+          // Do not put the username in the search box — that filters the
+          // sidebar to one row and reappears on every reload of ?playerId=.
 
           // Select the player
           setActiveTab("all-chats");
@@ -2713,14 +2707,7 @@ export function ChatComponent() {
       // This prevents them from disappearing if they're not in the first page of allPlayers
       pinnedQueryPlayer.set(candidate);
 
-      // Set search query only if not already set for this player
-      if (
-        candidate.username &&
-        lastSetSearchQueryRef.current !== candidate.username
-      ) {
-        lastSetSearchQueryRef.current = candidate.username;
-        setSearchQuery(candidate.username);
-      }
+      // Do not seed the search box from ?playerId= — selection ≠ filter.
 
       const candidateHasChatroom = Boolean(
         resolveSafeChatroomId(candidate.id, candidate.user_id),
@@ -2971,13 +2958,11 @@ export function ChatComponent() {
       // Store the player in ref to ensure they always appear in the list
       pinnedQueryPlayer.set(candidate);
 
-      // Set search query only if not already set for this player
-      if (
-        candidate.username &&
-        lastSetSearchQueryRef.current !== candidate.username
-      ) {
-        lastSetSearchQueryRef.current = candidate.username;
-        setSearchQuery(candidate.username);
+      // Clear any search used to find this player so the full list returns;
+      // the open conversation stays selected via selectedPlayer / ?playerId=.
+      if (lastSetSearchQueryRef.current || searchQuery.trim()) {
+        lastSetSearchQueryRef.current = "";
+        setSearchQuery("");
       }
 
       // Select the player if not already selected
@@ -3145,13 +3130,9 @@ export function ChatComponent() {
           processedQueryUsernameRef.current = targetUsername;
           pinnedQueryPlayer.set(resolved);
 
-          if (
-            resolved.username &&
-            lastSetSearchQueryRef.current !== resolved.username
-          ) {
-            lastSetSearchQueryRef.current = resolved.username;
-            setSearchQuery(resolved.username);
-          }
+          // Drop the primed search so the sidebar is not stuck on one match.
+          lastSetSearchQueryRef.current = "";
+          setSearchQuery("");
 
           setActiveTab("all-chats");
           setSelectedPlayer(resolved);
@@ -3188,6 +3169,7 @@ export function ChatComponent() {
     allPlayers,
     activeChatsUsers,
     selectedPlayer,
+    searchQuery,
     markChatAsReadDebounced,
     router,
     pinnedQueryPlayer,
@@ -3224,6 +3206,10 @@ export function ChatComponent() {
 
     processedQueryUsernameRef.current = targetUsername;
     pinnedQueryPlayer.set(fromServer);
+
+    // Clear the primed search filter; keep the conversation selected.
+    lastSetSearchQueryRef.current = "";
+    setSearchQuery("");
 
     if (!selectedPlayer || selectedPlayer.user_id !== fromServer.user_id) {
       setActiveTab("all-chats");
