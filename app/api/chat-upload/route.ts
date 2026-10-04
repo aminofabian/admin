@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  uploadToCloudinary,
-  isCloudinaryConfigured,
-} from '@/lib/utils/cloudinary';
+import { storeChatImage } from '@/lib/storage/store-chat-image';
 import { guardBearerToken } from '@/lib/auth/server-token-guard';
 import {
   MAX_UPLOAD_BYTES,
@@ -27,15 +24,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { status: 'error', message: 'Image is too large. Maximum size is 10 MB.' },
         { status: 413 },
-      );
-    }
-
-    if (!isCloudinaryConfigured()) {
-      // Do not disclose the expected environment variable names to the caller.
-      console.error('chat-upload: Cloudinary is not configured on the server.');
-      return NextResponse.json(
-        { status: 'error', message: 'Image upload service not configured' },
-        { status: 500 },
       );
     }
 
@@ -65,28 +53,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await uploadToCloudinary(file, 'chat');
+    const stored = await storeChatImage(file, validation.mime);
+    if (!stored) {
+      // Do not disclose the expected environment variable names to the caller.
+      console.error('chat-upload: no image storage (R2 or Cloudinary) is configured.');
+      return NextResponse.json(
+        { status: 'error', message: 'Image upload service not configured' },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       status: 'success',
-      file_url: result.secure_url,
-      url: result.secure_url,
-      file: result.secure_url,
-      filename: result.public_id,
-      cloudinary: {
-        public_id: result.public_id,
-        asset_id: result.asset_id,
-        width: result.width,
-        height: result.height,
-        format: result.format,
-        bytes: result.bytes,
-      },
+      file_url: stored.url,
+      url: stored.url,
+      file: stored.url,
+      filename: stored.filename,
+      storage: stored.storage,
     });
   } catch (error) {
     console.error('chat-upload failed:', error);
 
-    // Never echo the underlying message: it can contain Cloudinary internals
-    // or configuration detail.
+    // Never echo the underlying message: it can contain storage-provider
+    // internals or configuration detail.
     return NextResponse.json(
       { status: 'error', message: 'Failed to upload image' },
       { status: 500 },

@@ -3,13 +3,18 @@
  * R2 public bucket that now hosts those originals. Frontend-only: APIs may
  * still return Cloudinary URLs; display paths should run through this helper.
  *
- * Exception: live chat uploads still go to Cloudinary (`folder: 'chat'`) and
- * are not mirrored to R2 — rewriting those keys 404s and shows
- * "Failed to load image".
+ * Exception: chat images uploaded to Cloudinary (`folder: 'chat'`) keep their
+ * Cloudinary URL until the final delta sync has mirrored them — rewriting an
+ * unmirrored key 404s and shows "Failed to load image". New uploads land on R2
+ * directly once MEDIA_UPLOAD_PROVIDER=r2.
+ *
+ * Set NEXT_PUBLIC_MEDIA_BASE_URL at build time to serve from a custom domain.
  */
 
-const R2_HOST = "pub-0dd4bbe75add476fa861bf35802ca3db.r2.dev";
-const R2_BASE = `https://${R2_HOST}`;
+const DEFAULT_R2_BASE = "https://pub-0dd4bbe75add476fa861bf35802ca3db.r2.dev";
+const R2_BASE = (
+  process.env.NEXT_PUBLIC_MEDIA_BASE_URL?.trim() || DEFAULT_R2_BASE
+).replace(/\/+$/, "");
 const CLOUDINARY_PREFIX =
   "https://res.cloudinary.com/dzlv4lat4/image/upload/";
 
