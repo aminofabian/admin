@@ -1,7 +1,7 @@
 /**
  * Rewrite Cloudinary delivery URLs (shared cloud dzlv4lat4) to the Cloudflare
- * R2 public bucket that now hosts those originals. Frontend-only: APIs may
- * still return Cloudinary URLs; display paths should run through this helper.
+ * R2 public bucket that now hosts those originals. Only chat images go through
+ * this helper; banners and other Django media keep the URL the API returns.
  *
  * Exception: chat images uploaded to Cloudinary (`folder: 'chat'`) keep their
  * Cloudinary URL until the final delta sync has mirrored them — rewriting an

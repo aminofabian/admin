@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { MirroredImage } from '@/components/ui/mirrored-image';
+import Image from 'next/image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -101,7 +101,7 @@ function BannersTableRow({ banner }: { banner: Banner }) {
       <TableCell>
         {thumbnailUrl ? (
           <div className="relative h-16 w-24 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-            <MirroredImage
+            <Image
               src={thumbnailUrl}
               alt={banner.title}
               fill

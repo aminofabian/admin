@@ -7,7 +7,6 @@ export * from './drawer';
 export * from './dropdown-menu';
 export * from './input';
 export * from './logo';
-export * from './mirrored-image';
 export * from './modal';
 export * from './pagination';
 export * from './password-input';

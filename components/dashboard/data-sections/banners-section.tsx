@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MirroredImage } from '@/components/ui/mirrored-image';
+import Image from 'next/image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -228,7 +228,7 @@ export function BannersSection() {
                     <TableCell>
                       {banner.web_banner || banner.mobile_banner ? (
                         <div className="relative overflow-hidden border border-border/30 shadow-sm">
-                          <MirroredImage
+                          <Image
                             src={banner.web_banner || banner.mobile_banner || ''}
                             alt={`${banner.title} preview`}
                             width={64}

@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MirroredImage } from '@/components/ui/mirrored-image';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toR2ImageUrl } from '@/lib/utils/media-url';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 interface BannerFormProps {
@@ -438,10 +437,8 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
   // Helper function to convert image URL to File object using proxy to avoid CORS
   const urlToFile = async (url: string, filename: string): Promise<File> => {
     try {
-      const fetchUrl = toR2ImageUrl(url);
       console.log('📥 Fetching image via proxy:', {
         original: url,
-        fetchUrl,
         filename,
       });
       
@@ -451,19 +448,14 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
       const token = storage.get(TOKEN_KEY);
       
       // Use Next.js API route to proxy the image fetch (avoids CORS)
-      const fetchViaProxy = (sourceUrl: string) =>
-        fetch(`/api/banner-image-proxy?url=${encodeURIComponent(sourceUrl)}`, {
-          method: 'GET',
-          headers: token ? {
-            'Authorization': `Bearer ${token}`,
-          } : {},
-        });
-
-      let response = await fetchViaProxy(fetchUrl);
-      // Banners uploaded after the last R2 sync exist only at the original URL.
-      if (!response.ok && fetchUrl !== url) {
-        response = await fetchViaProxy(url);
-      }
+      const proxyUrl = `/api/banner-image-proxy?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -775,7 +767,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             <div className="mt-3">
               <div className="hidden sm:block">
                 <div className="max-h-[85vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
-                  <MirroredImage
+                  <Image
                     src={previews.web_banner || initialData?.web_banner || ''}
                     alt="Web banner preview (desktop)"
                     width={800}
@@ -785,7 +777,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
                 </div>
               </div>
               <div className="sm:hidden">
-                <MirroredImage
+                <Image
                   src={previews.web_banner || initialData?.web_banner || ''}
                   alt="Web banner preview (mobile view)"
                   width={400}
@@ -837,7 +829,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             <div className="mt-3">
               <div className="block sm:hidden">
                 <div className="max-h-[65vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
-                  <MirroredImage
+                  <Image
                     src={previews.mobile_banner || initialData?.mobile_banner || ''}
                     alt="Mobile banner preview (mobile)"
                     width={400}
@@ -847,7 +839,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
                 </div>
               </div>
               <div className="hidden sm:block">
-                <MirroredImage
+                <Image
                   src={previews.mobile_banner || initialData?.mobile_banner || ''}
                   alt="Mobile banner preview (desktop view)"
                   width={400}
