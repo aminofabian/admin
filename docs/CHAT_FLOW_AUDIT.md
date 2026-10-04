@@ -5,7 +5,7 @@ transcript, composer, player info panel, and everything behind it (WebSocket
 realtime, REST data, Next.js proxy routes).
 
 **Date:** 2026-10-01
-**Branch:** `cursor/jev-decision-helper-b30b`
+**Branch:** (historical audit; branch name retired)
 **Method:** full read of ~19,000 lines across 60 files, plus targeted verification
 of every Critical and High claim. Measured figures below are counted, not estimated.
 

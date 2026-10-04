@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { guardTransactionAction } from '@/lib/jev/transaction-action-guard';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 
@@ -11,57 +10,6 @@ export async function POST(request: NextRequest) {
     // Get the authorization token from the request headers
     const authHeader = request.headers.get('authorization');
 
-    const txnId = formData.get('txn_id')?.toString() ?? '';
-    const actionType = formData.get('type')?.toString() ?? '';
-    const alreadyConfirmed =
-      formData.get('jev_confirmed')?.toString() === '1' ||
-      request.headers.get('x-jev-confirm') === '1';
-
-    // Jev judgment layer: signal only — not authorization by itself.
-    const jevGate = await guardTransactionAction({
-      txnId,
-      type: actionType,
-      alreadyConfirmed,
-    });
-
-    if (jevGate.kind === 'deny') {
-      return NextResponse.json(
-        {
-          status: 'error',
-          code: 'jev_denied',
-          message:
-            jevGate.result.guidance ||
-            'Jev recommended denying this transaction action.',
-          jev: {
-            decision: jevGate.result.decision,
-            confidence: jevGate.result.confidence,
-            probabilities: jevGate.result.probabilities,
-            guidance: jevGate.result.guidance,
-          },
-        },
-        { status: 403 }
-      );
-    }
-
-    if (jevGate.kind === 'needs_confirmation') {
-      return NextResponse.json(
-        {
-          status: 'jev_gate',
-          code: 'jev_confirmation_required',
-          message:
-            jevGate.result.guidance ||
-            'Jev recommends operator confirmation before this action.',
-          jev: {
-            decision: jevGate.result.decision,
-            confidence: jevGate.result.confidence,
-            probabilities: jevGate.result.probabilities,
-            guidance: jevGate.result.guidance,
-          },
-        },
-        { status: 200 }
-      );
-    }
-    
     // Forward directly to the Django backend
     // Note: This is an admin endpoint, not a REST API endpoint
     const backendUrl = `${BACKEND_URL}/api/v1/transaction-action/`;
@@ -75,10 +23,8 @@ export async function POST(request: NextRequest) {
     console.log('  - Auth header length:', authHeader?.length || 0);
 
     // Convert FormData to URLSearchParams for Django (like curl -d "txn_id=123&type=cancel")
-    // Do not forward the local Jev confirm flag to Django.
     const params = new URLSearchParams();
     formData.forEach((value, key) => {
-      if (key === 'jev_confirmed') return;
       params.append(key, value.toString());
     });
     console.log('📤 URL params:', params.toString());
@@ -174,4 +120,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
