@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/utils/formatters";
+import { toR2ImageUrl } from "@/lib/utils/media-url";
 
 // URL regex to detect image links
 const IMAGE_URL_REGEX =
@@ -34,6 +35,37 @@ export const extractImageUrls = (text: string | null | undefined): string[] => {
   if (!text) return [];
   const matches = text.match(IMAGE_URL_REGEX);
   return matches || [];
+};
+
+/**
+ * Every plausible URL for a chat image, deduped, in preference order.
+ *
+ * A message can carry its image in two independent places: the backend `file`
+ * field and a URL embedded in the message text. Either can be the stale one —
+ * the backend has been seen to rewrite `file` to a path that does not resolve,
+ * while the text still holds the URL the upload actually returned. Committing
+ * to just the first candidate is what produced "Failed to load image" on
+ * messages whose text was perfectly loadable.
+ *
+ * Each Cloudinary delivery URL is offered in both its R2-rewritten and original
+ * forms, because an asset may still live on either side of the migration.
+ */
+export const chatImageCandidates = (message: {
+  fileUrl?: string;
+  text: string | null | undefined;
+  renderAsText?: boolean;
+}): string[] => {
+  const embedded = message.renderAsText ? [] : extractImageUrls(message.text);
+  const candidates: string[] = [];
+
+  for (const url of [message.fileUrl, ...embedded]) {
+    if (!url) continue;
+    for (const candidate of [toR2ImageUrl(url), url]) {
+      if (candidate && !candidates.includes(candidate)) candidates.push(candidate);
+    }
+  }
+
+  return candidates.filter(isImageUrl);
 };
 
 // HTML tag regex

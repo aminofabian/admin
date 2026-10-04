@@ -1,12 +1,13 @@
 'use client';
 
-import { memo, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import Image from 'next/image';
 import type { ChatMessage } from '@/types';
 import { DropdownMenu, DropdownMenuItem } from '@/components/ui';
 import {
   isImageUrl,
   extractImageUrls,
+  chatImageCandidates,
   hasHtmlContent,
   linkifyText,
   MESSAGE_HTML_CONTENT_CLASS,
@@ -27,7 +28,6 @@ import {
 } from '@/lib/chat/apply-chat-message-event';
 import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
 import { PlayerAvatar } from './player-avatar';
-import { toR2ImageUrl } from '@/lib/utils/media-url';
 
 async function copyMessageText(text: string): Promise<boolean> {
   try {
@@ -438,16 +438,23 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const imageUrls = message.renderAsText ? [] : extractImageUrls(message.text);
-  const originalUrl = message.fileUrl || imageUrls[0] || '';
-  const preferredUrl = toR2ImageUrl(originalUrl);
-  const [displayUrl, setDisplayUrl] = useState(preferredUrl);
+  const fileUrl = message.fileUrl;
+  const { text: messageText, renderAsText } = message;
+
+  // Try every place the URL can live (backend `file` and the URL in the text,
+  // in both R2 and Cloudinary form) rather than committing to the first.
+  const candidates = useMemo(
+    () => chatImageCandidates({ fileUrl, text: messageText, renderAsText }),
+    [fileUrl, messageText, renderAsText],
+  );
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const displayUrl = candidates[candidateIndex] ?? '';
 
   useEffect(() => {
-    setDisplayUrl(preferredUrl);
+    setCandidateIndex(0);
     setImageLoaded(false);
     setImageError(false);
-  }, [preferredUrl]);
+  }, [candidates]);
 
   const isImage = Boolean(displayUrl) && isImageUrl(displayUrl);
 
@@ -490,11 +497,15 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
             unoptimized
             onLoad={() => setImageLoaded(true)}
             onError={() => {
-              // R2 rewrite can 404 for assets still only on Cloudinary.
-              if (displayUrl !== originalUrl && originalUrl) {
-                setDisplayUrl(originalUrl);
+              // Advance to the next candidate (backend `file` vs. the URL in the
+              // text, and the R2 vs. Cloudinary form of each) before giving up.
+              if (candidateIndex + 1 < candidates.length) {
+                setCandidateIndex((index) => index + 1);
                 setImageLoaded(false);
                 return;
+              }
+              if (process.env.NODE_ENV !== 'production') {
+                console.warn('Chat image failed to load; tried:', candidates);
               }
               setImageError(true);
             }}
