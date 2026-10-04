@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useCallback, type ReactNode } from 'react';
+import { memo, useState, useCallback, useEffect, type ReactNode } from 'react';
 import Image from 'next/image';
 import type { ChatMessage } from '@/types';
 import { DropdownMenu, DropdownMenuItem } from '@/components/ui';
@@ -439,8 +439,17 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
   const [imageError, setImageError] = useState(false);
 
   const imageUrls = message.renderAsText ? [] : extractImageUrls(message.text);
-  const fileUrl = toR2ImageUrl(message.fileUrl || imageUrls[0] || '');
-  const isImage = Boolean(fileUrl) && isImageUrl(fileUrl);
+  const originalUrl = message.fileUrl || imageUrls[0] || '';
+  const preferredUrl = toR2ImageUrl(originalUrl);
+  const [displayUrl, setDisplayUrl] = useState(preferredUrl);
+
+  useEffect(() => {
+    setDisplayUrl(preferredUrl);
+    setImageLoaded(false);
+    setImageError(false);
+  }, [preferredUrl]);
+
+  const isImage = Boolean(displayUrl) && isImageUrl(displayUrl);
 
   if (isImage) {
     if (imageError) {
@@ -460,7 +469,7 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
       <div className="mb-2 space-y-2">
         <div
           className="relative rounded-lg overflow-hidden cursor-pointer group/image hover:opacity-90 transition-opacity"
-          onClick={() => onExpandImage(fileUrl)}
+          onClick={() => onExpandImage(displayUrl)}
           title="Click to expand"
         >
           {!imageLoaded && (
@@ -471,7 +480,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
             </div>
           )}
           <Image
-            src={fileUrl}
+            key={displayUrl}
+            src={displayUrl}
             alt="Uploaded image"
             width={800}
             height={600}
@@ -479,7 +489,15 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
             loading="lazy"
             unoptimized
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            onError={() => {
+              // R2 rewrite can 404 for assets still only on Cloudinary.
+              if (displayUrl !== originalUrl && originalUrl) {
+                setDisplayUrl(originalUrl);
+                setImageLoaded(false);
+                return;
+              }
+              setImageError(true);
+            }}
           />
           {imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity bg-black/20">
