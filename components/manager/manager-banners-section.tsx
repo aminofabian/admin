@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { MirroredImage } from '@/components/ui/mirrored-image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -18,7 +18,6 @@ import {
   Drawer,
 } from '@/components/ui';
 import { ErrorState, EmptyState, BannerForm } from '@/components/features';
-import { toR2ImageUrl } from '@/lib/utils/media-url';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
@@ -110,14 +109,14 @@ interface BannersTableRowProps {
 
 function BannersTableRow({ banner, onEdit, onDelete }: BannersTableRowProps) {
   // Prefer web_banner, fallback to mobile_banner
-  const thumbnailUrl = toR2ImageUrl(banner.web_banner || banner.mobile_banner);
+  const thumbnailUrl = banner.web_banner || banner.mobile_banner;
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         {thumbnailUrl ? (
           <div className="relative h-16 w-24 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-            <Image
+            <MirroredImage
               src={thumbnailUrl}
               alt={banner.title}
               fill

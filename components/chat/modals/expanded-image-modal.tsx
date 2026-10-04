@@ -3,7 +3,6 @@
 import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Download, X } from 'lucide-react';
-import { toR2ImageUrl } from '@/lib/utils/media-url';
 
 interface ExpandedImageModalProps {
   imageUrl: string | null;
@@ -14,7 +13,9 @@ export function ExpandedImageModal({
   imageUrl,
   onClose,
 }: ExpandedImageModalProps) {
-  const resolvedUrl = imageUrl ? toR2ImageUrl(imageUrl) : null;
+  // Callers pass the URL that already loaded in the bubble; re-mapping it to R2
+  // would break images that exist only on Cloudinary.
+  const resolvedUrl = imageUrl;
 
   const handleDownload = useCallback(async () => {
     if (!resolvedUrl) return;

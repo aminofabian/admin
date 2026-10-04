@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { MirroredImage } from '@/components/ui/mirrored-image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -18,7 +18,6 @@ import { Drawer } from '@/components/ui/drawer';
 import { BannerForm } from '@/components/features';
 import { LoadingState, ErrorState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
-import { toR2ImageUrl } from '@/lib/utils/media-url';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 export function BannersSection() {
@@ -229,8 +228,8 @@ export function BannersSection() {
                     <TableCell>
                       {banner.web_banner || banner.mobile_banner ? (
                         <div className="relative overflow-hidden border border-border/30 shadow-sm">
-                          <Image
-                            src={toR2ImageUrl(banner.web_banner || banner.mobile_banner || '')}
+                          <MirroredImage
+                            src={banner.web_banner || banner.mobile_banner || ''}
                             alt={`${banner.title} preview`}
                             width={64}
                             height={40}
