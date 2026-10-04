@@ -142,7 +142,10 @@ export function guardBearerToken(
 
   if (requireRole) {
     const role = extractRole(payload);
-    if (!OPERATOR_ROLES.has(role)) {
+    // Django SimpleJWT access tokens often omit role entirely — login returns
+    // role in the response body, not the JWT. Missing claim ≠ player; only
+    // reject when a role is present and is not an operator role.
+    if (role && !OPERATOR_ROLES.has(role)) {
       return {
         ok: false,
         response: NextResponse.json(

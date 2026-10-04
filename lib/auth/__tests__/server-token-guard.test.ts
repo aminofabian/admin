@@ -88,4 +88,13 @@ describe('guardBearerToken', () => {
       }).ok,
     ).toBe(true);
   });
+
+  it('allows requireRole when the JWT has no role claim (SimpleJWT default)', () => {
+    // Prod tokens are often { user_id, exp, token_type, jti } only.
+    expect(
+      guardBearerToken(`Bearer ${makeToken({ exp: future(), user_id: 42 })}`, {
+        requireRole: true,
+      }).ok,
+    ).toBe(true);
+  });
 });
