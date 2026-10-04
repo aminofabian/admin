@@ -23,6 +23,11 @@ import {
   messageEventId,
   MESSAGE_DISSIPATE_MS,
 } from "@/lib/chat/apply-chat-message-event";
+import {
+  chronologicalFromApiPage,
+  mergeMessageLists as mergeTimedMessageLists,
+  type HistoryMergeMode,
+} from "@/lib/chat/message-history-order";
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -43,8 +48,6 @@ interface PendingMessageAction {
   timer: ReturnType<typeof setTimeout>;
   resolve: (confirmed: boolean) => void;
 }
-
-type HistoryMergeMode = "prepend" | "replace";
 
 const ensurePositiveInteger = (value: unknown, fallback: number): number => {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -188,29 +191,14 @@ const mapHistoryMessage = (msg: RawChatMessage): ChatMessage => {
 
 const normalizeHistoryMessages = (
   rawMessages: RawChatMessage[],
-): ChatMessage[] => rawMessages.map(mapHistoryMessage).reverse();
+): ChatMessage[] =>
+  chronologicalFromApiPage(rawMessages.map(mapHistoryMessage));
 
 const mergeMessageLists = (
   incoming: ChatMessage[],
   existing: ChatMessage[],
   mode: HistoryMergeMode,
-): ChatMessage[] => {
-  const combined = mode === "prepend" ? [...incoming, ...existing] : incoming;
-  const deduped = new Map<string, ChatMessage>();
-
-  combined.forEach((message) => {
-    if (deduped.has(message.id)) {
-      return;
-    }
-    deduped.set(message.id, message);
-  });
-
-  return Array.from(deduped.values()).sort((left, right) => {
-    const leftTime = new Date(left.timestamp).getTime();
-    const rightTime = new Date(right.timestamp).getTime();
-    return leftTime - rightTime;
-  });
-};
+): ChatMessage[] => mergeTimedMessageLists(incoming, existing, mode);
 
 interface UseChatWebSocketParams {
   userId: number | null;

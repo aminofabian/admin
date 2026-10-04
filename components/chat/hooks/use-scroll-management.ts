@@ -4,6 +4,8 @@ const SCROLL_BOTTOM_THRESHOLD = 120;
 const COOLDOWN_MS = 2000;
 const SCROLL_THROTTLE_MS = 16;
 const LOAD_MIN_INTERVAL_MS = 50;
+/** How far above the viewport to start loading older messages (not the whole document). */
+const OLDER_LOAD_ROOT_MARGIN = '240px 0px 0px 0px';
 
 interface UseScrollManagementProps {
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -40,6 +42,13 @@ export function useScrollManagement({
   const lastLoadTimeRef = useRef<number>(0);
   const previousPlayerIdRef = useRef<number | null>(null);
   const pendingScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Until the first pin-to-bottom after history lands, the container sits at
+   * scrollTop=0 (oldest-of-page). Prefetching "older" pages in that window
+   * prepends history and preserves the top scroll offset — agents then see
+   * the beginning of the thread instead of the latest messages on reload.
+   */
+  const allowOlderLoadsRef = useRef(false);
 
   const hasMoreHistoryRef = useRef(hasMoreHistory);
   const isHistoryLoadingRef = useRef(isHistoryLoadingMessages);
@@ -74,6 +83,8 @@ export function useScrollManagement({
     if (atBottom) {
       hasUserManuallyScrolledRef.current = false;
       clearCooldown();
+      // Safe to page upward only after we've been pinned to latest once.
+      allowOlderLoadsRef.current = true;
     } else if (!isCooldownActive()) {
       hasUserManuallyScrolledRef.current = true;
       startCooldown();
@@ -107,6 +118,7 @@ export function useScrollManagement({
         if (c) c.scrollTop = c.scrollHeight;
         isAutoScrollingRef.current = false;
         setIsUserAtBottom(true);
+        allowOlderLoadsRef.current = true;
       }, 50);
     },
     [
@@ -121,6 +133,7 @@ export function useScrollManagement({
   const loadBatch = useCallback(async (): Promise<number> => {
     const container = messagesContainerRef.current;
     if (!container) return 0;
+    if (!allowOlderLoadsRef.current) return 0;
     if (isLoadingOlderRef.current) return 0;
     if (!hasMoreHistoryRef.current) return 0;
 
@@ -191,6 +204,7 @@ export function useScrollManagement({
   const maybeLoadOlder = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
+    if (!allowOlderLoadsRef.current) return;
     if (isLoadingOlderRef.current || isHistoryLoadingRef.current) return;
     if (!hasMoreHistoryRef.current) return;
 
@@ -199,7 +213,7 @@ export function useScrollManagement({
     }
   }, [messagesContainerRef]);
 
-  // IntersectionObserver for pre-loading
+  // IntersectionObserver for pre-loading (only after pinned to latest once)
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const container = messagesContainerRef.current;
@@ -210,10 +224,12 @@ export function useScrollManagement({
 
     const loadChain = async () => {
       if (chainRunning || disposed) return;
+      if (!allowOlderLoadsRef.current) return;
       chainRunning = true;
 
       let retries = 0;
       while (!disposed && retries < 50) {
+        if (!allowOlderLoadsRef.current) break;
         if (!hasMoreHistoryRef.current) break;
 
         if (isLoadingOlderRef.current || isHistoryLoadingRef.current) {
@@ -240,13 +256,13 @@ export function useScrollManagement({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !disposed) {
+        if (entries[0].isIntersecting && !disposed && allowOlderLoadsRef.current) {
           void loadChain();
         }
       },
       {
         root: container,
-        rootMargin: '10000px 0px 0px 0px',
+        rootMargin: OLDER_LOAD_ROOT_MARGIN,
       },
     );
 
@@ -271,13 +287,22 @@ export function useScrollManagement({
     maybeLoadOlder();
   }, [evaluatePosition, maybeLoadOlder]);
 
-  // After initial history finishes, start pre-filling
+  // After history finishes, pin to latest — do NOT prefetch older pages yet.
+  // Older loads wait until scrollToBottom / evaluatePosition sets allowOlderLoads.
   useEffect(() => {
-    if (!isHistoryLoadingMessages && hasMoreHistory) {
-      const timer = setTimeout(() => maybeLoadOlder(), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isHistoryLoadingMessages, hasMoreHistory, maybeLoadOlder]);
+    if (isHistoryLoadingMessages || !hasMoreHistory) return;
+    if (allowOlderLoadsRef.current) return;
+
+    const timer = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (!container) return;
+      container.scrollTop = container.scrollHeight;
+      setIsUserAtBottom(true);
+      allowOlderLoadsRef.current = true;
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isHistoryLoadingMessages, hasMoreHistory, messagesContainerRef]);
 
   // Reset on player change
   useEffect(() => {
@@ -289,6 +314,7 @@ export function useScrollManagement({
     setIsLoadingOlder(false);
     hasUserManuallyScrolledRef.current = false;
     isLoadingOlderRef.current = false;
+    allowOlderLoadsRef.current = false;
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -300,6 +326,8 @@ export function useScrollManagement({
               messagesContainerRef.current.scrollTop =
                 messagesContainerRef.current.scrollHeight;
             }
+            allowOlderLoadsRef.current = true;
+            setIsUserAtBottom(true);
           }, 80);
         }
       });
