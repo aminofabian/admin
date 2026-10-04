@@ -31,14 +31,9 @@ export async function uploadToCloudinary(
   folder = 'chat'
 ): Promise<CloudinaryUploadResult> {
   // Validate configuration
-  if (
-    !process.env.CLOUDINARY_CLOUD_NAME ||
-    !process.env.CLOUDINARY_API_KEY ||
-    !process.env.CLOUDINARY_API_SECRET
-  ) {
-    throw new Error(
-      'Cloudinary not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env.local'
-    );
+  const configProblem = describeCloudinaryConfigProblem();
+  if (configProblem) {
+    throw new Error(`Cloudinary not configured: ${configProblem}`);
   }
 
   // Convert file to buffer
@@ -102,12 +97,47 @@ export async function deleteFromCloudinary(
 }
 
 /**
- * Check if Cloudinary is configured
+ * A Cloudinary credential is an opaque token: a cloud name, a numeric API key,
+ * and a secret. None of them is ever an `http(s)://` URL.
+ */
+function looksLikeUrl(value: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(value);
+}
+
+/**
+ * Explain why the Cloudinary configuration is unusable, or return `null` when
+ * every variable is present and plausibly shaped.
+ *
+ * A non-empty check alone is not enough. A secret holding the backend's API
+ * URL passes it, so the upload reaches Cloudinary, is rejected with a 401, and
+ * the operator sees only a generic "Failed to upload image". Surfacing the
+ * reason turns that silent failure into an actionable server log.
+ */
+export function describeCloudinaryConfigProblem(): string | null {
+  const entries: Array<{ name: string; value: string }> = [
+    { name: 'CLOUDINARY_CLOUD_NAME', value: (process.env.CLOUDINARY_CLOUD_NAME ?? '').trim() },
+    { name: 'CLOUDINARY_API_KEY', value: (process.env.CLOUDINARY_API_KEY ?? '').trim() },
+    { name: 'CLOUDINARY_API_SECRET', value: (process.env.CLOUDINARY_API_SECRET ?? '').trim() },
+  ];
+
+  const missing = entries.filter((entry) => !entry.value).map((entry) => entry.name);
+  if (missing.length > 0) {
+    return `${missing.join(', ')} not set`;
+  }
+
+  const urlShaped = entries
+    .filter((entry) => looksLikeUrl(entry.value))
+    .map((entry) => entry.name);
+  if (urlShaped.length > 0) {
+    return `${urlShaped.join(', ')} looks like a URL, not a Cloudinary value`;
+  }
+
+  return null;
+}
+
+/**
+ * Check if Cloudinary is configured with usable credentials.
  */
 export function isCloudinaryConfigured(): boolean {
-  return !!(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-    process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
-  );
+  return describeCloudinaryConfigProblem() === null;
 }
