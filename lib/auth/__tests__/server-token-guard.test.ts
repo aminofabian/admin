@@ -64,13 +64,28 @@ describe('guardBearerToken', () => {
   });
 
   it('accepts the operator roles the dashboard actually issues', () => {
-    for (const role of ['admin', 'superadmin', 'agent', 'staff', 'manager']) {
+    // `company` is the brand CSR role on bitslot/playltc/etc. — omitting it
+    // was the prod "Insufficient permissions" chat-upload failure.
+    for (const role of ['company', 'superadmin', 'agent', 'staff', 'manager', 'admin']) {
       expect(guardBearerToken(`Bearer ${makeToken({ exp: future(), role })}`, { requireRole: true }).ok).toBe(true);
     }
   });
 
   it('is case-insensitive on the role and the scheme', () => {
-    const token = makeToken({ exp: future(), role: 'ADMIN' });
+    const token = makeToken({ exp: future(), role: 'COMPANY' });
     expect(guardBearerToken(`bearer ${token}`, { requireRole: true }).ok).toBe(true);
+  });
+
+  it('accepts role from alternate JWT claim names', () => {
+    expect(
+      guardBearerToken(`Bearer ${makeToken({ exp: future(), user_role: 'company' })}`, {
+        requireRole: true,
+      }).ok,
+    ).toBe(true);
+    expect(
+      guardBearerToken(`Bearer ${makeToken({ exp: future(), user_type: 'manager' })}`, {
+        requireRole: true,
+      }).ok,
+    ).toBe(true);
   });
 });

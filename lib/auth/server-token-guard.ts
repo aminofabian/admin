@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ADMIN_ROLES, STAFF_ROLES } from '@/lib/constants/roles';
 
 /**
  * Server-side bearer token gate for Next.js route handlers that do NOT proxy to
@@ -44,8 +45,27 @@ function decodeSegment(segment: string): Record<string, unknown> | null {
   }
 }
 
-/** Roles permitted to perform operator-level actions. */
-const AGENT_ROLES = new Set(['admin', 'superadmin', 'agent', 'staff', 'manager']);
+/**
+ * Roles permitted to perform operator-level actions (e.g. chat image upload).
+ * Must match `USER_ROLES` issued by login — brand CSRs use `company`, not `admin`.
+ * `admin` is kept only as a legacy alias if any old tokens still use it.
+ */
+const OPERATOR_ROLES = new Set<string>([
+  ...ADMIN_ROLES,
+  ...STAFF_ROLES,
+  'admin',
+]);
+
+/** Prefer `role`; fall back to common JWT claim aliases used by some backends. */
+function extractRole(payload: Record<string, unknown>): string {
+  const candidates = [payload.role, payload.user_role, payload.user_type];
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim().toLowerCase();
+    }
+  }
+  return '';
+}
 
 /**
  * Validate the Authorization header of a route-handler request.
@@ -121,8 +141,8 @@ export function guardBearerToken(
   }
 
   if (requireRole) {
-    const role = String(payload.role ?? '').toLowerCase();
-    if (!AGENT_ROLES.has(role)) {
+    const role = extractRole(payload);
+    if (!OPERATOR_ROLES.has(role)) {
       return {
         ok: false,
         response: NextResponse.json(
