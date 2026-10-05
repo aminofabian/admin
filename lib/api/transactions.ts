@@ -4,6 +4,7 @@ import {
   appendSanitizedGameBalanceFields,
   appendSanitizedGameEntriesFields,
 } from '@/lib/utils/game-action-payload';
+import { formatSendAmountForPayload } from '@/lib/utils/send-amount';
 import type { 
   Transaction,
   TransactionQueue,
@@ -23,6 +24,8 @@ export type TransactionActionOptions = {
   binpayUsername?: string | null;
   /** Hint Tierlock to use email for payout contact (no phone). */
   tierlockPreferEmailOnly?: boolean;
+  /** Exact payout amount after fees, sent as `send_amount`. */
+  sendAmount?: number;
 };
 
 /** Loose shape from Django-style paginated JSON (fields may be wrong types). */
@@ -266,6 +269,9 @@ export const transactionsApi = {
       if (options.userEmail) {
         formData.append('tierlock_contact_email', options.userEmail.trim());
       }
+    }
+    if (options?.sendAmount != null) {
+      formData.append('send_amount', formatSendAmountForPayload(options.sendAmount));
     }
 
     const response = await apiClient.post<{

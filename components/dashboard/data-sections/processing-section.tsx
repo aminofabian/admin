@@ -26,6 +26,7 @@ import {
 } from '@/components/features';
 import { ActionModal } from './action-modal/game-activity-history';
 import { GameActivityTable } from './game-activity-table';
+import { SendCashoutConfirmModal } from './send-cashout-confirm-modal';
 import { TransactionTable } from './transaction-table';
 import {
   HistoryGameActivitiesFilters,
@@ -67,6 +68,20 @@ import {
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
+type SendToProviderAction =
+  | 'send_to_binpay'
+  | 'send_to_tierlock'
+  | 'send_to_taparcadia'
+  | 'send_to_btcpay'
+  | 'send_to_payapi';
+
+const SEND_PROVIDER_LABELS: Record<SendToProviderAction, string> = {
+  send_to_binpay: 'Binpay',
+  send_to_tierlock: 'Tierlock',
+  send_to_taparcadia: 'Taparcadia',
+  send_to_btcpay: 'BTCPay',
+  send_to_payapi: 'PayAPI',
+};
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 
 interface ProcessingSectionProps {
@@ -477,6 +492,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     transaction: null,
     action: null,
     isLoading: false,
+  });
+  const [sendConfirm, setSendConfirm] = useState<{
+    isOpen: boolean;
+    transaction: Transaction | null;
+    action: SendToProviderAction | null;
+    providerLabel: string;
+  }>({
+    isOpen: false,
+    transaction: null,
+    action: null,
+    providerLabel: '',
   });
 
   const isTransactionsView = viewType === 'purchases' || viewType === 'cashouts';
@@ -1028,8 +1054,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     action: TransactionActionType,
     internalId?: string,
     transactionStatus?: string,
-    transaction?: Transaction
-  ) => {
+    transaction?: Transaction,
+    sendAmount?: number,
+  ): Promise<boolean> => {
     console.log('🔵 handleTransactionAction called:', { transactionId, action, internalId, transactionStatus });
     
     if (!transactionId || transactionId.trim() === '') {
@@ -1039,7 +1066,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         title: 'Invalid Transaction ID',
         description: 'Transaction ID is missing or invalid',
       });
-      return;
+      return false;
     }
 
     // Pending: normal queue actions. Failed: allow send/complete retry (24h limit still enforced server-side).
@@ -1054,7 +1081,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         description: `Cannot ${actionLabel} a transaction that is already ${transactionStatus}.`,
         duration: 5000,
       });
-      return;
+      return false;
     }
     // Cancel only makes sense for pending (not failed retries).
     if (action === 'cancelled' && statusLower === 'failed') {
@@ -1064,7 +1091,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         description: 'Failed cashouts cannot be cancelled. Use send/complete to retry.',
         duration: 5000,
       });
-      return;
+      return false;
     }
 
     const apiActionMap: Record<
@@ -1123,7 +1150,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               'BinPay requires a valid email or 10-digit phone number. Add an email or phone on the player profile or in payment details.',
             duration: 8000,
           });
-          return;
+          return false;
         }
         if (action === 'send_to_tierlock' && !contact.userEmail) {
           addToast({
@@ -1133,7 +1160,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               'Tierlock needs a valid email for this payout (phone-only contact is often rejected). Add a player email in the profile.',
             duration: 8000,
           });
-          return;
+          return false;
         }
 
         if (action === 'send_to_binpay') {
@@ -1156,6 +1183,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             userPhone: contact.userPhone,
           };
         }
+      }
+
+      if (sendAmount != null) {
+        actionOptions = { ...(actionOptions ?? {}), sendAmount };
       }
 
       console.log('🔄 Transaction Action - About to call API:', {
@@ -1196,7 +1227,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           description: 'Send stays off until it finishes.',
           duration: 3500,
         });
-        return;
+        return true;
       }
 
       addToast({
@@ -1210,6 +1241,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         setIsViewModalOpen(false);
         setSelectedTransaction(null);
       }
+      return true;
     } catch (error) {
       // Extract error message from ApiError object
       let errorMessage = 'Failed to update transaction status';
@@ -1248,7 +1280,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 description: 'Send stays off until it finishes.',
                 duration: 3500,
               });
-              return;
+              return true;
             }
           } catch (refetchError) {
             console.warn('⚠️ Could not refetch transaction after action error:', refetchError);
@@ -1278,9 +1310,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         description: errorMessage,
         duration: 8000,
       });
-      
-      // Don't re-throw - error is already handled and displayed to user
-      // Re-throwing causes "Uncaught (in promise)" warnings
+
+      return false;
     } finally {
       setPendingTransactionId(null);
     }
@@ -1326,22 +1357,41 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
-    try {
-      await handleTransactionAction(
-        confirmModal.transaction.id,
-        confirmModal.action,
-        confirmModal.transaction.id,
-        confirmModal.transaction.status
-      );
+    const succeeded = await handleTransactionAction(
+      confirmModal.transaction.id,
+      confirmModal.action,
+      confirmModal.transaction.id,
+      confirmModal.transaction.status
+    );
+    if (succeeded) {
       setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
-    } catch {
-      // Error is already handled in handleTransactionAction
-      setConfirmModal(prev => ({ ...prev, isLoading: false }));
+      return;
     }
+    setConfirmModal(prev => ({ ...prev, isLoading: false }));
   };
 
   const handleCancelConfirm = () => {
     setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
+  };
+
+  const handleConfirmSendAmount = async (sendAmount: number) => {
+    if (!sendConfirm.transaction || !sendConfirm.action) return;
+
+    const succeeded = await handleTransactionAction(
+      sendConfirm.transaction.id,
+      sendConfirm.action,
+      sendConfirm.transaction.id,
+      sendConfirm.transaction.status,
+      sendConfirm.transaction,
+      sendAmount,
+    );
+    if (!succeeded) return;
+    setSendConfirm((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const handleCloseSendConfirm = () => {
+    if (pendingTransactionId != null) return;
+    setSendConfirm((prev) => ({ ...prev, isOpen: false }));
   };
 
   const handleActionClick = useCallback((queue: TransactionQueue) => {
@@ -1386,25 +1436,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const handleCloseViewModal = () => {
     setIsViewModalOpen(false);
     setSelectedTransaction(null);
-  };
-
-  const handleTransactionDetailsAction = (action: TransactionActionType) => {
-    if (!selectedTransaction) {
-      return;
-    }
-
-    if (isSendToProviderAction(action)) {
-      void handleTransactionAction(
-        selectedTransaction.id,
-        action,
-        selectedTransaction.id,
-        selectedTransaction.status,
-        selectedTransaction
-      );
-      return;
-    }
-
-    handleTransactionActionClick(selectedTransaction, action);
   };
 
   /** Map subcategory payment_method/provider_payment_method to API action string. */
@@ -1480,6 +1511,26 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     return buttons;
   }, [selectedTransaction, cashoutCategories]);
+
+  const handleTransactionDetailsAction = (action: TransactionActionType) => {
+    if (!selectedTransaction) {
+      return;
+    }
+
+    if (isSendToProviderAction(action)) {
+      const buttonLabel = sendToProviderButtons.find((button) => button.action === action)?.label;
+      const providerLabel = buttonLabel?.replace(/^Send to\s+/i, '') || SEND_PROVIDER_LABELS[action];
+      setSendConfirm({
+        isOpen: true,
+        transaction: selectedTransaction,
+        action,
+        providerLabel,
+      });
+      return;
+    }
+
+    handleTransactionActionClick(selectedTransaction, action);
+  };
 
   /** Tierlock cashouts must be sent via Tierlock — staff must not manually complete them. */
   const isTierlockCashoutRequest = useMemo(() => {
@@ -1888,6 +1939,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           cancelText="Go Back"
           variant={confirmVariant}
           isLoading={confirmModal.isLoading}
+        />
+      )}
+      {isTransactionsView && sendConfirm.transaction && sendConfirm.action && (
+        <SendCashoutConfirmModal
+          isOpen={sendConfirm.isOpen}
+          cashoutAmount={sendConfirm.transaction.amount}
+          providerLabel={sendConfirm.providerLabel}
+          isLoading={pendingTransactionId === sendConfirm.transaction.id}
+          onClose={handleCloseSendConfirm}
+          onConfirm={handleConfirmSendAmount}
         />
       )}
       </>
