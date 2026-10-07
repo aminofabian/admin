@@ -11,8 +11,6 @@ interface ConfirmModalProps {
   description: ReactNode;
   /** Optional callout shown under the description (e.g. override warnings). */
   warning?: ReactNode;
-  /** Extra fields rendered between the description and the actions. */
-  children?: ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';
@@ -26,7 +24,6 @@ export function ConfirmModal({
   title,
   description,
   warning,
-  children,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   variant = 'danger',
@@ -87,18 +84,17 @@ export function ConfirmModal({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               {title}
             </h3>
-            <div className={`text-sm text-gray-600 dark:text-gray-400 ${warning || children ? 'mb-3' : 'mb-6'}`}>
+            <div className={`text-sm text-gray-600 dark:text-gray-400 ${warning ? 'mb-3' : 'mb-6'}`}>
               {description}
             </div>
             {warning ? (
               <div
                 role="note"
-                className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100 ${children ? 'mb-3' : 'mb-6'}`}
+                className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100"
               >
                 {warning}
               </div>
             ) : null}
-            {children ? <div className="mb-6">{children}</div> : null}
             
             <div className="flex gap-3 justify-end">
               <Button
