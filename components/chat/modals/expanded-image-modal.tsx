@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { Download, X } from 'lucide-react';
 
@@ -61,8 +62,11 @@ export function ExpandedImageModal({
 
   if (!resolvedUrl) return null;
 
-  return (
-    <div 
+  // Portaled to <body>: the chat route wraps this in a z-10 stacking context,
+  // which let the sticky top nav (z-20) and mobile bottom nav (z-50) paint over
+  // the close/download buttons on mobile.
+  return createPortal(
+    <div
       className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
@@ -100,6 +104,7 @@ export function ExpandedImageModal({
         unoptimized
         onClick={(e) => e.stopPropagation()}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }

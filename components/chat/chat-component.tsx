@@ -275,7 +275,8 @@ export function ChatComponent() {
    * instead of stripping it, so the URL is shareable and Back returns to the
    * previous conversation instead of leaving the console.
    */
-  const { selectPlayerInApp, consumeInAppSelection } = useChatUrlSync();
+  const { selectPlayerInApp, consumeInAppSelection, clearPlayerId } =
+    useChatUrlSync();
   const [adminUserId] = useState(() => getAdminUserId());
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -349,6 +350,8 @@ export function ChatComponent() {
   const previousPlayerIdRef = useRef<number | null>(null); // Track previous player to detect actual player changes
   const hasScrolledForQueryParamsRef = useRef<string | null>(null); // Track if we've scrolled for query param navigation
   const processedQueryPlayerIdRef = useRef<number | null>(null); // Track which playerId we've already processed
+  /** Player the agent just closed. Blocks the deep-link effect from reopening them before the URL updates. */
+  const closedPlayerIdRef = useRef<number | null>(null);
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
   // The player selected via query params, kept in the list even when they are on
@@ -1737,6 +1740,7 @@ export function ChatComponent() {
       // Record the conversation in the URL so Back returns here rather than
       // leaving the console, and so the link is shareable. Marked as an in-app
       // selection so the deep-link effect does not resolve it a second time.
+      closedPlayerIdRef.current = null;
       selectPlayerInApp(playerWithNotes.user_id);
 
       if (shouldMarkAsRead) {
@@ -2536,6 +2540,7 @@ export function ChatComponent() {
       // Only clear processing refs, but KEEP queryParamPlayerRef if player is already selected
       // This prevents the player from disappearing from the list when URL is cleared
       processedQueryPlayerIdRef.current = null;
+      closedPlayerIdRef.current = null;
       lastSetSearchQueryRef.current = "";
       // NOTE: We intentionally do NOT clear queryParamPlayerRef here
       // The player should remain visible in the list even after URL params are cleared
@@ -2545,7 +2550,7 @@ export function ChatComponent() {
     const rawUserId = Number(queryPlayerId);
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
 
-    if (!targetUserId) {
+    if (!targetUserId || closedPlayerIdRef.current === targetUserId) {
       return;
     }
 
@@ -2590,8 +2595,8 @@ export function ChatComponent() {
     const rawUserId = Number(queryPlayerId);
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
 
-    if (!targetUserId) {
-      if (!IS_PROD)
+    if (!targetUserId || closedPlayerIdRef.current === targetUserId) {
+      if (!IS_PROD && !targetUserId)
         console.log(
           `⚠️ [Query Param] Invalid targetUserId from queryPlayerId=${queryPlayerId}`,
         );
@@ -2832,7 +2837,11 @@ export function ChatComponent() {
     const rawUserId = Number(queryPlayerId);
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
 
-    if (!targetUserId || pinnedQueryPlayer.current.user_id !== targetUserId) {
+    if (
+      !targetUserId ||
+      closedPlayerIdRef.current === targetUserId ||
+      pinnedQueryPlayer.current.user_id !== targetUserId
+    ) {
       return;
     }
 
@@ -3383,6 +3392,15 @@ export function ChatComponent() {
     if (mobileView === "chat") conversationPanelRef.current?.focus();
   }, [mobileView]);
 
+  const handleCloseConversation = useCallback(() => {
+    if (selectedPlayer?.user_id) {
+      closedPlayerIdRef.current = selectedPlayer.user_id;
+    }
+    setSelectedPlayer(null);
+    setMobileView("list");
+    clearPlayerId();
+  }, [clearPlayerId, selectedPlayer?.user_id]);
+
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-4">
       {/* Left Column - Player List */}
@@ -3433,6 +3451,7 @@ export function ChatComponent() {
               connectionError={connectionError}
               mobileView={mobileView}
               setMobileView={setMobileView}
+              onCloseConversation={handleCloseConversation}
               onOpenNotesDrawer={handleOpenNotesDrawer}
               playerLastSeenAt={playerLastSeenAt}
               onIdentityVerifiedResolved={handleIdentityVerifiedResolved}
