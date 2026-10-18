@@ -287,6 +287,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
+    name: 'Lucky Draw Thresholds',
+    icon: <SettingsIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/lucky-draw-thresholds',
+  },
+  {
     name: 'Players',
     icon: <PlayerIcon />,
     roles: [USER_ROLES.SUPERADMIN],
@@ -396,6 +402,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Verification', href: '/dashboard/settings/verification', icon: <PhoneVerificationIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
+      { name: 'Lucky Draw', href: '/dashboard/settings/lucky-draw', icon: <HistoryGameActivityIcon /> },
       { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
       { name: '24h Cashout Limit', href: '/dashboard/settings/cashout-24h', icon: <PaymentSettingsIcon /> },
@@ -424,6 +431,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
+      { name: 'Lucky Draw', href: '/dashboard/settings/lucky-draw', icon: <HistoryGameActivityIcon /> },
       { name: 'Promo Codes', href: '/dashboard/settings/referral-promo-codes', icon: <AffiliatesAgentIcon /> },
       { name: '24h Cashout Limit', href: '/dashboard/settings/cashout-24h', icon: <PaymentSettingsIcon /> },
       { name: 'Email Templates', href: '/dashboard/settings/email-templates', icon: <EmailTemplatesIcon /> },

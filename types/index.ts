@@ -14,4 +14,5 @@ export * from './email-template';
 export * from './email-broadcast';
 export * from './email-campaign-template';
 export * from './email-campaign-composer';
+export * from './lucky-draw';
 
