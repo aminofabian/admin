@@ -4,7 +4,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { useAdminAnalytics } from '@/hooks/use-admin-analytics';
 import { useGameSummary, useGamesByGame } from '@/hooks/use-analytics-games';
-import { Button, Select, DateSelect } from '@/components/ui';
+import { Button, Select, DateRangePicker } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, type ReactNode } from 'react';
@@ -237,10 +237,15 @@ export default function GameActivityAnalyticsPage() {
             />
           </div>
           {datePreset === 'custom' && (
-            <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
-              <DateSelect label="Start" value={startDate} onChange={setStartDate} />
-              <DateSelect label="End" value={endDate} onChange={setEndDate} />
-            </div>
+            <DateRangePicker
+              start={startDate}
+              end={endDate}
+              onChange={(nextStart, nextEnd) => {
+                setStartDate(nextStart);
+                setEndDate(nextEnd);
+              }}
+              className="mt-2 w-full max-w-sm lg:mt-0 lg:w-auto"
+            />
           )}
         </div>
       )}
