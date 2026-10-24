@@ -1,6 +1,7 @@
 import type { LoginRequest, LoginResponse, DashboardGamesResponse } from '@/types';
 import { API_BASE_URL } from '@/lib/constants/api';
 import { getCurrentDomain, extractDomainFromUrl } from '@/lib/utils/domain';
+import { isValidProjectUuid } from '@/lib/utils/project-uuid';
 
 export const authApi = {
   fetchProjectUuid: async () => {
@@ -52,10 +53,31 @@ export const authApi = {
       
       const data = await response.json();
       console.log(' Dashboard games response:', data);
+
+      // Fail closed on the backend's default project. Its UUID belongs to
+      // another company, so using it would scope admin logins to the wrong
+      // tenant.
+      const projectName =
+        typeof data?.data?.project_name === 'string'
+          ? data.data.project_name
+          : typeof data?.project_name === 'string'
+            ? data.project_name
+            : '';
+      if (projectName === 'ProjectX') {
+        throw new Error(
+          `No project found for ${projectDomain}. Check that this admin domain is mapped to a registered project, or enter the project UUID manually.`
+        );
+      }
+
       return data as DashboardGamesResponse;
     } catch (error: unknown) {
       console.error('❌ Error fetching project UUID:', error);
-      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+      // Only real network failures (browser fetch rejects with TypeError) should
+      // be reported as connectivity problems. HTTP errors keep their message.
+      if (
+        error instanceof TypeError ||
+        (error instanceof Error && error.message === 'Failed to fetch')
+      ) {
         throw new Error('Cannot connect to server. Please check your internet connection or if the server is accessible.');
       }
       throw error;
@@ -68,8 +90,12 @@ export const authApi = {
       password: data.password,
     };
     
-    if (data.whitelabel_admin_uuid && data.whitelabel_admin_uuid.trim()) {
-      payload.whitelabel_admin_uuid = data.whitelabel_admin_uuid.trim();
+    const projectUuid = data.whitelabel_admin_uuid?.trim();
+    if (projectUuid) {
+      if (!isValidProjectUuid(projectUuid)) {
+        throw new Error('Invalid project UUID. Please check the value and try again.');
+      }
+      payload.whitelabel_admin_uuid = projectUuid;
     }
     
     // Use Next.js API route to proxy the login request (avoids CORS)

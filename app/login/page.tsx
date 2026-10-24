@@ -5,6 +5,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { Input, Logo, useToast } from '@/components/ui';
 import { isSuperadminDomain, getBrandName } from '@/lib/utils/domain';
+import { readCachedProjectUuid } from '@/lib/utils/project-uuid';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {
@@ -12,10 +13,15 @@ export default function LoginPage() {
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
   const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [superadminLogin, setSuperadminLogin] = useState(false);
   const [brandName, setBrandName] = useState('Admin');
 
   useEffect(() => {
-    setIsSuperadmin(isSuperadminDomain());
+    const onSuperadminDomain = isSuperadminDomain();
+    setIsSuperadmin(onSuperadminDomain);
+    // Preserve existing behaviour on superadmin domains: default to the
+    // superadmin path, but let the user explicitly switch to a company login.
+    setSuperadminLogin(onSuperadminDomain);
     setBrandName(getBrandName());
   }, []);
   const [formData, setFormData] = useState<LoginRequest>({
@@ -34,7 +40,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(formData);
+      await login(formData, { superadmin: superadminLogin });
     } catch (err: unknown) {
       console.error('Login error:', err);
       const errorMessage = (err as Error)?.message || 'Login failed. Please check your credentials and try again.';
@@ -138,8 +144,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* UUID Loading State - Hidden for superadmin */}
-          {!isSuperadmin && isFetchingUuid && (
+          {/* UUID Loading State - shown for company logins */}
+          {!superadminLogin && isFetchingUuid && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <div className="flex items-center gap-2">
                 <svg className="animate-spin h-4 w-4 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -153,8 +159,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* UUID Error State - Hidden for superadmin */}
-          {!isSuperadmin && uuidFetchError && (
+          {/* UUID Error State - shown for company logins */}
+          {!superadminLogin && uuidFetchError && (
             <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -242,10 +248,45 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* Manual UUID Entry - Hidden for superadmin */}
-              {!isSuperadmin && (
+              {/* Superadmin mode - only on authorized superadmin domains */}
+              {isSuperadmin && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-purple-200/60 bg-purple-50/60 p-3 transition-colors hover:bg-purple-50 dark:border-purple-500/20 dark:bg-purple-900/20 dark:hover:bg-purple-900/30">
+                  <input
+                    type="checkbox"
+                    checked={superadminLogin}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSuperadminLogin(checked);
+                      if (!checked) {
+                        setShowManualUuid(true);
+                        // Surface the value that will be used, instead of
+                        // silently relying on a cached company UUID.
+                        const cachedUuid = readCachedProjectUuid();
+                        if (cachedUuid) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            whitelabel_admin_uuid: prev.whitelabel_admin_uuid || cachedUuid,
+                          }));
+                        }
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 accent-purple-600"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-gray-800 dark:text-gray-100">
+                      Sign in as superadmin
+                    </span>
+                    <span className="mt-0.5 block text-xs text-gray-600 dark:text-gray-400">
+                      Superadmin login does not use a project UUID. Uncheck to sign in as a company user.
+                    </span>
+                  </span>
+                </label>
+              )}
+
+              {/* Manual UUID Entry - required for company logins on a superadmin domain */}
+              {!superadminLogin && (
                 <>
-                  {!showManualUuid ? (
+                  {!showManualUuid && !isSuperadmin ? (
                     <div className="text-right">
                       <button
                         type="button"
@@ -258,7 +299,11 @@ export default function LoginPage() {
                   ) : (
                     <div className="space-y-2">
                       <Input
-                        label="Project UUID (Optional)"
+                        label={
+                          isSuperadmin
+                            ? 'Project UUID (required for company login)'
+                            : 'Project UUID (Optional)'
+                        }
                         type="text"
                         value={formData.whitelabel_admin_uuid}
                         onChange={(e) => setFormData({ ...formData, whitelabel_admin_uuid: e.target.value })}
@@ -266,7 +311,9 @@ export default function LoginPage() {
                         className="transition-all duration-200 focus:scale-[1.01]"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Only required if automatic configuration fails
+                        {isSuperadmin
+                          ? 'Required when signing in as a company user on a superadmin domain.'
+                          : 'Only required if automatic configuration fails'}
                       </p>
                     </div>
                   )}
@@ -298,12 +345,17 @@ export default function LoginPage() {
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-6 px-6 text-base shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 cursor-pointer transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              disabled={isLoading || (!isSuperadmin && isFetchingUuid)}
+              disabled={isLoading || (!superadminLogin && isFetchingUuid)}
             >
-              {isLoading || isFetchingUuid ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Signing in...
+                </div>
+              ) : !superadminLogin && isFetchingUuid ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Loading project...
                 </div>
               ) : (
                 'Sign In'
