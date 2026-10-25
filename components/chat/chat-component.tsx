@@ -62,6 +62,11 @@ import { playerMatchesSearchQuery } from "@/lib/chat/player-search";
 import { classifyMessage } from "./utils/message-classification";
 import { useTrackedRef } from "@/lib/utils/use-tracked-ref";
 import { useChatUrlSync } from "./hooks/use-chat-url-sync";
+import {
+  readLastChatView,
+  writeLastChatView,
+  type ChatViewSnapshot,
+} from "./chat-view-state";
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -285,6 +290,15 @@ export function ChatComponent() {
   const [activeTab, setActiveTab] = useState<
     "online" | "all-chats" | "unreplied"
   >("online");
+  // Keep the sidebar view across reloads. `sessionStorage` scopes it to this
+  // browser tab, so a conversation link shared into a new tab is still treated
+  // as an external deep link.
+  useEffect(() => {
+    writeLastChatView({
+      tab: activeTab,
+      playerId: selectedPlayer?.user_id ?? null,
+    });
+  }, [activeTab, selectedPlayer?.user_id]);
   const [searchQuery, setSearchQuery] = useState("");
   // Read once: this only partitions the client-side search cache per operator.
   // The fetcher still reads the live token, so a token refresh is picked up.
@@ -366,6 +380,17 @@ export function ChatComponent() {
    * as a deep link and force the sidebar into the All Players tab.
    */
   const inAppSelectionPlayerIdRef = useRef<number | null>(null);
+  /**
+   * Sidebar view stored by this browser tab, read once at mount.
+   *
+   * A reload has no in-memory record of how `?playerId=` got into the URL, so
+   * the stored player classifies the URL as the agent's own conversation
+   * instead of an external deep link.
+   */
+  const lastChatViewRef = useRef<ChatViewSnapshot | null>(
+    typeof window === "undefined" ? null : readLastChatView(),
+  );
+  const hasRestoredChatViewRef = useRef(false);
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
   // The player selected via query params, kept in the list even when they are on
@@ -2456,6 +2481,42 @@ export function ChatComponent() {
   const queryPlayerId = searchParams.get("playerId");
   const queryUsername = searchParams.get("username");
 
+  /**
+   * A URL that matches the view stored by this tab came from the agent's own
+   * selection (reload / remount), not from an external deep link.
+   *
+   * Combined with the in-app click marker above, this is what keeps the sidebar
+   * in the tab the agent chose instead of forcing All Players.
+   */
+  const isInAppOrRestoredSelection = useCallback((userId: number): boolean => {
+    return (
+      inAppSelectionPlayerIdRef.current === userId ||
+      lastChatViewRef.current?.playerId === userId
+    );
+  }, []);
+
+  /**
+   * Restore the tab this browser tab was last viewing.
+   *
+   * Runs before the deep-link effects below. When the URL names the stored
+   * player the view is restored as-is; a different player is a real deep link,
+   * which keeps the existing behaviour of showing them under All Players.
+   */
+  useEffect(() => {
+    if (hasRestoredChatViewRef.current) return;
+    hasRestoredChatViewRef.current = true;
+
+    const view = lastChatViewRef.current;
+    if (!view) return;
+
+    const raw = queryPlayerId ? Number(queryPlayerId) : null;
+    const urlPlayerId =
+      raw !== null && Number.isFinite(raw) && raw > 0 ? raw : null;
+
+    if (urlPlayerId !== null && view.playerId !== urlPlayerId) return;
+    setActiveTab(view.tab);
+  }, [queryPlayerId]);
+
   // Effect to handle query param player selection - runs only when queryPlayerId changes
   useEffect(() => {
     if (!queryPlayerId) {
@@ -2497,7 +2558,7 @@ export function ChatComponent() {
 
     // Effect reruns for the same URL (a directory fetch settling, for example)
     // must not turn that click into a deep link after the note was consumed.
-    if (inAppSelectionPlayerIdRef.current === targetUserId) {
+    if (isInAppOrRestoredSelection(targetUserId)) {
       return;
     }
 
@@ -2528,6 +2589,7 @@ export function ChatComponent() {
     isLoadingAllPlayers,
     fetchAllPlayers,
     consumeInAppSelection,
+    isInAppOrRestoredSelection,
   ]);
 
   // Separate effect to find and select player when data is available
@@ -2564,7 +2626,7 @@ export function ChatComponent() {
     // re-fetch), but keep a row without a chatroom id on that path so its room
     // can still be resolved.
     if (
-      inAppSelectionPlayerIdRef.current === targetUserId &&
+      isInAppOrRestoredSelection(targetUserId) &&
       selectedPlayer?.user_id === targetUserId &&
       resolveSafeChatroomId(selectedPlayer.id, targetUserId)
     ) {
@@ -2635,9 +2697,10 @@ export function ChatComponent() {
           // Do not put the username in the search box — that filters the
           // sidebar to one row and reappears on every reload of ?playerId=.
 
-          // Select the player. An in-app click keeps the tab the agent is in;
-          // only an external deep link pulls the sidebar to All Players.
-          if (inAppSelectionPlayerIdRef.current !== targetUserId) {
+          // Select the player. An in-app click or a reload keeps the tab the
+          // agent is in; only an external deep link pulls the sidebar to All
+          // Players.
+          if (!isInAppOrRestoredSelection(targetUserId)) {
             setActiveTab("all-chats");
           }
           setSelectedPlayer(chatUser);
@@ -2685,7 +2748,7 @@ export function ChatComponent() {
       // Select the player if not already selected
       // Set selectedPlayer directly to avoid handlePlayerSelect clearing URL params too early
       if (!selectedPlayer || selectedPlayer.user_id !== candidate.user_id) {
-        if (inAppSelectionPlayerIdRef.current !== targetUserId) {
+        if (!isInAppOrRestoredSelection(targetUserId)) {
           setActiveTab("all-chats");
         }
         // Set player state directly first
@@ -2765,7 +2828,7 @@ export function ChatComponent() {
         !selectedPlayer ||
         selectedPlayer.user_id !== pinnedQueryPlayer.current.user_id
       ) {
-        if (inAppSelectionPlayerIdRef.current !== targetUserId) {
+        if (!isInAppOrRestoredSelection(targetUserId)) {
           setActiveTab("all-chats");
         }
         const player = pinnedQueryPlayer.current;
@@ -2793,6 +2856,7 @@ export function ChatComponent() {
     router,
     pinnedQueryPlayer,
     consumeInAppSelection,
+    isInAppOrRestoredSelection,
   ]);
 
   // Fallback effect: Ensure selectedPlayer is set if we have queryPlayerId and player in ref
@@ -2816,7 +2880,7 @@ export function ChatComponent() {
     // If we have the player in ref but selectedPlayer is null or different, select them
     // Set selectedPlayer directly to avoid handlePlayerSelect clearing URL params too early
     if (!selectedPlayer || selectedPlayer.user_id !== targetUserId) {
-      if (inAppSelectionPlayerIdRef.current !== targetUserId) {
+      if (!isInAppOrRestoredSelection(targetUserId)) {
         setActiveTab("all-chats");
       }
       const player = pinnedQueryPlayer.current;
@@ -2840,6 +2904,7 @@ export function ChatComponent() {
     markChatAsReadDebounced,
     router,
     pinnedQueryPlayer,
+    isInAppOrRestoredSelection,
   ]);
 
   // Effect to handle username query param player selection
