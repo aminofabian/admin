@@ -63,8 +63,11 @@ import { classifyMessage } from "./utils/message-classification";
 import { useTrackedRef } from "@/lib/utils/use-tracked-ref";
 import { useChatUrlSync } from "./hooks/use-chat-url-sync";
 import {
+  ensureSelectedPlayerVisible,
   readLastChatView,
+  resolveInitialChatTab,
   writeLastChatView,
+  type ChatTab,
   type ChatViewSnapshot,
 } from "./chat-view-state";
 
@@ -287,18 +290,18 @@ export function ChatComponent() {
   const [adminUserId] = useState(() => getAdminUserId());
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "online" | "all-chats" | "unreplied"
-  >("online");
-  // Keep the sidebar view across reloads. `sessionStorage` scopes it to this
-  // browser tab, so a conversation link shared into a new tab is still treated
-  // as an external deep link.
-  useEffect(() => {
-    writeLastChatView({
-      tab: activeTab,
-      playerId: selectedPlayer?.user_id ?? null,
-    });
-  }, [activeTab, selectedPlayer?.user_id]);
+  // Seed from the stored view on first paint so a reload does not flash Online
+  // before the restore effect runs. A URL naming a different player is treated
+  // as an external deep link and opens under All Players immediately.
+  const [activeTab, setActiveTab] = useState<ChatTab>(() => {
+    if (typeof window === "undefined") return "online";
+    const view = readLastChatView();
+    const raw = new URLSearchParams(window.location.search).get("playerId");
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    const urlPlayerId =
+      Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    return resolveInitialChatTab(view, urlPlayerId);
+  });
   const [searchQuery, setSearchQuery] = useState("");
   // Read once: this only partitions the client-side search cache per operator.
   // The fetcher still reads the live token, so a token refresh is picked up.
@@ -381,16 +384,41 @@ export function ChatComponent() {
    */
   const inAppSelectionPlayerIdRef = useRef<number | null>(null);
   /**
-   * Sidebar view stored by this browser tab, read once at mount.
-   *
-   * A reload has no in-memory record of how `?playerId=` got into the URL, so
-   * the stored player classifies the URL as the agent's own conversation
-   * instead of an external deep link.
+   * Sidebar view for this browser tab. Seeded from sessionStorage on mount so a
+   * reload can tell the agent's own conversation from an external deep link;
+   * kept in sync on every tab/selection change so Back/Forward stays in-session.
    */
   const lastChatViewRef = useRef<ChatViewSnapshot | null>(
     typeof window === "undefined" ? null : readLastChatView(),
   );
+  /**
+   * Players opened during this page session (clicks, restores, resolved deep
+   * links). History navigation to one of these must keep the current tab —
+   * only a player the agent has never opened here should force All Players.
+   */
+  const sessionKnownPlayerIdsRef = useRef<Set<number>>(
+    new Set(
+      lastChatViewRef.current?.playerId
+        ? [lastChatViewRef.current.playerId]
+        : [],
+    ),
+  );
   const hasRestoredChatViewRef = useRef(false);
+
+  // Keep the sidebar view across reloads. `sessionStorage` scopes it to this
+  // browser tab, so a conversation link shared into a new tab is still treated
+  // as an external deep link.
+  useEffect(() => {
+    const view: ChatViewSnapshot = {
+      tab: activeTab,
+      playerId: selectedPlayer?.user_id ?? null,
+    };
+    lastChatViewRef.current = view;
+    writeLastChatView(view);
+    if (view.playerId) {
+      sessionKnownPlayerIdsRef.current.add(view.playerId);
+    }
+  }, [activeTab, selectedPlayer?.user_id]);
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
   // The player selected via query params, kept in the list even when they are on
@@ -1044,7 +1072,10 @@ export function ChatComponent() {
 
     const trimmedSearch = searchQuery.trim();
     if (!trimmedSearch) {
-      return players;
+      // Keep the open conversation highlighted when switching tabs even if the
+      // player is not in that tab's source list (offline on Online, replied on
+      // Unreplied, deep-linked page not yet loaded on All Players).
+      return ensureSelectedPlayerVisible(players, selectedPlayer);
     }
 
     // Below the minimum length nothing is searched, so show the hint rather than
@@ -1178,6 +1209,7 @@ export function ChatComponent() {
     serverSearchPlayers,
     serverSearchForQuery,
     pinnedQueryPlayer,
+    selectedPlayer,
   ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
@@ -1634,6 +1666,18 @@ export function ChatComponent() {
     [],
   );
 
+  const handleActiveTabChange = useCallback(
+    (tab: ChatTab) => {
+      if (tab === activeTab) return;
+      // Search is scoped to the list you are looking at. Carrying a query from
+      // All Players into Online/Unreplied filtered those tabs with the wrong
+      // merge rules and often looked empty.
+      setSearchQuery("");
+      setActiveTab(tab);
+    },
+    [activeTab],
+  );
+
   const handlePlayerSelect = useCallback(
     (player: Player, options?: { markAsRead?: boolean }) => {
       const { markAsRead } = options ?? {};
@@ -1679,7 +1723,11 @@ export function ChatComponent() {
       // leaving the console, and so the link is shareable. Marked as an in-app
       // selection so the deep-link effect does not resolve it a second time.
       closedPlayerIdRef.current = null;
+      inAppSelectionPlayerIdRef.current = playerWithNotes.user_id;
+      sessionKnownPlayerIdsRef.current.add(playerWithNotes.user_id);
       selectPlayerInApp(playerWithNotes.user_id);
+      // Pin so All Players pagination / tab switches cannot drop the open row.
+      pinnedQueryPlayer.set(playerWithNotes);
 
       if (shouldMarkAsRead) {
         markChatAsReadDebounced({
@@ -1704,7 +1752,7 @@ export function ChatComponent() {
     // missing from this list (and `markChatAsRead` was listed but never
     // invoked), so a changed debouncer identity meant the conversation was
     // selected but never marked read.
-    [markChatAsReadDebounced, activeTab, selectPlayerInApp],
+    [markChatAsReadDebounced, activeTab, selectPlayerInApp, pinnedQueryPlayer],
   );
 
   const selectedPlayerAvatarUrl = selectedPlayer?.avatar;
@@ -2491,7 +2539,8 @@ export function ChatComponent() {
   const isInAppOrRestoredSelection = useCallback((userId: number): boolean => {
     return (
       inAppSelectionPlayerIdRef.current === userId ||
-      lastChatViewRef.current?.playerId === userId
+      lastChatViewRef.current?.playerId === userId ||
+      sessionKnownPlayerIdsRef.current.has(userId)
     );
   }, []);
 
@@ -2520,14 +2569,13 @@ export function ChatComponent() {
   // Effect to handle query param player selection - runs only when queryPlayerId changes
   useEffect(() => {
     if (!queryPlayerId) {
-      // Only clear processing refs, but KEEP queryParamPlayerRef if player is already selected
-      // This prevents the player from disappearing from the list when URL is cleared
+      // URL cleared (close / replace). Drop processing markers so a later deep
+      // link can run. The pin is cleared by handleCloseConversation; leaving it
+      // here used to leave a ghost row in All Players after close.
       processedQueryPlayerIdRef.current = null;
       closedPlayerIdRef.current = null;
       inAppSelectionPlayerIdRef.current = null;
       lastSetSearchQueryRef.current = "";
-      // NOTE: We intentionally do NOT clear queryParamPlayerRef here
-      // The player should remain visible in the list even after URL params are cleared
       return;
     }
 
@@ -2547,28 +2595,30 @@ export function ChatComponent() {
       inAppSelectionPlayerIdRef.current = null;
     }
 
-    // The agent just clicked this player in the list and the URL was updated to
-    // match. The conversation is already open in the tab they clicked from;
-    // resolving it again would re-fetch a conversation we already have and
-    // force the sidebar into the All Players tab.
-    if (consumeInAppSelection(targetUserId)) {
-      inAppSelectionPlayerIdRef.current = targetUserId;
-      return;
-    }
-
-    // Effect reruns for the same URL (a directory fetch settling, for example)
-    // must not turn that click into a deep link after the note was consumed.
-    if (isInAppOrRestoredSelection(targetUserId)) {
-      return;
-    }
-
-    // Reset processed ref if queryPlayerId changed to a different player
+    // History / in-session re-entry of a different player must re-run the
+    // select effect even when we preserve the tab below.
     if (
       processedQueryPlayerIdRef.current !== null &&
       processedQueryPlayerIdRef.current !== targetUserId
     ) {
       processedQueryPlayerIdRef.current = null;
       lastSetSearchQueryRef.current = "";
+    }
+
+    // The agent just clicked this player in the list and the URL was updated to
+    // match. The conversation is already open in the tab they clicked from;
+    // resolving it again would re-fetch a conversation we already have and
+    // force the sidebar into the All Players tab.
+    if (consumeInAppSelection(targetUserId)) {
+      inAppSelectionPlayerIdRef.current = targetUserId;
+      sessionKnownPlayerIdsRef.current.add(targetUserId);
+      return;
+    }
+
+    // Same-session Back/Forward (or a reload of the open chat): keep the tab
+    // the agent is on. Only a player never opened in this tab forces All Players.
+    if (isInAppOrRestoredSelection(targetUserId)) {
+      return;
     }
 
     // Skip if we've already processed this exact playerId
@@ -2635,13 +2685,22 @@ export function ChatComponent() {
       return;
     }
 
-    // Show skeleton immediately on deep-link — before candidate lookup / API resolve.
-    setIsResolvingChatroom(true);
+    // External deep links show a resolving skeleton up front. Same-session
+    // Back/Forward already has the player in a list most of the time — skip the
+    // flash so tab switches and history feel instant.
+    if (!isInAppOrRestoredSelection(targetUserId)) {
+      setIsResolvingChatroom(true);
+    }
 
-    // Search for the player in the available data
-    let candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
-      return player.user_id === targetUserId;
-    });
+    // Prefer directory / active-chat rows, then the live Online / Unreplied
+    // lists so Back can reopen a player who was only visible on those tabs.
+    let candidate = [
+      ...allPlayers,
+      ...activeChatsUsers,
+      ...apiOnlinePlayers,
+      ...wsOnlineChats,
+      ...unrepliedChats,
+    ].find((player) => player.user_id === targetUserId);
 
     // If not found in loaded data, check if we have them in the ref (from a previous find)
     if (
@@ -2851,11 +2910,13 @@ export function ChatComponent() {
     queryPlayerId,
     allPlayers,
     activeChatsUsers,
+    apiOnlinePlayers,
+    wsOnlineChats,
+    unrepliedChats,
     selectedPlayer,
     markChatAsReadDebounced,
     router,
     pinnedQueryPlayer,
-    consumeInAppSelection,
     isInAppOrRestoredSelection,
   ]);
 
@@ -3437,10 +3498,11 @@ export function ChatComponent() {
     if (selectedPlayer?.user_id) {
       closedPlayerIdRef.current = selectedPlayer.user_id;
     }
+    pinnedQueryPlayer.set(null);
     setSelectedPlayer(null);
     setMobileView("list");
     clearPlayerId();
-  }, [clearPlayerId, selectedPlayer?.user_id]);
+  }, [clearPlayerId, selectedPlayer?.user_id, pinnedQueryPlayer]);
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-3">
@@ -3450,7 +3512,7 @@ export function ChatComponent() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleActiveTabChange}
         displayedPlayers={displayedPlayers}
         selectedPlayer={selectedPlayer}
         onlinePlayersCount={displayOnlinePlayersTotal}

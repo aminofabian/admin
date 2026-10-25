@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  ensureSelectedPlayerVisible,
   readLastChatView,
+  resolveInitialChatTab,
   writeLastChatView,
 } from '../chat-view-state';
 
@@ -41,5 +43,44 @@ describe('chat view state', () => {
     );
 
     expect(readLastChatView()).toEqual({ tab: 'unreplied', playerId: null });
+  });
+});
+
+describe('resolveInitialChatTab', () => {
+  it('defaults to online when nothing is stored', () => {
+    expect(resolveInitialChatTab(null, null)).toBe('online');
+  });
+
+  it('restores the stored tab when the URL matches', () => {
+    expect(
+      resolveInitialChatTab({ tab: 'unreplied', playerId: 12 }, 12),
+    ).toBe('unreplied');
+  });
+
+  it('opens All Players for an external deep link', () => {
+    expect(
+      resolveInitialChatTab({ tab: 'online', playerId: 12 }, 99),
+    ).toBe('all-chats');
+    expect(resolveInitialChatTab(null, 99)).toBe('all-chats');
+  });
+});
+
+describe('ensureSelectedPlayerVisible', () => {
+  const alice = { user_id: 1 };
+  const bob = { user_id: 2 };
+
+  it('returns the list unchanged when the selection is already present', () => {
+    expect(ensureSelectedPlayerVisible([alice, bob], alice)).toEqual([
+      alice,
+      bob,
+    ]);
+  });
+
+  it('prepends a missing selection so the open chat stays highlighted', () => {
+    expect(ensureSelectedPlayerVisible([alice], bob)).toEqual([bob, alice]);
+  });
+
+  it('ignores a null selection', () => {
+    expect(ensureSelectedPlayerVisible([alice], null)).toEqual([alice]);
   });
 });

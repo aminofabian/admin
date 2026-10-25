@@ -248,6 +248,7 @@ interface PlayerListSidebarProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   activeTab: 'online' | 'all-chats' | 'unreplied';
+  /** Clears search when the tab actually changes so filters do not leak across lists. */
   setActiveTab: (tab: 'online' | 'all-chats' | 'unreplied') => void;
   displayedPlayers: ChatUser[];
   selectedPlayer: ChatUser | null;
@@ -363,8 +364,9 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [activeTab]);
 
-  // Deep links / Back can open a conversation whose row is off-screen. Bring it
-  // into view without moving the list when it is already visible.
+  // Deep links / Back / tab switches can leave the open row off-screen (or
+  // newly prepended at the top). Bring it into view without yanking when it is
+  // already visible.
   const selectedUserId = selectedPlayer?.user_id;
   useEffect(() => {
     if (!selectedUserId) return;
@@ -372,7 +374,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       '[role="option"][aria-selected="true"]',
     );
     row?.scrollIntoView({ block: 'nearest' });
-  }, [selectedUserId]);
+  }, [selectedUserId, activeTab]);
 
   /** Move DOM focus to a row and keep it in view. */
   const focusRowAt = (index: number) => {
@@ -785,7 +787,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
           <div className="space-y-0.5 p-2">
             {displayedPlayers.map((player) => (
               <PlayerItem
-                key={`${player.user_id}-${player.id}`}
+                key={player.user_id}
                 player={player}
                 isSelected={selectedPlayer?.user_id === player.user_id}
                 isDimmed={isPlayerSearchStale}

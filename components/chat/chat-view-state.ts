@@ -54,3 +54,37 @@ export function writeLastChatView(view: ChatViewSnapshot): void {
     // Storage can be unavailable (quota/private mode); the view is a nicety.
   }
 }
+
+/**
+ * Pick the sidebar tab to show on first paint.
+ *
+ * Reloading the open conversation should land on the tab the agent was using.
+ * A URL that names a *different* player (or any player with no stored view) is
+ * treated as an external deep link and opens under All Players.
+ */
+export function resolveInitialChatTab(
+  view: ChatViewSnapshot | null,
+  urlPlayerId: number | null,
+): ChatTab {
+  if (urlPlayerId !== null && (!view || view.playerId !== urlPlayerId)) {
+    return 'all-chats';
+  }
+  return view?.tab ?? 'online';
+}
+
+/**
+ * Keep the open conversation visible in the sidebar when the active tab's
+ * source list does not include them (e.g. Online → offline player, Unreplied
+ * after a reply). Without this the chat stays open but the list loses its
+ * selection highlight.
+ */
+export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
+  players: T[],
+  selected: T | null | undefined,
+): T[] {
+  if (!selected?.user_id) return players;
+  if (players.some((player) => player.user_id === selected.user_id)) {
+    return players;
+  }
+  return [selected, ...players];
+}
