@@ -7,7 +7,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     console.log('🔷 Proxying login to:', `${BACKEND_URL}/users/login/`);
-    console.log('📤 Request body:', { username: body.username, hasPassword: !!body.password });
+    console.log('📤 Request body:', {
+      username: body.username,
+      hasPassword: !!body.password,
+      whitelabel_admin_uuid: body.whitelabel_admin_uuid ?? null,
+      host: request.headers.get('host'),
+    });
 
     // Forward the request to the Django backend
     const response = await fetch(`${BACKEND_URL}/users/login/`, {

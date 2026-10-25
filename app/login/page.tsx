@@ -34,7 +34,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(formData);
+      await login(formData, { superadmin: isSuperadmin });
     } catch (err: unknown) {
       console.error('Login error:', err);
       const errorMessage = (err as Error)?.message || 'Login failed. Please check your credentials and try again.';
@@ -300,10 +300,15 @@ export default function LoginPage() {
               className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-6 px-6 text-base shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 cursor-pointer transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               disabled={isLoading || (!isSuperadmin && isFetchingUuid)}
             >
-              {isLoading || isFetchingUuid ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Signing in...
+                </div>
+              ) : !isSuperadmin && isFetchingUuid ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Loading project...
                 </div>
               ) : (
                 'Sign In'

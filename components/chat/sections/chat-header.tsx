@@ -16,6 +16,8 @@ interface ChatHeaderProps {
   connectionError: string | null;
   mobileView: 'list' | 'chat' | 'info';
   setMobileView: (view: 'list' | 'chat' | 'info') => void;
+  /** Returns to the list and removes this conversation from the URL. */
+  onCloseConversation: () => void;
   onOpenNotesDrawer: () => void;
   playerLastSeenAt?: string | null;
   /** Called when identity status is resolved from player details (list API may omit it). */
@@ -27,6 +29,7 @@ export const ChatHeader = memo(function ChatHeader({
   isConnected,
   connectionError,
   setMobileView,
+  onCloseConversation,
   onOpenNotesDrawer,
   playerLastSeenAt,
   onIdentityVerifiedResolved,
@@ -102,7 +105,7 @@ export const ChatHeader = memo(function ChatHeader({
     <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-card/80 px-3 py-2 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] backdrop-blur-md dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)] md:px-4 md:py-3">
       {/* Back button for mobile */}
       <button
-        onClick={() => setMobileView('list')}
+        onClick={onCloseConversation}
         className="md:hidden p-2 -ml-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 mr-1 active:scale-95"
         aria-label="Back to list"
         type="button"
@@ -169,6 +172,17 @@ export const ChatHeader = memo(function ChatHeader({
       </button>
       
       <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onCloseConversation}
+          className="hidden md:inline-flex p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95"
+          aria-label="Close conversation"
+          title="Close conversation"
+        >
+          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
         <button 
           onClick={onOpenNotesDrawer}
           className="relative p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95" 

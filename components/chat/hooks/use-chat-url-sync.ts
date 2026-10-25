@@ -59,6 +59,19 @@ export function useChatUrlSync() {
   );
 
   /**
+   * Drop the conversation from the URL when the agent closes it.
+   *
+   * Uses `replace` so closing does not add a history entry. A refresh then
+   * lands on the list instead of re-opening the conversation that was closed.
+   */
+  const clearPlayerId = useCallback(() => {
+    if (pathname === CHAT_PATH && searchParams.toString() === '') {
+      return;
+    }
+    router.replace(CHAT_PATH, { scroll: false });
+  }, [router, pathname, searchParams]);
+
+  /**
    * Point the URL at a player the agent just clicked in the list.
    *
    * The selection effects below watch the URL, so an in-app selection has to
@@ -87,5 +100,12 @@ export function useChatUrlSync() {
     return false;
   }, []);
 
-  return { urlPlayerId, urlUsername, writePlayerId, selectPlayerInApp, consumeInAppSelection };
+  return {
+    urlPlayerId,
+    urlUsername,
+    writePlayerId,
+    selectPlayerInApp,
+    consumeInAppSelection,
+    clearPlayerId,
+  };
 }
