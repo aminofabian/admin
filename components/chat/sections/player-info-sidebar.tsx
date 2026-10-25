@@ -144,10 +144,10 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   }, [gameToChange, addToast]);
   return (
     <div
-      className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/40 bg-muted/20 md:w-64 md:bg-gradient-to-b md:from-card md:to-card/50 lg:w-72`}
+      className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/50 bg-muted/[0.12] md:w-72 md:bg-gradient-to-b md:from-card md:to-card/60 lg:w-80`}
     >
       {/* Header — profile */}
-      <div className="shrink-0 border-b border-border/40 bg-card/90 px-3 pb-3 pt-2 backdrop-blur-sm md:px-2 md:pb-2 md:pt-2">
+      <div className="shrink-0 border-b border-border/50 bg-card/90 px-3 pb-3 pt-3 backdrop-blur-sm md:px-3 md:pb-3">
         <button
           type="button"
           onClick={() => setMobileView('chat')}
@@ -161,7 +161,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           <span className="text-sm font-medium">Back to chat</span>
         </button>
 
-        <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-2.5">
+        <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-3">
           <div className="flex gap-3 md:gap-2">
             <div className="relative shrink-0">
               <button
@@ -174,7 +174,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   avatarUrl={selectedPlayer.avatar}
                   username={selectedPlayer.username}
                   size={56}
-                  wrapperClassName="h-14 w-14 rounded-2xl ring-2 ring-white/30 md:h-10 md:w-10 md:rounded-lg dark:ring-white/10"
+                  wrapperClassName="h-14 w-14 rounded-2xl ring-2 ring-white/30 md:h-11 md:w-11 md:rounded-xl dark:ring-white/10"
                   className="text-lg md:text-xs"
                 />
               </button>
@@ -191,7 +191,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 title="Open full profile"
               >
                 <span className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-xs">
+                  <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-[13px]">
                     {selectedPlayer.fullName || selectedPlayer.username}
                   </span>
                   {selectedPlayer.isIdentityVerified ? (
@@ -202,7 +202,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   @{selectedPlayer.username}
                 </span>
               </button>
-              <p className="truncate text-xs leading-tight text-muted-foreground md:text-[10px]">
+              <p className="truncate text-xs leading-tight text-muted-foreground md:text-[11px]">
                 {selectedPlayer.email || 'No email on file'}
               </p>
             </div>
@@ -210,17 +210,17 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 touch-pan-y space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] md:space-y-2 md:p-2 md:pb-2">
+      <div className="scrollbar-smooth min-h-0 flex-1 touch-pan-y space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] md:space-y-2.5 md:p-3 md:pb-3">
         {/* Wallet */}
-        <section className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-lg md:p-2">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground md:mb-2">
+        <section className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-3">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground md:mb-2.5">
             Wallet
           </p>
           <div
             className={`grid gap-3 ${hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? 'grid-cols-2' : 'grid-cols-1'}`}
           >
             <div className="rounded-xl bg-blue-500/[0.07] p-3 ring-1 ring-blue-500/15 md:rounded-md md:p-1.5">
-              <div className="mb-1.5 flex items-center gap-1.5">
+              <div className="mb-2 flex items-center gap-1.5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15 md:h-5 md:w-5 md:rounded">
                   <svg className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -228,14 +228,14 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 </span>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Balance</span>
               </div>
-              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 md:text-sm">
+              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 md:text-[15px]">
                 {formatCurrency(selectedPlayer.balance || '0')}
               </p>
             </div>
 
             {hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? (
               <div className="rounded-xl bg-amber-500/[0.07] p-3 ring-1 ring-amber-500/15 md:rounded-md md:p-1.5">
-                <div className="mb-1.5 flex items-center gap-1.5">
+                <div className="mb-2 flex items-center gap-1.5">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 md:h-5 md:w-5 md:rounded">
                     <svg className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 md:h-3 md:w-3" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -243,14 +243,14 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   </span>
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Winnings</span>
                 </div>
-                <p className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-400 md:text-sm">
+                <p className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-400 md:text-[15px]">
                   {formatCurrency(selectedPlayer.winningBalance || '0')}
                 </p>
               </div>
             ) : null}
           </div>
           {selectedPlayer.cashoutLimit !== undefined && selectedPlayer.cashoutLimit !== '' ? (
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 md:mt-2 md:rounded-md md:px-2 md:py-1.5">
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 md:mt-3 md:rounded-lg md:px-2.5 md:py-2">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cashout limit</span>
               <p className="text-sm font-bold tabular-nums text-foreground md:text-xs">
                 {formatCurrency(selectedPlayer.cashoutLimit)}
@@ -267,7 +267,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         <div className="flex w-full flex-col gap-2">
           <Button
             variant="primary"
-            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-9 md:rounded-lg md:text-xs md:shadow-sm"
             onClick={onOpenEditBalance}
           >
             <svg className="mr-2 h-4 w-4 md:mr-1 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +277,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           </Button>
           <Button
             variant="primary"
-            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-9 md:rounded-lg md:text-xs md:shadow-sm"
             onClick={onOpenEditSpins}
           >
             <svg className="mr-2 h-4 w-4 md:mr-1 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -290,15 +290,15 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         </div>
 
         {/* Activity */}
-        <section className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm md:rounded-lg">
-          <div className="flex items-center gap-2.5 border-b border-border/40 bg-muted/30 px-4 py-3 md:px-3 md:py-2">
+        <section className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm md:rounded-xl">
+          <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/30 px-4 py-3 md:px-3 md:py-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 md:h-6 md:w-6 md:rounded-md">
               <svg className="h-5 w-5 text-violet-600 dark:text-violet-400 md:h-3.5 md:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
             <div>
-              <h4 className="text-sm font-semibold text-foreground md:text-xs">Activity</h4>
+              <h4 className="text-sm font-semibold text-foreground md:text-[13px]">Activity</h4>
               <p className="text-[11px] text-muted-foreground md:hidden">Purchases, cashouts &amp; games</p>
             </div>
           </div>
@@ -308,7 +308,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('purchases')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">
@@ -407,7 +407,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('cashouts')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">
@@ -496,7 +496,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('activities')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">

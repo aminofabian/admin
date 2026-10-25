@@ -8,6 +8,10 @@ import type { ChatUser } from '@/types';
 
 interface ChatUsersContextType {
   users: ChatUser[];
+  /** Online chats seeded/updated by the chat-list socket. */
+  onlineChats: ChatUser[];
+  /** Chats the server flags `is_unreplied` — the Unreplied tab. */
+  unrepliedChats: ChatUser[];
   allPlayers: ChatUser[];
   onlineUsers: ChatUser[];
   isLoading: boolean;
@@ -16,7 +20,8 @@ interface ChatUsersContextType {
   error: string | null;
   isConnected: boolean;
   refetch: () => Promise<void>;
-  fetchAllPlayers: () => Promise<void>;
+  /** `force` bypasses the 5-minute directory cache (manual refresh). */
+  fetchAllPlayers: (options?: { force?: boolean }) => Promise<void>;
   loadMorePlayers: () => Promise<void>;
   hasMorePlayers: boolean;
   playersWithChatsTotalCount: number | null;

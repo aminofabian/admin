@@ -47,6 +47,7 @@ import {
   MessageInputArea,
 } from "./sections";
 import { MessageBubble } from "./components/message-bubble";
+import { PlayerAvatar } from "./components/player-avatar";
 import { ChatLoadingBoxes } from "./components/chat-loading-boxes";
 import {
   isPurchaseNotification,
@@ -280,7 +281,9 @@ export function ChatComponent() {
   const [adminUserId] = useState(() => getAdminUserId());
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [activeTab, setActiveTab] = useState<"online" | "all-chats">("online");
+  const [activeTab, setActiveTab] = useState<
+    "online" | "all-chats" | "unreplied"
+  >("online");
   const [searchQuery, setSearchQuery] = useState("");
   // Read once: this only partitions the client-side search cache per operator.
   // The fetcher still reads the live token, so a token refresh is picked up.
@@ -336,7 +339,7 @@ export function ChatComponent() {
     openConversation,
     setText: setMessageInput,
     setFile: setDraftFile,
-  } = useConversationDrafts();
+  } = useConversationDrafts(adminUserId);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [hasNewMessagesWhileScrolled, setHasNewMessagesWhileScrolled] =
@@ -380,7 +383,9 @@ export function ChatComponent() {
 
   // Get chat users from shared context
   const {
-    users: activeChatsUsers, // Users with active chats (from WebSocket)
+    users: activeChatsUsers, // Chats merged from the chat-list WebSocket
+    onlineChats: wsOnlineChats, // Seeded/updated from the socket's `online` array
+    unrepliedChats, // Server-flagged `is_unreplied` chats
     allPlayers, // All players (from REST API)
     onlineUsers: onlinePlayers,
     isLoading: isLoadingUsers,
@@ -393,7 +398,6 @@ export function ChatComponent() {
     playersWithChatsTotalCount,
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
-    refreshActiveChats,
     invalidatePlayersCache,
     updateChatLastMessage,
     markChatAsReadDebounced,
@@ -450,9 +454,9 @@ export function ChatComponent() {
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(
       async (message: ChatMessage) => {
-        // 🔄 Refresh the chat list from the API to get latest unread counts and sorting
-        // This ensures the sidebar is always in sync with the backend
-        refreshActiveChats();
+        // The chat-list socket's `re_arrange` event owns list membership and
+        // ordering now, so the open conversation does not trigger a REST
+        // refetch of /api/chat-all-players on every message.
 
         // ⚡ Update the local state immediately for the specific player for instant UI feedback
         if (message.userId) {
@@ -464,7 +468,7 @@ export function ChatComponent() {
           );
         }
       },
-      [refreshActiveChats, updateChatLastMessage, selectedPlayer?.id],
+      [updateChatLastMessage, selectedPlayer?.id],
     ),
     onBalanceUpdated: useCallback(
       (data: {
@@ -834,145 +838,56 @@ export function ChatComponent() {
     let players: Player[];
 
     if (activeTab === "online") {
-      // ✨ OPTIMIZED: Use hybrid REST + WebSocket online players
-      // apiOnlinePlayers already combines REST API data with real-time WebSocket updates
+      // Online is seeded and kept live by `/ws/chatlist/`. REST rows only
+      // supply profile / balance detail for players already in the socket
+      // list, and act as a fallback before the first snapshot arrives.
+      const apiById = new Map<number, Player>();
+      apiOnlinePlayers.forEach((player) => {
+        if (player.user_id) apiById.set(player.user_id, player);
+      });
+
+      const socketRows =
+        wsOnlineChats.length > 0
+          ? wsOnlineChats
+          : activeChatsUsers.filter((player) => player.isOnline);
+
       const seenUserIds = new Map<number, Player>();
-
-      // DEBUG: Log initial data states
-      if (!IS_PROD)
-        console.log(
-          `🔍 [Online Tab] Data sources - API: ${apiOnlinePlayers.length}, WebSocket: ${activeChatsUsers.length}`,
+      socketRows.forEach((player: Player) => {
+        if (!player.user_id) return;
+        const api = apiById.get(player.user_id);
+        seenUserIds.set(
+          player.user_id,
+          api
+            ? {
+                ...api,
+                ...player,
+                id:
+                  firstSafeChatroomId(player.user_id, player.id, api.id) ??
+                  api.id,
+                lastMessage: player.lastMessage || api.lastMessage,
+                lastMessageTime: isValidTimestamp(player.lastMessageTime)
+                  ? player.lastMessageTime
+                  : api.lastMessageTime,
+                unreadCount: player.unreadCount ?? api.unreadCount ?? 0,
+                isOnline: true,
+                notes: player.notes || api.notes,
+              }
+            : player,
         );
-
-      // DEBUG: Log sample data from both sources
-      if (!IS_PROD && apiOnlinePlayers.length > 0) {
-        const sampleApiPlayer = apiOnlinePlayers[0];
-        console.log(`📊 [Online Tab] Sample API player:`, {
-          username: sampleApiPlayer.username,
-          lastMessage: sampleApiPlayer.lastMessage?.substring(0, 30),
-          lastMessageTime: sampleApiPlayer.lastMessageTime,
-          validTimestamp: isValidTimestamp(sampleApiPlayer.lastMessageTime),
-        });
-      }
-
-      if (!IS_PROD && activeChatsUsers.length > 0) {
-        const sampleWsPlayer = activeChatsUsers[0];
-        console.log(`📊 [Online Tab] Sample WebSocket player:`, {
-          username: sampleWsPlayer.username,
-          lastMessage: sampleWsPlayer.lastMessage?.substring(0, 30),
-          lastMessageTime: sampleWsPlayer.lastMessageTime,
-          validTimestamp: isValidTimestamp(sampleWsPlayer.lastMessageTime),
-        });
-      }
-
-      // First, add all online players from the optimized hook
-      apiOnlinePlayers.forEach((player: Player) => {
-        if (player.user_id) {
-          seenUserIds.set(player.user_id, player);
-        }
       });
 
-      // Then, merge with active chat data for real-time message updates
-      activeChatsUsers.forEach((player: Player) => {
-        if (player.user_id && player.isOnline) {
-          const existing = seenUserIds.get(player.user_id);
-          if (existing) {
-            //  DEBUG: Log timestamp merge behavior
-            if (!IS_PROD) {
-              console.log(
-                `🔄 [Online Tab Merge] Merging timestamps for ${player.username}:`,
-                {
-                  existingTime: existing.lastMessageTime,
-                  playerTime: player.lastMessageTime,
-                  validPlayerTime: isValidTimestamp(player.lastMessageTime),
-                  chosenTime: isValidTimestamp(player.lastMessageTime)
-                    ? player.lastMessageTime
-                    : existing.lastMessageTime,
-                },
-              );
-            }
-
-            //  FIXED: Prioritize WebSocket data (real-time) over REST API data
-            seenUserIds.set(player.user_id, {
-              ...existing,
-              id:
-                firstSafeChatroomId(player.user_id, player.id, existing.id) ??
-                existing.id,
-              // WebSocket data takes priority for real-time fields
-              lastMessage: player.lastMessage || existing.lastMessage,
-              //  FIXED: Use better timestamp preservation logic like all-chats tab
-              lastMessageTime: isValidTimestamp(player.lastMessageTime)
-                ? player.lastMessageTime
-                : existing.lastMessageTime,
-              unreadCount: player.unreadCount ?? existing.unreadCount ?? 0, // WebSocket first!
-              isOnline: player.isOnline ?? existing.isOnline, // WebSocket status is authoritative
-              notes: existing.notes || player.notes, // Preserve notes
-            });
-          } else {
-            // Add player from active chats if not in online list
-            seenUserIds.set(player.user_id, player);
-          }
-        }
-      });
+      // Before the first socket snapshot, REST is the only source of rows.
+      if (socketRows.length === 0) {
+        apiOnlinePlayers.forEach((player) => {
+          if (player.user_id) seenUserIds.set(player.user_id, player);
+        });
+      }
 
       players = Array.from(seenUserIds.values());
-
-      // DEBUG: Log final result after merge
-      if (!IS_PROD && players.length > 0) {
-        const sampleFinalPlayer = players[0];
-        console.log(`🎯 [Online Tab Final] Sample final player:`, {
-          username: sampleFinalPlayer.username,
-          lastMessage: sampleFinalPlayer.lastMessage?.substring(0, 30),
-          lastMessageTime: sampleFinalPlayer.lastMessageTime,
-          validTimestamp: isValidTimestamp(sampleFinalPlayer.lastMessageTime),
-        });
-
-        // Log all players with timestamps
-        const playersWithTimestamps = players.filter((p) => p.lastMessageTime);
-        const playersWithoutTimestamps = players.filter(
-          (p) => !p.lastMessageTime,
-        );
-        console.log(
-          `📊 [Online Tab Final] Players with timestamps: ${playersWithTimestamps.length}, without: ${playersWithoutTimestamps.length}`,
-        );
-        if (playersWithoutTimestamps.length > 0) {
-          console.log(
-            `⚠️ [Online Tab Final] Players missing timestamps:`,
-            playersWithoutTimestamps.map((p) => ({
-              username: p.username,
-              lastMessage: p.lastMessage?.substring(0, 20),
-            })),
-          );
-        }
-      }
-
-      // Log players with notes for debugging
-      if (!IS_PROD) {
-        const playersWithNotes = players.filter((p) => p.notes);
-        if (playersWithNotes.length > 0) {
-          console.log(
-            `📋 [displayedPlayers - online] ${playersWithNotes.length} players with notes:`,
-            playersWithNotes.map((p) => ({
-              username: p.username,
-              notes: p.notes?.substring(0, 30),
-            })),
-          );
-        }
-
-        // Log unread counts for debugging
-        const playersWithUnread = players.filter(
-          (p) => (p.unreadCount ?? 0) > 0,
-        );
-        if (playersWithUnread.length > 0) {
-          console.log(
-            `📬 [displayedPlayers - online] ${playersWithUnread.length} players with unread messages:`,
-            playersWithUnread.map((p) => ({
-              username: p.username,
-              unreadCount: p.unreadCount,
-            })),
-          );
-        }
-      }
+    } else if (activeTab === "unreplied") {
+      // Unreplied is socket-owned. Membership comes from the server's
+      // `is_unreplied` flag, never from the last message sender.
+      players = unrepliedChats;
     } else {
       // For "all-chats" tab: combine activeChatsUsers and allPlayers
       //  FIXED: Merge last message data from activeChats into allPlayers
@@ -1140,6 +1055,14 @@ export function ChatComponent() {
       return [];
     }
 
+    // Unreplied is a socket-derived subset. Searching it must stay inside that
+    // subset — the server-wide player search would surface replied chats.
+    if (activeTab === "unreplied") {
+      return players.filter((player) =>
+        playerMatchesSearchQuery(player, normalizedSearchQuery),
+      );
+    }
+
     const mergeSearchRowWithChats = (apiPlayer: Player): Player => {
       const ws = activeChatsUsers.find((a) => a.user_id === apiPlayer.user_id);
       const apiOn = apiOnlinePlayers.find(
@@ -1247,7 +1170,9 @@ export function ChatComponent() {
   }, [
     activeTab,
     apiOnlinePlayers,
+    wsOnlineChats,
     activeChatsUsers,
+    unrepliedChats,
     allPlayers,
     searchQuery,
     searchCharactersRemaining,
@@ -1258,6 +1183,16 @@ export function ChatComponent() {
   ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
+  // The selected row is a snapshot; membership changes arrive on the socket.
+  // Read the live list so the header chip clears the moment staff reply.
+  const selectedIsUnreplied = useMemo(
+    () =>
+      selectedPlayer
+        ? unrepliedChats.some((chat) => chat.user_id === selectedPlayer.user_id)
+        : false,
+    [selectedPlayer, unrepliedChats],
+  );
+
   const selectedPlayerLedgerView = useMemo(
     () =>
       selectedPlayer
@@ -1423,51 +1358,56 @@ export function ChatComponent() {
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
     if (activeTab === "online") {
-      // ✨ OPTIMIZED: Use the new hook's loading state
-      const isLoading = isLoadingApiOnlinePlayers;
-      if (!IS_PROD) {
-        console.log("🔍 Online tab loading state:", {
-          isLoadingApiOnlinePlayers,
-          computed: isLoading,
-        });
-      }
-      return isLoading;
+      // The socket snapshot usually lands before the REST fallback; only show
+      // skeletons while neither source has produced a row.
+      return isLoadingApiOnlinePlayers && wsOnlineChats.length === 0;
+    }
+
+    if (activeTab === "unreplied") {
+      // Seeded by the chat-list socket's connect payload.
+      return isLoadingUsers && unrepliedChats.length === 0;
     }
 
     // For "all-chats" tab, we need both activeChatsUsers and allPlayers
     // Show loading if either is loading (but prioritize activeChatsUsers loading)
-    const isLoading =
-      isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers);
-    if (!IS_PROD) {
-      console.log("🔍 All Chats tab loading state:", {
-        isLoadingUsers,
-        isLoadingAllPlayers,
-        allPlayersLength: allPlayers.length,
-        computed: isLoading,
-      });
-    }
-    return isLoading;
+    return isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers);
   }, [
     activeTab,
     isLoadingApiOnlinePlayers,
+    wsOnlineChats.length,
     isLoadingUsers,
+    unrepliedChats.length,
     isLoadingAllPlayers,
     allPlayers.length,
   ]);
 
-  useEffect(() => {
-    // Load all players for "all-chats" tab only
-    // "all-chats" needs all players to show everyone, not just those with active chats
-    const shouldLoadAllPlayers = activeTab === "all-chats";
-    const hasPlayersCached = allPlayers.length > 0;
+  // Which tab the list is leaving, so only an actual tab change triggers the
+  // directory request. Keying on `allPlayers.length` alone meant a socket
+  // `remove_chat_from_list` that emptied the list re-fetched /api/chat-all-players
+  // mid-session.
+  const previousActiveTabRef = useRef<string | null>(null);
 
-    if (!shouldLoadAllPlayers || hasPlayersCached) {
+  useEffect(() => {
+    // All Players REST is scoped to this tab: open, pagination, search, refresh.
+    // It is never polled and never fetched because of socket traffic.
+    const openedAllPlayersTab =
+      activeTab === "all-chats" &&
+      previousActiveTabRef.current !== "all-chats";
+    previousActiveTabRef.current = activeTab;
+
+    if (!openedAllPlayersTab) {
+      return;
+    }
+
+    // A fetch already in flight (deep link priming the directory) covers this
+    // open; starting a second one would just race it.
+    if (allPlayers.length > 0 || isLoadingAllPlayers) {
       return;
     }
 
     if (!IS_PROD) console.log("🔄 Loading players for tab:", activeTab);
     fetchAllPlayers();
-  }, [activeTab, allPlayers.length, fetchAllPlayers]);
+  }, [activeTab, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
 
   /** The actual send. Wrapped by `handleSendMessage`, which guards concurrency. */
   const performSend = useCallback(async () => {
@@ -1847,13 +1787,25 @@ export function ChatComponent() {
     setShowEmojiPicker((prev) => !prev);
   }, []);
 
-  // ✨ OPTIMIZED: Refresh handler now uses the new hook
-  const handleRefreshOnlinePlayers = useCallback(async () => {
+  // Refresh the active tab's own source: the online endpoint for Online, a
+  // cache-bypassing directory fetch for All Players (whose list is REST-owned),
+  // and nothing for Unreplied (the socket owns it).
+  const handleRefreshPlayers = useCallback(async () => {
     if (!hasValidAdminUser) {
       return;
     }
+
+    if (activeTab === "all-chats") {
+      await fetchAllPlayers({ force: true });
+      return;
+    }
+
+    if (activeTab === "unreplied") {
+      return;
+    }
+
     await refetchOnlinePlayers();
-  }, [hasValidAdminUser, refetchOnlinePlayers]);
+  }, [activeTab, fetchAllPlayers, hasValidAdminUser, refetchOnlinePlayers]);
 
   const reportMessageActionFailure = useCallback(
     (action: "edit" | "delete", result: MessageActionResult) => {
@@ -2432,8 +2384,6 @@ export function ChatComponent() {
             }
           : null,
       );
-
-      void refreshActiveChats();
     } catch (error) {
       let errorMessage = "Unknown error";
 
@@ -2465,7 +2415,6 @@ export function ChatComponent() {
     balanceRemarks,
     isUpdatingBalance,
     addToast,
-    refreshActiveChats,
     invalidatePlayersCache,
     lastManualPayment,
   ]);
@@ -3402,7 +3351,7 @@ export function ChatComponent() {
   }, [clearPlayerId, selectedPlayer?.user_id]);
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-4">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-3">
       {/* Left Column - Player List */}
       <PlayerListSidebar
         mobileView={mobileView}
@@ -3418,6 +3367,7 @@ export function ChatComponent() {
             ? displayOnlinePlayersTotal
             : activeChatsUsers.length
         }
+        unrepliedCount={unrepliedChats.length}
         directoryAllPlayersCount={
           allPlayersApiTotalCount ?? chatListAllPlayersCount
         }
@@ -3427,12 +3377,22 @@ export function ChatComponent() {
         isPlayerSearchStale={isPlayerSearchStale}
         searchCharactersRemaining={searchCharactersRemaining}
         searchQueryNormalized={normalizedSearchQuery}
-        isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
+        isRefreshingPlayers={
+          activeTab === "all-chats" ? isLoadingAllPlayers : isLoadingApiOnlinePlayers
+        }
+        refreshDisabled={activeTab === "unreplied"}
+        refreshTitle={
+          activeTab === "all-chats"
+            ? "Refresh player directory"
+            : activeTab === "unreplied"
+              ? "Unreplied updates live over the socket"
+              : "Refresh online players"
+        }
         isLoadingMore={isLoadingMore}
         hasMorePlayers={hasMorePlayers}
         usersError={usersError}
         onPlayerSelect={handlePlayerSelect}
-        onRefreshOnlinePlayers={handleRefreshOnlinePlayers}
+        onRefreshPlayers={handleRefreshPlayers}
         onLoadMore={loadMorePlayers}
       />
 
@@ -3440,7 +3400,7 @@ export function ChatComponent() {
       <div
         ref={conversationPanelRef}
         tabIndex={-1}
-        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-r border-border bg-card shadow-sm focus:outline-none md:w-auto`}
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-card shadow-sm focus:outline-none md:w-auto`}
       >
         {selectedPlayer ? (
           <>
@@ -3454,6 +3414,7 @@ export function ChatComponent() {
               onCloseConversation={handleCloseConversation}
               onOpenNotesDrawer={handleOpenNotesDrawer}
               playerLastSeenAt={playerLastSeenAt}
+              isUnreplied={selectedIsUnreplied}
               onIdentityVerifiedResolved={handleIdentityVerifiedResolved}
             />
 
@@ -3523,7 +3484,7 @@ export function ChatComponent() {
               // wrapping the whole transcript re-announces every backfilled page
               // of history and buries the one new customer message.
               tabIndex={0}
-              className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-contain bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+              className="chat-canvas scrollbar-smooth relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-contain focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
               style={{
                 overscrollBehavior: "contain",
                 WebkitOverflowScrolling: "touch",
@@ -3534,7 +3495,7 @@ export function ChatComponent() {
               <div aria-live="polite" aria-atomic="true" className="sr-only">
                 {liveAnnouncement}
               </div>
-              <div className="min-w-0 space-y-6 px-3 py-4 sm:px-4 sm:py-5 md:px-8 md:py-8">
+              <div className="mx-auto w-full max-w-[58rem] space-y-6 px-3 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8">
                 {/* Sentinel for IntersectionObserver-based infinite scroll */}
                 <div
                   ref={sentinelRef}
@@ -3556,7 +3517,7 @@ export function ChatComponent() {
                   wsMessages.length > 0 &&
                   !isHistoryLoadingMessages && (
                     <div className="flex items-center justify-center py-2">
-                      <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-medium">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50">
                         Beginning of conversation
                       </span>
                     </div>
@@ -3589,7 +3550,7 @@ export function ChatComponent() {
                 {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                   <div key={date} className="space-y-3">
                     {/* Date Separator */}
-                    <div className="flex items-center justify-center my-8 first:mt-0">
+                    <div className="my-1 flex items-center justify-center first:mt-0">
                       <div className="relative w-full">
                         <div
                           className="absolute inset-0 flex items-center"
@@ -3598,7 +3559,7 @@ export function ChatComponent() {
                           <div className="w-full border-t border-border/40" />
                         </div>
                         <div className="relative flex justify-center">
-                          <span className="px-3 py-1 bg-card/90 backdrop-blur-sm text-[8px] font-semibold uppercase tracking-wide text-muted-foreground rounded-full border border-border/40 shadow-sm">
+                          <span className="rounded-full border border-border/50 bg-card/95 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground shadow-sm backdrop-blur-sm">
                             {formatMessageDate(date)}
                           </span>
                         </div>
@@ -3708,15 +3669,17 @@ export function ChatComponent() {
               {remoteTyping && (
                 <div className="shrink-0 border-t border-border/30 bg-card/80 px-4 py-2 backdrop-blur-sm md:px-6">
                   <div className="flex items-end justify-start gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-[10px] font-bold text-white shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 md:h-9 md:w-9">
-                      {selectedPlayer.avatar ||
-                        selectedPlayer.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="rounded-2xl rounded-bl-sm bg-gradient-to-br from-blue-500 to-indigo-500 px-3 py-2 shadow-lg shadow-blue-500/20 md:px-4 md:py-3">
-                      <div className="flex gap-1.5">
-                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
-                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
-                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
+                    <PlayerAvatar
+                      avatarUrl={selectedPlayer.avatar}
+                      username={selectedPlayer.username}
+                      size={30}
+                      className="h-[30px] w-[30px] text-[11px]"
+                    />
+                    <div className="rounded-2xl rounded-bl-md border border-border/60 bg-card px-3.5 py-3 shadow-sm">
+                      <div className="flex items-center gap-1.5">
+                        <div className="typing-indicator-smooth h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <div className="typing-indicator-smooth h-1.5 w-1.5 rounded-full bg-primary/70" />
+                        <div className="typing-indicator-smooth h-1.5 w-1.5 rounded-full bg-primary/70" />
                       </div>
                     </div>
                   </div>
@@ -3741,6 +3704,8 @@ export function ChatComponent() {
                 onAttachClick={handleAttachClick}
                 onEmojiSelect={handleEmojiSelect}
                 toggleEmojiPicker={toggleEmojiPicker}
+                focusKey={selectedPlayer.user_id}
+                recipientName={selectedPlayer.username}
               />
             </div>
           </>
