@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
-import { Select, DateSelect } from '@/components/ui';
+import { Select, DateRangePicker } from '@/components/ui';
 import {
   getDateRange,
   buildAnalyticsFiltersWithDatePreset,
@@ -153,10 +153,15 @@ export function PlayerTransactionAnalyticsModal({
                     </div>
                   </div>
                   {datePreset === 'custom' && (
-                    <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
-                      <DateSelect label="Start" value={startDate} onChange={setStartDate} />
-                      <DateSelect label="End" value={endDate} onChange={setEndDate} />
-                    </div>
+                    <DateRangePicker
+                      start={startDate}
+                      end={endDate}
+                      onChange={(nextStart, nextEnd) => {
+                        setStartDate(nextStart);
+                        setEndDate(nextEnd);
+                      }}
+                      className="mt-2 w-full max-w-sm lg:mt-0 lg:w-auto"
+                    />
                   )}
                 </div>
               )}
