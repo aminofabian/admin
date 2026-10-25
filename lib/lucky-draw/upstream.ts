@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 export const LUCKY_DRAW_BACKEND_BASE = `${RAW_BACKEND_URL.replace(/\/$/, '')}/api/v1/lucky-draw`;
 
-export function useLuckyDrawMock(): boolean {
+export function luckyDrawMockEnabled(): boolean {
   return process.env.LUCKY_DRAW_USE_MOCK === '1' || process.env.LUCKY_DRAW_USE_MOCK === 'true';
 }
 
@@ -12,7 +12,7 @@ export async function proxyLuckyDraw(
   upstreamPath: string,
   init?: RequestInit,
 ): Promise<NextResponse | null> {
-  if (useLuckyDrawMock()) return null;
+  if (luckyDrawMockEnabled()) return null;
 
   const authHeader = request.headers.get('authorization');
   const url = `${LUCKY_DRAW_BACKEND_BASE}${upstreamPath}`;
