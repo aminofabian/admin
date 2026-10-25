@@ -22,6 +22,14 @@ export interface ChatUser {
   notes?: string;
   /** Identity / KYC verified — Meta-style blue tick in chat header when true. */
   isIdentityVerified?: boolean;
+  /**
+   * Server-computed: the chat's last human message is from the player and has
+   * not been answered by staff yet. Always trust this field — do not derive it
+   * from `lastMessageSenderId`, because system/auto messages would break it.
+   */
+  isUnreplied?: boolean;
+  /** Sender id of the last human (non-system) message, when the backend sends it. */
+  lastHumanMessageSenderId?: number | null;
 }
 
 export interface ChatMessageSender {

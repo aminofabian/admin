@@ -50,10 +50,12 @@ interface PlayerItemProps {
   searchQuery: string;
   /** True when this row belongs to a stale (in-flight) result set. */
   isDimmed?: boolean;
+  /** Cross-tab triage hint: this chat is still waiting for a human reply. */
+  showUnrepliedDot?: boolean;
   onSelect: (player: ChatUser) => void;
 }
 
-const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, isDimmed = false, onSelect }: PlayerItemProps) {
+const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, isDimmed = false, showUnrepliedDot = false, onSelect }: PlayerItemProps) {
   const unreadCount = player.unreadCount ?? 0;
   const prevUnreadCountRef = useRef(unreadCount);
   const [isNewMessage, setIsNewMessage] = useState(false);
@@ -101,6 +103,10 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
     };
   }, [unreadCount]);
 
+  const previewClass = `truncate text-[12px] leading-snug transition-colors duration-200 ${
+    isNewMessage ? 'font-medium text-foreground' : 'text-muted-foreground'
+  }`;
+
   return (
     <button
       ref={itemRef}
@@ -109,113 +115,113 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
       role="option"
       aria-selected={isSelected}
       type="button"
-      className={`w-full p-1.5 md:p-2 transition-all duration-200 ease-out group relative border-b border-border/30 last:border-b-0 dark:border-transparent cursor-pointer ${isSelected
-        ? 'bg-primary/10 border-l-2 border-l-primary'
-        : 'border-l-2 border-l-transparent hover:bg-muted/60 hover:border-l-primary/30 active:scale-[0.998] dark:hover:bg-muted/40'
-        } ${isNewMessage ? 'bg-primary/5 animate-new-message-pulse' : ''
-        } ${isDimmed ? 'opacity-60' : 'opacity-100'
+      className={`group relative flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isSelected
+        ? 'bg-primary/[0.08] ring-1 ring-inset ring-primary/20'
+        : 'hover:bg-background/80'
+        } ${isNewMessage ? 'bg-primary/[0.06]' : ''} ${isDimmed ? 'opacity-60' : 'opacity-100'
         }`}
     >
       {/* New Message Indicator - Glowing bar on the left */}
       {isNewMessage && (
-        <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full animate-message-glow shadow-lg shadow-primary/50" />
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-sm shadow-primary/40 animate-message-glow"
+        />
       )}
 
-      <div className="flex items-center gap-1.5">
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
-          <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[9px] font-bold shadow-md shadow-blue-500/20 transition-all duration-200 ${isSelected
-            ? 'ring-2 ring-primary/40 ring-offset-2 ring-offset-background scale-[1.02]'
-            : 'group-hover:scale-[1.02] group-hover:shadow-lg group-hover:shadow-blue-500/25'
-            } ${isNewMessage ? 'ring-2 ring-primary/50 scale-105' : ''
-            }`}>
-            <PlayerAvatar avatarUrl={player.avatar} username={player.username} size={28} className="md:h-7 md:w-7" />
-          </div>
-          <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-background shadow-sm ${player.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-        </div>
+      {/* Avatar + presence */}
+      <div className="relative shrink-0">
+        <PlayerAvatar
+          avatarUrl={player.avatar}
+          username={player.username}
+          size={36}
+          className="h-9 w-9 text-xs transition-transform duration-200 group-hover:scale-[1.03]"
+        />
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
+            player.isOnline ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+          }`}
+        />
+      </div>
 
-        {/* Player Info */}
-        <div className="flex-1 min-w-0 text-left">
-          <div className="flex items-center justify-between gap-2">
-            <p className={`text-[11px] md:text-xs font-semibold truncate transition-colors duration-200 capitalize ${isSelected ? 'text-primary' : 'text-foreground group-hover:text-primary/80'
-              } ${isNewMessage ? 'text-primary font-bold' : ''
-              }`}>
-              {player.username && <HighlightedText text={player.username} query={searchQuery} />}
-            </p>
-            <div className="flex items-center gap-1 shrink-0">
-              {unreadCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-label={`${unreadCount} unread`} />
-              )}
-              {player.lastMessageTime && (
-                <span className={`text-[7px] transition-colors duration-200 capitalize tabular-nums ${isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground group-hover:text-muted-foreground/90'
-                  }`}>
-                  {formatChatTimestampCompact(player.lastMessageTime)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {player.lastMessage && (() => {
-            const mockMessage = { text: player.lastMessage };
-            const isAuto = isAutoMessage(mockMessage);
-            const isPurchase = isPurchaseNotification(mockMessage);
-            const isPrizeWheel = isPrizeWheelMessage(mockMessage);
-            const isKyc = isKycVerificationMessage(mockMessage);
-
-            if (isKyc) {
-              return (
-                <p
-                  className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-muted-foreground/90'
-                    }`}
-                >
-                  Identity Verification
-                </p>
-              );
-            }
-            if (isAuto || isPurchase || isPrizeWheel) {
-              // Format the transaction message
-              const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
-
-              // For preview, we only want the first line (the action itself)
-              // Split by newline or <br> tags to be safe
-              const previewText = formatted.split(/\n|<br\s*\/?>/i)[0];
-
-              return (
-                <p
-                  className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-muted-foreground/90'
-                    }`}
-                  dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(previewText) }}
-                />
-              );
-            }
-
-            const plainText = conversationPreviewText({
-              id: player.id,
-              text: stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage)),
-              timestamp: player.lastMessageTime || '',
-            });
-            return (
-              <p className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage
-                ? 'text-foreground font-medium'
-                : 'text-muted-foreground group-hover:text-muted-foreground/90'
-                }`}>
-                {plainText}
-              </p>
-            );
-          })()}
-        </div>
-
-        {/* Unread Badge - show count when > 1, dot handles single unread */}
-        {unreadCount > 1 && (
-          <div className="flex-shrink-0 ml-auto">
-            <span
-              className={`inline-flex items-center justify-center min-w-[14px] h-3 px-1 bg-primary text-primary-foreground text-[7px] font-bold rounded-full transition-all duration-300 ${isNewMessage ? 'animate-badge-pop' : ''
+      {/* Player Info */}
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex items-baseline justify-between gap-2">
+          <p
+            className={`truncate text-[13px] font-semibold capitalize leading-tight ${
+              isSelected ? 'text-primary' : 'text-foreground'
+            }`}
+          >
+            {player.username && <HighlightedText text={player.username} query={searchQuery} />}
+          </p>
+          <span className="flex shrink-0 items-center gap-1.5">
+            {showUnrepliedDot && player.isUnreplied ? (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                title="Waiting for a reply"
+                aria-label="Waiting for a reply"
+              />
+            ) : null}
+            {player.lastMessageTime && (
+              <span
+                className={`text-[10px] font-medium leading-tight tabular-nums ${
+                  isNewMessage ? 'text-primary' : 'text-muted-foreground/80'
                 }`}
+              >
+                {formatChatTimestampCompact(player.lastMessageTime)}
+              </span>
+            )}
+          </span>
+        </div>
+
+        <div className="mt-1 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            {player.lastMessage && (() => {
+              const mockMessage = { text: player.lastMessage };
+              const isAuto = isAutoMessage(mockMessage);
+              const isPurchase = isPurchaseNotification(mockMessage);
+              const isPrizeWheel = isPrizeWheelMessage(mockMessage);
+              const isKyc = isKycVerificationMessage(mockMessage);
+
+              if (isKyc) {
+                return <p className={previewClass}>Identity Verification</p>;
+              }
+              if (isAuto || isPurchase || isPrizeWheel) {
+                // Format the transaction message
+                const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
+
+                // For preview, we only want the first line (the action itself)
+                // Split by newline or <br> tags to be safe
+                const previewText = formatted.split(/\n|<br\s*\/?>/i)[0];
+
+                return (
+                  <p
+                    className={previewClass}
+                    dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(previewText) }}
+                  />
+                );
+              }
+
+              const plainText = conversationPreviewText({
+                id: player.id,
+                text: stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage)),
+                timestamp: player.lastMessageTime || '',
+              });
+              return <p className={previewClass}>{plainText}</p>;
+            })()}
+          </div>
+
+          {unreadCount > 0 && (
+            <span
+              className={`inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-none text-primary-foreground shadow-sm shadow-primary/25 ${
+                isNewMessage ? 'animate-badge-pop' : ''
+              }`}
+              aria-label={`${unreadCount} unread`}
             >
               {unreadBadgeValue}
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </button>
   );
@@ -228,6 +234,8 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
     prevProps.isDimmed === nextProps.isDimmed &&
     prevProps.searchQuery === nextProps.searchQuery &&
     prevProps.player.isOnline === nextProps.player.isOnline &&
+    prevProps.player.isUnreplied === nextProps.player.isUnreplied &&
+    prevProps.showUnrepliedDot === nextProps.showUnrepliedDot &&
     prevProps.player.lastMessage === nextProps.player.lastMessage &&
     prevProps.player.lastMessageTime === nextProps.player.lastMessageTime &&
     prevProps.player.username === nextProps.player.username &&
@@ -239,12 +247,14 @@ interface PlayerListSidebarProps {
   mobileView: 'list' | 'chat' | 'info';
   searchQuery: string;
   setSearchQuery: (value: string) => void;
-  activeTab: 'online' | 'all-chats';
-  setActiveTab: (tab: 'online' | 'all-chats') => void;
+  activeTab: 'online' | 'all-chats' | 'unreplied';
+  setActiveTab: (tab: 'online' | 'all-chats' | 'unreplied') => void;
   displayedPlayers: ChatUser[];
   selectedPlayer: ChatUser | null;
   onlinePlayersCount: number;
   activeChatsCount: number;
+  /** Chats the server flags `is_unreplied` (socket-driven). */
+  unrepliedCount?: number;
   /** From chat APIs `counts.all_players_count` when present; improves “with chats” when pagination total is missing. */
   directoryAllPlayersCount?: number | null;
   /** From chat list API `pagination.total_count` when present; subtitle falls back to `activeChatsCount`. */
@@ -261,12 +271,17 @@ interface PlayerListSidebarProps {
   searchCharactersRemaining?: number;
   /** Lowercased search text, used to highlight the matched run in each row. */
   searchQueryNormalized?: string;
-  isLoadingApiOnlinePlayers: boolean;
+  /** True while the active tab's manual refresh is in flight. */
+  isRefreshingPlayers: boolean;
+  /** Unreplied is socket-driven, so it has no REST source to refresh. */
+  refreshDisabled?: boolean;
+  /** Tooltip / accessible name for the refresh button, per active tab. */
+  refreshTitle: string;
   isLoadingMore: boolean;
   hasMorePlayers: boolean;
   usersError: string | null;
   onPlayerSelect: (player: ChatUser) => void;
-  onRefreshOnlinePlayers: () => void;
+  onRefreshPlayers: () => void;
   onLoadMore: () => void;
 }
 
@@ -280,6 +295,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   selectedPlayer,
   onlinePlayersCount,
   activeChatsCount,
+  unrepliedCount = 0,
   directoryAllPlayersCount = null,
   playersWithChatsTotalCount,
   isCurrentTabLoading,
@@ -287,12 +303,14 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   isPlayerSearchStale = false,
   searchCharactersRemaining = 0,
   searchQueryNormalized = '',
-  isLoadingApiOnlinePlayers,
+  isRefreshingPlayers,
+  refreshDisabled = false,
+  refreshTitle,
   isLoadingMore,
   hasMorePlayers,
   usersError,
   onPlayerSelect,
-  onRefreshOnlinePlayers,
+  onRefreshPlayers,
   onLoadMore,
 }: PlayerListSidebarProps) {
   const withChatsDisplayCount =
@@ -339,6 +357,79 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [searchQueryNormalized]);
 
+  // The three tabs share one scroller. Keeping the offset from a longer list
+  // dropped agents into the middle (or past the end) of the next one.
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  // Deep links / Back can open a conversation whose row is off-screen. Bring it
+  // into view without moving the list when it is already visible.
+  const selectedUserId = selectedPlayer?.user_id;
+  useEffect(() => {
+    if (!selectedUserId) return;
+    const row = scrollContainerRef.current?.querySelector(
+      '[role="option"][aria-selected="true"]',
+    );
+    row?.scrollIntoView({ block: 'nearest' });
+  }, [selectedUserId]);
+
+  /** Move DOM focus to a row and keep it in view. */
+  const focusRowAt = (index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return false;
+    const options = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+    );
+    if (options.length === 0) return false;
+    const target = options[Math.max(0, Math.min(index, options.length - 1))];
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'nearest' });
+    return true;
+  };
+
+  /**
+   * Arrow-key roving focus over the player rows.
+   *
+   * Opening a conversation spins up a chat socket, so arrows only move focus;
+   * Enter/Space on the focused row is the deliberate "open" action. Without
+   * this, reaching the 30th player meant 30 Tab presses.
+   */
+  const handleListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const options = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+    );
+    if (options.length === 0) return;
+
+    const current = options.indexOf(document.activeElement as HTMLButtonElement);
+
+    let next: number;
+    switch (event.key) {
+      case 'ArrowDown':
+        next = current < 0 ? 0 : current + 1;
+        break;
+      case 'ArrowUp':
+        next = current < 0 ? options.length - 1 : current - 1;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = options.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    focusRowAt(next);
+  };
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
     // Only observe when on all-chats tab and there's more to load
@@ -378,13 +469,13 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, searchQuery, onLoadMore]);
   return (
     <div
-      className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-border/40 bg-card/95 md:w-48 lg:w-56`}
+      className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-border/50 bg-muted/[0.18] md:w-60 lg:w-72`}
     >
       {/* Search Bar */}
-      <div className="border-b border-border/50 p-1.5 md:p-2">
+      <div className="shrink-0 px-2 pb-1 pt-2 md:px-3 md:pt-3">
         <div className="relative">
           <svg
-            className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -399,10 +490,16 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             aria-describedby="player-search-hint"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                focusRowAt(0);
+              }
+            }}
             autoComplete="off"
             spellCheck={false}
-            className={`rounded-md border-transparent bg-muted/50 py-1 pl-8 text-sm shadow-sm transition-all focus:border-primary focus:bg-background dark:bg-muted/30 ${
-              isPlayerSearchLoading ? 'pr-14' : hasSearchQuery ? 'pr-7' : 'pr-2'
+            className={`h-9 rounded-lg border-transparent bg-background/80 py-1.5 pl-9 text-[13px] shadow-sm transition-all focus:border-primary/50 focus:bg-background ${
+              isPlayerSearchLoading ? 'pr-14' : hasSearchQuery ? 'pr-8' : 'pr-3'
             }`}
           />
 
@@ -456,15 +553,15 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             shifting the list on every keystroke. */}
         <div id="player-search-hint" aria-live="polite" className="min-h-0">
           {isQueryTooShort ? (
-            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">
+            <p className="px-0.5 pt-1.5 text-[10px] text-muted-foreground">
               Type {searchCharactersRemaining} more character{searchCharactersRemaining > 1 ? 's' : ''} to search
             </p>
           ) : isPlayerSearchLoading ? (
-            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">Searching all players…</p>
+            <p className="px-0.5 pt-1.5 text-[10px] text-muted-foreground">Searching all players…</p>
           ) : isPlayerSearchStale ? (
-            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">Updating results…</p>
+            <p className="px-0.5 pt-1.5 text-[10px] text-muted-foreground">Updating results…</p>
           ) : hasSearchQuery ? (
-            <p className="px-0.5 pt-1 text-[10px] text-muted-foreground">
+            <p className="px-0.5 pt-1.5 text-[10px] text-muted-foreground">
               {displayedPlayers.length} {displayedPlayers.length === 1 ? 'match' : 'matches'}
             </p>
           ) : null}
@@ -472,12 +569,12 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       </div>
 
       {/* Tabs: counts only (no icons); refresh beside strip */}
-      <div className="border-b border-border/40 px-1.5 pb-1 pt-1 md:px-2">
-        <div className="flex items-stretch gap-0.5">
+      <div className="shrink-0 px-2 pb-2 md:px-3">
+        <div className="flex items-stretch gap-1.5">
           <div
             role="tablist"
             aria-label="Player list filter"
-            className="flex min-w-0 flex-1 gap-0.5 rounded-md bg-muted/40 p-0.5"
+            className="flex min-w-0 flex-1 items-stretch gap-1 rounded-xl bg-muted/60 p-1"
           >
             <button
               type="button"
@@ -485,14 +582,14 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               aria-selected={activeTab === 'online'}
               onClick={() => setActiveTab('online')}
               title="Players connected right now"
-              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'online'
-                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${activeTab === 'online'
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
                 }`}
             >
-              <span className="text-[11px] font-bold tabular-nums md:text-xs">{onlinePlayersCount}</span>
+              <span className="text-[13px] font-bold leading-none tabular-nums">{onlinePlayersCount}</span>
               <span
-                className={`mt-0.5 text-[6px] font-semibold uppercase tracking-wide md:text-[7px] ${activeTab === 'online' ? 'text-primary-foreground/90' : ''
+                className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'online' ? 'text-primary-foreground/90' : ''
                   }`}
               >
                 Online
@@ -504,30 +601,49 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               aria-selected={activeTab === 'all-chats'}
               onClick={() => setActiveTab('all-chats')}
               title={`${withChatsDisplayCount} players have an active chat in the directory`}
-              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'all-chats'
-                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${activeTab === 'all-chats'
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
                 }`}
             >
-              <span className="text-[11px] font-bold tabular-nums md:text-xs">{withChatsDisplayCount}</span>
+              <span className="text-[13px] font-bold leading-none tabular-nums">{withChatsDisplayCount}</span>
               <span
-                className={`mt-0.5 text-[6px] font-semibold uppercase tracking-wide md:text-[7px] ${activeTab === 'all-chats' ? 'text-primary-foreground/90' : ''
+                className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'all-chats' ? 'text-primary-foreground/90' : ''
                   }`}
               >
-                All chats
+                All Players
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'unreplied'}
+              onClick={() => setActiveTab('unreplied')}
+              title="Players waiting for a human reply"
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${activeTab === 'unreplied'
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                }`}
+            >
+              <span className="text-[13px] font-bold leading-none tabular-nums">{unrepliedCount}</span>
+              <span
+                className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'unreplied' ? 'text-primary-foreground/90' : ''
+                  }`}
+              >
+                Unreplied
               </span>
             </button>
           </div>
           <button
             type="button"
-            onClick={onRefreshOnlinePlayers}
-            disabled={isLoadingApiOnlinePlayers}
-            className="flex w-8 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30 text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/50 dark:bg-muted/20"
-            aria-label="Refresh online players"
-            title="Refresh online players"
+            onClick={onRefreshPlayers}
+            disabled={refreshDisabled || isRefreshingPlayers}
+            className="flex w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/70 text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-background hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={refreshTitle}
+            title={refreshTitle}
           >
             <svg
-              className={`h-4 w-4 ${isLoadingApiOnlinePlayers ? 'animate-spin' : ''}`}
+              className={`h-4 w-4 ${isRefreshingPlayers ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -538,21 +654,32 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         </div>
       </div>
 
+      {/* A dropped socket should not blank the list the agent is working in. */}
+      {usersError && displayedPlayers.length > 0 ? (
+        <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-[10px] font-medium leading-snug text-amber-700 dark:text-amber-400">
+          {usersError}
+        </div>
+      ) : null}
+
       {/* Player List */}
       <div
-        className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain"
+        // `overflow-anchor:none` is the safety net behind the ordering rules:
+        // if a row ever does move to the top, the browser must not follow it
+        // and yank the list back to the start while the agent is reading.
+        className="scrollbar-smooth min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain [overflow-anchor:none]"
         ref={scrollContainerRef}
         // The rows are a single-select list: announcing N anonymous buttons with
         // no selected state gave a screen reader no way to know who was open.
         role="listbox"
         aria-label="Players"
         tabIndex={0}
+        onKeyDown={handleListKeyDown}
       >
         {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
           <div className="p-2">
             <PlayerListSkeleton count={5} />
           </div>
-        ) : usersError ? (
+        ) : usersError && displayedPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -579,15 +706,15 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         ) : displayedPlayers.length === 0 && hasSearchQuery && isPlayerSearchLoading ? (
           /* Skeleton rows rather than a full-panel spinner: the list keeps its
              shape, so nothing jumps when results land. */
-          <div className="space-y-1 p-1" aria-busy="true" aria-live="polite">
+          <div className="space-y-1.5 p-2" aria-busy="true" aria-live="polite">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="flex animate-pulse items-center gap-1.5 rounded-md p-1.5 md:p-2"
+                className="flex animate-pulse items-center gap-2.5 rounded-xl px-2 py-2"
                 style={{ animationDelay: `${i * 90}ms` }}
               >
-                <div className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-muted md:h-7 md:w-7" />
-                <div className="min-w-0 flex-1 space-y-1">
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-muted" />
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="h-2.5 w-2/3 animate-pulse rounded bg-muted" />
                   <div className="h-2 w-4/5 animate-pulse rounded bg-muted/60" />
                 </div>
@@ -614,8 +741,48 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               Clear search
             </button>
           </div>
+        ) : displayedPlayers.length === 0 &&
+          activeTab === 'unreplied' &&
+          !hasSearchQuery ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/30">
+              <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">All caught up</p>
+            <p className="max-w-[14rem] text-xs text-muted-foreground">
+              No player is waiting for a reply.
+            </p>
+          </div>
+        ) : displayedPlayers.length === 0 &&
+          activeTab === 'online' &&
+          !hasSearchQuery ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/40">
+              <svg className="h-8 w-8 text-muted-foreground/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M8.464 15.536a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 12h.01" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">No one is online</p>
+            <p className="max-w-[14rem] text-xs leading-relaxed text-muted-foreground">
+              Players appear here as soon as they connect. Browse All Players for the full directory.
+            </p>
+          </div>
+        ) : displayedPlayers.length === 0 && !hasSearchQuery ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/40">
+              <svg className="h-8 w-8 text-muted-foreground/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">No players yet</p>
+            <p className="max-w-[14rem] text-xs leading-relaxed text-muted-foreground">
+              Players show up here once they start a conversation.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-1 p-1">
+          <div className="space-y-0.5 p-2">
             {displayedPlayers.map((player) => (
               <PlayerItem
                 key={`${player.user_id}-${player.id}`}
@@ -623,6 +790,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 isSelected={selectedPlayer?.user_id === player.user_id}
                 isDimmed={isPlayerSearchStale}
                 searchQuery={hasSearchQuery ? searchQueryNormalized : ''}
+                showUnrepliedDot={activeTab !== 'unreplied'}
                 onSelect={onPlayerSelect}
               />
             ))}
