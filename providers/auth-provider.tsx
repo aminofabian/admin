@@ -16,7 +16,7 @@ import {
 import type { AuthUser, LoginRequest } from '@/types';
 
 export interface LoginOptions {
-  /** Omit the project UUID and require a superadmin account. */
+  /** Omit the project UUID for a superadmin-domain login. */
   superadmin?: boolean;
 }
 
@@ -214,14 +214,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('SUPERADMIN_DOMAIN_RESTRICTION: Access restricted. Superadmin login is only allowed from authorized domains.');
       }
 
-      if (!superadminLogin && response.role === 'superadmin') {
-        throw new Error('This is a superadmin account. Enable "Sign in as superadmin" and try again.');
-      }
-
-      if (superadminLogin && response.role !== 'superadmin') {
-        throw new Error('This account is not a superadmin. Turn off "Sign in as superadmin" and try again.');
-      }
-      
       // Check if user is a player - redirect to player frontend site without logging in
       if (response.role === 'player') {
         const playerUrl = getPlayerFrontendUrl();
