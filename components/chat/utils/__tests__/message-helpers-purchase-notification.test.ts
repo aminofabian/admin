@@ -84,6 +84,81 @@ describe('isPurchaseNotification', () => {
   });
 });
 
+/**
+ * Copy produced by the chat backend for ledger entries. The exact wording is
+ * not stable ("recharged to", "balance transfer completed", "added to your
+ * balance"), so these cases pin down the structural shape the classifier uses
+ * rather than one phrase per regression.
+ */
+describe('ledger copy from the chat backend', () => {
+  const cases = [
+    {
+      label: 'recharge with game balance line (plain)',
+      text: '$10.00 recharged to Cash Frenzy.<br />New Game Balance: $20.00<br />Balance: $2.00',
+      expected: 'recharge',
+    },
+    {
+      label: 'recharge with game balance line (bold amounts)',
+      text: '<b>$10.00</b> recharged to <b>Cash Frenzy</b>.<br />New Game Balance: <b>$20.00</b><br />Balance: <b>$2.00</b>',
+      expected: 'recharge',
+    },
+    {
+      label: 'balance transfer (plain)',
+      text: '$20.00 balance transfer completed.<br />Balance: $62.00',
+      expected: 'balance_transfer',
+    },
+    {
+      label: 'balance transfer (bold amounts)',
+      text: '<b>$20.00</b> balance transfer completed.<br />Balance: <b>$62.00</b>',
+      expected: 'balance_transfer',
+    },
+    {
+      label: 'balance transfer with plain newlines',
+      text: '$20.00 balance transfer completed.\nBalance: $62.00',
+      expected: 'balance_transfer',
+    },
+    {
+      label: 'amount added to the generic balance',
+      text: '$200.00 added to your balance.<br />Balance: $439.00',
+      expected: 'credit_added',
+    },
+    {
+      label: 'amount added to the generic balance (bold amounts)',
+      text: '<b>$200.00</b> added to your balance.<br />Balance: <b>$439.00</b>',
+      expected: 'credit_added',
+    },
+  ] as const;
+
+  it.each(cases)('renders $label as a transaction card', ({ text, expected }) => {
+    const msg = { text, type: 'message', sender: 'admin' as const };
+    expect(isPurchaseNotification(msg)).toBe(true);
+    // Purchase notifications win over the generic auto handler; the bubble only
+    // needs one of the two to be true but they should not both fire.
+    expect(isAutoMessage(msg)).toBe(false);
+    expect(parseTransactionMessage(text, 'message').type).toBe(expected);
+    expect(
+      getTransactionCardClass(
+        transactionTypeToVisualKind(parseTransactionMessage(text, 'message').type),
+      ),
+    ).not.toBe('');
+  });
+
+  it('does not card player chat that only mentions a transfer or a balance', () => {
+    for (const text of [
+      'i did a balance transfer yesterday, did it go through?',
+      'can you check my balance please',
+      'my balance is $0 after that withdrawal lol',
+      "Someone cashed out my winnings? I don't have litecoins",
+      'why was $20 deducted from my account',
+      'is the transfer completed yet?',
+    ]) {
+      const msg = { text, type: 'message', sender: 'player' as const };
+      expect(isPurchaseNotification(msg), text).toBe(false);
+      expect(isAutoMessage(msg), text).toBe(false);
+    }
+  });
+});
+
 describe('isPrizeWheelMessage', () => {
   it('should treat daily bonus spin credits as a centered transaction card', () => {
     const msg = {
@@ -166,6 +241,10 @@ describe('transaction visual colors', () => {
     expect(transactionTypeToVisualKind('prize_wheel')).toBe('prize_wheel');
     expect(getTransactionTextColorClass('prize_wheel')).toContain('amber');
     expect(getTransactionCardClass('prize_wheel')).toContain('amber');
+    // A balance transfer moves money between the player's own balances, so it
+    // uses the neutral manual tint rather than a purchase/cashout colour.
+    expect(transactionTypeToVisualKind('balance_transfer')).toBe('manual');
+    expect(getTransactionCardClass('manual')).not.toBe('');
   });
 });
 
