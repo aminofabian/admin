@@ -38,6 +38,7 @@ import {
 import { firstSafeChatroomId, pickChatroomIdFromRow, resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import { resolveChatUserForPlayerIdDeepLink } from "@/lib/chat/resolve-chat-user-for-deep-link";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
+import { mergeOnlinePlayerRows } from "@/lib/chat/online-player-rows";
 import {
   PlayerListSidebar,
   ChatHeader,
@@ -838,52 +839,14 @@ export function ChatComponent() {
     let players: Player[];
 
     if (activeTab === "online") {
-      // Online is seeded and kept live by `/ws/chatlist/`. REST rows only
-      // supply profile / balance detail for players already in the socket
-      // list, and act as a fallback before the first snapshot arrives.
-      const apiById = new Map<number, Player>();
-      apiOnlinePlayers.forEach((player) => {
-        if (player.user_id) apiById.set(player.user_id, player);
+      // Online is seeded and kept live by `/ws/chatlist/`, but the socket list
+      // can be partial (one `re_arrange` row is enough). Union it with the REST
+      // online rows so the tab never shows fewer players than its own count.
+      players = mergeOnlinePlayerRows({
+        socketRows: wsOnlineChats,
+        restRows: apiOnlinePlayers,
+        chatListRows: activeChatsUsers,
       });
-
-      const socketRows =
-        wsOnlineChats.length > 0
-          ? wsOnlineChats
-          : activeChatsUsers.filter((player) => player.isOnline);
-
-      const seenUserIds = new Map<number, Player>();
-      socketRows.forEach((player: Player) => {
-        if (!player.user_id) return;
-        const api = apiById.get(player.user_id);
-        seenUserIds.set(
-          player.user_id,
-          api
-            ? {
-                ...api,
-                ...player,
-                id:
-                  firstSafeChatroomId(player.user_id, player.id, api.id) ??
-                  api.id,
-                lastMessage: player.lastMessage || api.lastMessage,
-                lastMessageTime: isValidTimestamp(player.lastMessageTime)
-                  ? player.lastMessageTime
-                  : api.lastMessageTime,
-                unreadCount: player.unreadCount ?? api.unreadCount ?? 0,
-                isOnline: true,
-                notes: player.notes || api.notes,
-              }
-            : player,
-        );
-      });
-
-      // Before the first socket snapshot, REST is the only source of rows.
-      if (socketRows.length === 0) {
-        apiOnlinePlayers.forEach((player) => {
-          if (player.user_id) seenUserIds.set(player.user_id, player);
-        });
-      }
-
-      players = Array.from(seenUserIds.values());
     } else if (activeTab === "unreplied") {
       // Unreplied is socket-owned. Membership comes from the server's
       // `is_unreplied` flag, never from the last message sender.
