@@ -136,7 +136,8 @@ function identifiersMatchRiversweep(...values: Array<string | null | undefined>)
 }
 
 /**
- * Riversweep add-user manual complete is username-only (no game_password in payload).
+ * Riversweeps has no game password. Manual complete for add-user is username-only
+ * (no game_password), and password-reset complete omits new_password.
  */
 export function isRiversweepGameFromQueue(
   queue: Pick<TransactionQueue, 'game' | 'game_code' | 'remarks' | 'data'>,
