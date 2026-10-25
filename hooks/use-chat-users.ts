@@ -15,8 +15,19 @@ import {
   mapAdminSearchRowToChatUser,
   mergeWinningBalanceFromPartialPayload,
   payloadIncludesWinningBalanceFields,
+  readOptionalBoolean,
   transformChatToUser,
 } from '@/lib/chat/map-chat-api';
+import {
+  chatRowMatches,
+  clearUnreadChatRow,
+  mergeChatRow,
+  patchChatRow,
+  reconcileChatSnapshot,
+  removeChatRow,
+  removeChatRowByRef,
+  upsertChatRowByLatestMessage,
+} from '@/lib/chat/chat-list-realtime';
 import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
 
 // Production mode check
@@ -62,6 +73,7 @@ const hasSignificantChanges = (existing: ChatUser, incoming: ChatUser): boolean 
     existing.lastMessageTime !== incoming.lastMessageTime ||
     existing.unreadCount !== incoming.unreadCount ||
     existing.isOnline !== incoming.isOnline ||
+    existing.isUnreplied !== incoming.isUnreplied ||
     existing.balance !== incoming.balance ||
     existing.winningBalance !== incoming.winningBalance ||
     existing.cashoutLimit !== incoming.cashoutLimit ||
@@ -75,7 +87,11 @@ interface UseChatUsersParams {
 }
 
 interface UseChatUsersReturn {
-  users: ChatUser[]; // Active chats from WebSocket
+  users: ChatUser[]; // Active chats (kept for sidebar unread badges)
+  /** Online chats seeded by the chat-list socket's `online` array. */
+  onlineChats: ChatUser[];
+  /** Chats the server flags `is_unreplied` — the Unreplied tab. */
+  unrepliedChats: ChatUser[];
   allPlayers: ChatUser[]; // All players from REST API
   onlineUsers: ChatUser[];
   isLoading: boolean;
@@ -84,7 +100,7 @@ interface UseChatUsersReturn {
   error: string | null;
   isConnected: boolean; // WebSocket connection status
   refetch: () => Promise<void>;
-  fetchAllPlayers: () => Promise<void>;
+  fetchAllPlayers: (options?: { force?: boolean }) => Promise<void>;
   loadMorePlayers: () => Promise<void>; // Load next page
   hasMorePlayers: boolean; // Whether there are more pages
   /** Total players with chats from list API pagination when the backend sends it. */
@@ -104,6 +120,8 @@ interface UseChatUsersReturn {
 export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): UseChatUsersReturn {
   // Separate state for active chats (WebSocket) and all players (REST API)
   const [activeChats, setActiveChats] = useState<ChatUser[]>([]);
+  const [onlineChats, setOnlineChats] = useState<ChatUser[]>([]);
+  const [unrepliedChats, setUnrepliedChats] = useState<ChatUser[]>([]);
   const [allPlayers, setAllPlayers] = useState<ChatUser[]>([]);
   const [isLoading, setIsLoading] = useState(false); // For WebSocket connection
   const [isLoadingAllPlayers, setIsLoadingAllPlayers] = useState(false); // For REST API
@@ -136,10 +154,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [chatListAllPlayersCount, setChatListAllPlayersCount] = useState<number | null>(null);
   const pageSize = 50;
 
-  //  Track last API refresh to prevent WebSocket from overwriting fresh API data
-  const lastApiRefreshRef = useRef<number>(0);
-  const API_REFRESH_COOLDOWN = 5000; // 5 seconds - ignore WebSocket updates after API refresh
-
   //  Track last update per chat to prevent rapid updates
   const chatLastUpdateRef = useRef<Map<string, number>>(new Map());
   const WS_UPDATE_COOLDOWN = 1000; // 1 second cooldown for WebSocket updates per chat
@@ -148,12 +162,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const refreshActiveChatsRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
   /**
-   * Request hygiene for the chat-list refresh.
+   * Request hygiene for the explicit chat-list refresh.
    *
-   * `refreshActiveChats` runs on a 10s poll, on every WebSocket `message`,
-   * `message_edited`, `message_deleted` and `re_arrange`. Without sequencing a
-   * slow response could land after a newer one and overwrite it, and without
-   * coalescing a busy conversation spawned one 100-row fetch per message.
+   * Live chat traffic no longer calls this (Online and Unreplied are driven by
+   * `/ws/chatlist/`), but the helper is still exposed for manual/legacy callers.
+   * Without sequencing a slow response could land after a newer one and
+   * overwrite it, and without coalescing a burst spawned one fetch per call.
    */
   const refreshSeqRef = useRef(0);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
@@ -202,7 +216,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         if (chatIndex === -1) {
           const newChat = transformChatToUser(updateData);
-          return [newChat, ...prevChats];
+          // Only a new inbound message may add a row. A read echo for a chat
+          // this list does not hold must not appear at the top.
+          const isNewInbound =
+            newChat.isUnreplied === true || (newChat.unreadCount ?? 0) > 0;
+          return isNewInbound ? [newChat, ...prevChats] : prevChats;
         }
 
         const updatedChats = [...prevChats];
@@ -222,15 +240,34 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           ? extractedUnreadCount
           : existingChat.unreadCount;
 
+        // Read receipts arrive as `update_chat` with the last message echoed
+        // back at an unchanged time. Only a genuinely newer message may move
+        // the row; otherwise the list reordered under the agent's cursor.
+        const incomingTime =
+          (updateData.last_message_time as string | undefined) ||
+          (updateData.last_message_timestamp as string | undefined);
+        const incomingText =
+          typeof updateData.last_message === 'string' && updateData.last_message.length > 0
+            ? updateData.last_message
+            : null;
+        const unreadIncreased =
+          (newUnreadCount ?? 0) > (existingChat.unreadCount ?? 0);
+        // Content and unread delta decide the order; a read receipt can reuse
+        // the text with a fresh stamp and must not move the row.
+        const textChanged =
+          incomingText !== null && incomingText !== existingChat.lastMessage;
+        const incomingUnread =
+          newUnreadCount ?? existingChat.unreadCount ?? 0;
+        const moveToTop =
+          unreadIncreased || (textChanged && incomingUnread > 0);
+
         const updatedChat = {
           ...existingChat,
           lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
-          lastMessageTime: (() => {
-            const t =
-              (updateData.last_message_time as string | undefined) ||
-              (updateData.last_message_timestamp as string | undefined);
-            return isValidTimestamp(t) ? t : existingChat.lastMessageTime;
-          })(),
+          lastMessageTime:
+            moveToTop && isValidTimestamp(incomingTime)
+              ? incomingTime
+              : existingChat.lastMessageTime,
           unreadCount: newUnreadCount,
           balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
           winningBalance: mergeWinningBalanceFromPartialPayload(
@@ -247,6 +284,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               ? String(newLockedBalance)
               : existingChat.lockedBalance,
         };
+
+        if (!moveToTop) {
+          updatedChats[chatIndex] = updatedChat;
+          return updatedChats;
+        }
 
         updatedChats.splice(chatIndex, 1);
         return [updatedChat, ...updatedChats];
@@ -288,7 +330,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             chatId: messageData.chat_id || messageData.message?.chat_id,
           });
 
-          handleWebSocketMessage(messageData, refreshActiveChatsRef.current);
+          handleWebSocketMessage(messageData);
         },
         onError: (error) => {
           console.error('❌ [Chat Users] WebSocket error:', error);
@@ -336,7 +378,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, [adminId, effectiveEnabled]);
 
   // Move the function definition after all dependencies are available
-  const handleWebSocketMessage = useCallback((data: Record<string, unknown>, refreshCallback?: () => Promise<void>) => {
+  const handleWebSocketMessage = useCallback((data: Record<string, unknown>) => {
     try {
       if (!IS_PROD) console.log('📨 [Chat Users] Full message data:', data);
 
@@ -351,7 +393,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // Edits and deletes are applied on the open conversation socket.
       // They must not be treated as new chats or new message bubbles.
       if (messageType === 'message_edited' || messageType === 'message_deleted') {
-        refreshCallback?.();
         return;
       }
 
@@ -383,10 +424,29 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           isPlayerSender,
         });
 
-        // Refresh chat list from API to get latest counts and messages
-        refreshCallback?.();
+        // The re_arrange event that follows carries the server's `is_unreplied`
+        // flag and last message. Do not refetch the list from REST here.
         return;
       }
+
+      // The two chat-list event types are resolved before the ledger heuristic
+      // below, because that heuristic can otherwise swallow them: a `re_arrange`
+      // routinely carries the player's balance, and treating it as a
+      // balance-only event left Online/Unreplied frozen.
+      const addNewChatsPayload =
+        messageWrapper?.type === 'add_new_chats'
+          ? messageWrapper
+          : data.type === 'add_new_chats'
+            ? data
+            : null;
+      const reArrangePayload =
+        messageWrapper?.type === 're_arrange'
+          ? messageWrapper
+          : data.type === 're_arrange'
+            ? data
+            : null;
+      const isChatListEvent =
+        addNewChatsPayload !== null || reArrangePayload !== null;
 
       // Handle "balanceUpdated" / "balance_updated" OR any message that carries ledger
       // data in a nested `payload` (game_redeem, game_recharge, recharge, cashout_completed, ...).
@@ -406,10 +466,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         data.cashout_limit !== undefined ||
         data.locked_balance !== undefined;
       if (
-        messageType === 'balanceUpdated' ||
-        messageType === 'balance_updated' ||
-        hasLedgerInPayload ||
-        hasTopLevelLedger
+        !isChatListEvent &&
+        (messageType === 'balanceUpdated' ||
+          messageType === 'balance_updated' ||
+          hasLedgerInPayload ||
+          hasTopLevelLedger)
       ) {
         const playerId = data.player_id || data.user_id;
         const nestedPlayer = (dataRecord.player as Record<string, unknown>) || undefined;
@@ -493,58 +554,93 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
-      // Handle "add_new_chats" message type
-      if (messageWrapper && messageWrapper.type === 'add_new_chats' && Array.isArray(messageWrapper.chats)) {
-        const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
-        if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
-          if (!IS_PROD) console.log(`⏭️ [Chat Users] Skipping add_new_chats - API refresh cooldown active`);
-          return;
+      // Handle "add_new_chats" — the connect snapshot for Online + Unreplied.
+      if (addNewChatsPayload) {
+        const asRows = (value: unknown): Record<string, unknown>[] =>
+          Array.isArray(value)
+            ? value.filter(
+                (row): row is Record<string, unknown> =>
+                  !!row && typeof row === 'object' && !Array.isArray(row),
+              )
+            : [];
+
+        const onlineRows = asRows(addNewChatsPayload.online);
+        const unrepliedRows = asRows(addNewChatsPayload.unreplied);
+        const legacyRows = asRows(addNewChatsPayload.chats);
+
+        // Rows in the `online` array are online by definition; their payload may
+        // omit the nested `player.is_online` flag.
+        const onlineUsers = onlineRows.map((row) => ({
+          ...transformChatToUser(row),
+          isOnline: true,
+        }));
+        const unrepliedUsers = unrepliedRows.map((row) => ({
+          ...transformChatToUser(row),
+          isUnreplied: true,
+        }));
+
+        // The connect payload is the authoritative seed for the socket tabs.
+        // `activeChats` feeds the sidebar unread badge: prefer the legacy list,
+        // otherwise union of the two socket lists (dedupe by player id).
+        const snapshotRows =
+          legacyRows.length > 0
+            ? legacyRows.map((row) => transformChatToUser(row))
+            : [...onlineUsers, ...unrepliedUsers].filter((user, index, all) => {
+                const first = all.findIndex(
+                  (candidate) =>
+                    candidate.user_id === user.user_id && candidate.id === user.id,
+                );
+                return first === index;
+              });
+
+        if (Array.isArray(addNewChatsPayload.online)) {
+          setOnlineChats((prev) => reconcileChatSnapshot(prev, onlineUsers));
+        } else if (Array.isArray(addNewChatsPayload.chats)) {
+          // Legacy payload: derive the online subset from the chat rows.
+          setOnlineChats(snapshotRows.filter((user) => user.isOnline));
         }
 
-        const chatList = messageWrapper.chats;
-        const incomingUsers = chatList.map((c) => transformChatToUser(c as Record<string, unknown>));
+        if (Array.isArray(addNewChatsPayload.unreplied)) {
+          setUnrepliedChats((prev) => reconcileChatSnapshot(prev, unrepliedUsers));
+        } else if (Array.isArray(addNewChatsPayload.chats)) {
+          setUnrepliedChats(snapshotRows.filter((user) => user.isUnreplied === true));
+        }
 
-        setActiveChats((prevChats) => {
-          if (prevChats.length === 0) {
-            return incomingUsers;
-          }
+        if (Array.isArray(addNewChatsPayload.chats) || snapshotRows.length > 0) {
+          setActiveChats((prevChats) => {
+            if (prevChats.length === 0) {
+              return snapshotRows;
+            }
 
-          const incomingMap = new Map<string, ChatUser>(
-            incomingUsers.map((user: ChatUser) => [user.id, user])
-          );
+            const incomingById = new Map<string, ChatUser>();
+            for (const user of snapshotRows) {
+              incomingById.set(user.id || `u:${user.user_id}`, user);
+            }
 
-          const updatedChats = prevChats.map(existingChat => {
-            const incomingChat = incomingMap.get(existingChat.id);
-            if (incomingChat) {
-              incomingMap.delete(existingChat.id);
+            const updatedChats = prevChats.map((existingChat) => {
+              const key = existingChat.id || `u:${existingChat.user_id}`;
+              const incomingChat = incomingById.get(key);
+              if (!incomingChat) return existingChat;
 
+              incomingById.delete(key);
               if (!hasSignificantChanges(existingChat, incomingChat)) {
                 return existingChat;
               }
+              return mergeChatRow(existingChat, incomingChat);
+            });
 
-              return {
-                ...existingChat,
-                lastMessage: incomingChat.lastMessage ?? existingChat.lastMessage,
-                lastMessageTime: isValidTimestamp(incomingChat.lastMessageTime) ? incomingChat.lastMessageTime : existingChat.lastMessageTime,
-                unreadCount: incomingChat.unreadCount ?? existingChat.unreadCount,
-                isOnline: incomingChat.isOnline ?? existingChat.isOnline,
-                balance: incomingChat.balance ?? existingChat.balance,
-                winningBalance: Object.prototype.hasOwnProperty.call(incomingChat, 'winningBalance')
-                  ? incomingChat.winningBalance
-                  : undefined,
-                cashoutLimit: incomingChat.cashoutLimit ?? existingChat.cashoutLimit,
-                lockedBalance: incomingChat.lockedBalance ?? existingChat.lockedBalance,
-                notes: existingChat.notes || incomingChat.notes,
-              };
-            }
-            return existingChat;
+            const newChats = Array.from(incomingById.values());
+            return newChats.length > 0 ? [...newChats, ...updatedChats] : updatedChats;
           });
-
-          const newChats = Array.from(incomingMap.values());
-          return newChats.length > 0 ? [...newChats, ...updatedChats] : updatedChats;
-        });
+        }
 
         setIsLoading(false);
+
+        // The connect payload is the authoritative seed for both socket tabs.
+        // Returning here stops the generic `chats` fallback below from
+        // re-deriving Unreplied/Online from the optional legacy recent list,
+        // which wiped the seed whenever the server sent one.
+        return;
       }
 
       if ((messageWrapper && (messageWrapper.type === 'update_chat' || messageWrapper.type === 'new_message')) ||
@@ -561,9 +657,22 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       // Handle chat removal
       if ((messageWrapper && messageWrapper.type === 'remove_chat_from_list') || data.type === 'remove_chat_from_list') {
-        const chatIdToRemove = messageWrapper?.chat_id || data.chat_id;
-        if (!IS_PROD) console.log(`🗑️ [Chat Users] Removing chat with ID: ${chatIdToRemove}`);
-        setActiveChats((prevUsers) => prevUsers.filter((user) => user.id !== String(chatIdToRemove)));
+        const removePayload = (messageWrapper || data) as Record<string, unknown>;
+        const chatIdToRemove = removePayload.chat_id ?? data.chat_id;
+        const userIdToRemove =
+          removePayload.user_id ??
+          removePayload.player_id ??
+          data.user_id ??
+          data.player_id;
+        if (!IS_PROD) console.log(`🗑️ [Chat Users] Removing chat:`, { chatIdToRemove, userIdToRemove });
+
+        const removeRow = (list: ChatUser[]) =>
+          removeChatRowByRef(list, { chatId: chatIdToRemove as string | number | null, userId: userIdToRemove as string | number | null });
+
+        setActiveChats(removeRow);
+        setOnlineChats(removeRow);
+        setUnrepliedChats(removeRow);
+        setAllPlayers(removeRow);
       }
 
       // Handle mark_message_as_read - update unread count when messages are marked as read
@@ -574,45 +683,19 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         if (chatId || userId) {
           if (!IS_PROD) console.log('✅ [Chat Users] Messages marked as read, updating unread count:', { chatId, userId });
 
-          setActiveChats((prevChats) => {
-            let hasChanges = false;
-            const updatedChats = prevChats.map((chat) => {
-              const isMatch =
-                (chatId && chat.id === String(chatId)) ||
-                (userId !== undefined && chat.user_id === Number(userId));
+          // Every list that renders an unread badge must be patched, not just
+          // the legacy active-chats one: Online and Unreplied read their own
+          // arrays, so they kept the dot after the admin opened the chat.
+          const receipt = {
+            chatId: chatId as string | number | null | undefined,
+            userId: userId as string | number | null | undefined,
+          };
+          const clearReceipt = (list: ChatUser[]) => clearUnreadChatRow(list, receipt);
 
-              if (isMatch && chat.unreadCount && chat.unreadCount > 0) {
-                hasChanges = true;
-                return {
-                  ...chat,
-                  unreadCount: 0,
-                };
-              }
-              return chat;
-            });
-
-            return hasChanges ? updatedChats : prevChats;
-          });
-
-          setAllPlayers((prevPlayers) => {
-            let hasChanges = false;
-            const updatedPlayers = prevPlayers.map((player) => {
-              const isMatch =
-                (chatId && player.id === String(chatId)) ||
-                (userId !== undefined && player.user_id === Number(userId));
-
-              if (isMatch && player.unreadCount && player.unreadCount > 0) {
-                hasChanges = true;
-                return {
-                  ...player,
-                  unreadCount: 0,
-                };
-              }
-              return player;
-            });
-
-            return hasChanges ? updatedPlayers : prevPlayers;
-          });
+          setActiveChats(clearReceipt);
+          setOnlineChats(clearReceipt);
+          setUnrepliedChats(clearReceipt);
+          setAllPlayers(clearReceipt);
         }
         return;
       }
@@ -628,56 +711,96 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         if (unreadCount === 0 && chatId) {
           if (!IS_PROD) console.log('✅ [Chat Users] Unread count updated to 0 via WebSocket:', chatId);
 
-          setActiveChats((prevChats) => {
-            const chatIndex = prevChats.findIndex((chat) => chat.id === chatId);
-            if (chatIndex !== -1 && prevChats[chatIndex].unreadCount !== 0) {
-              const updatedChats = [...prevChats];
-              updatedChats[chatIndex] = {
-                ...updatedChats[chatIndex],
-                unreadCount: 0,
-              };
-              return updatedChats;
-            }
-            return prevChats;
-          });
+          const clearReceipt = (list: ChatUser[]) =>
+            clearUnreadChatRow(list, { chatId, userId });
 
-          setAllPlayers((prevPlayers) => {
-            const playerIndex = prevPlayers.findIndex((player) => player.id === chatId);
-            if (playerIndex !== -1 && prevPlayers[playerIndex].unreadCount !== 0) {
-              const updatedPlayers = [...prevPlayers];
-              updatedPlayers[playerIndex] = {
-                ...updatedPlayers[playerIndex],
-                unreadCount: 0,
-              };
-              return updatedPlayers;
-            }
-            return prevPlayers;
-          });
+          setActiveChats(clearReceipt);
+          setOnlineChats(clearReceipt);
+          setUnrepliedChats(clearReceipt);
+          setAllPlayers(clearReceipt);
         }
       }
 
-      // Handle re_arrange - refresh list
-      if ((messageWrapper && messageWrapper.type === 're_arrange') || data.type === 're_arrange') {
-        refreshCallback?.();
+      // Handle re_arrange — the live chat-list update.
+      //
+      // `is_unreplied` is the server's verdict (system/auto messages never flip
+      // it on their own), so membership in the Unreplied tab is decided from
+      // that field alone, not from the last message sender.
+      if (reArrangePayload) {
+        const row = transformChatToUser(reArrangePayload);
+        const nestedPlayer =
+          reArrangePayload.player && typeof reArrangePayload.player === 'object'
+            ? (reArrangePayload.player as Record<string, unknown>)
+            : undefined;
+        const isUnreplied =
+          readOptionalBoolean(reArrangePayload, 'is_unreplied') ??
+          readOptionalBoolean(nestedPlayer, 'is_unreplied');
+        const isOnline =
+          readOptionalBoolean(reArrangePayload, 'is_online') ??
+          readOptionalBoolean(nestedPlayer, 'is_online') ??
+          readOptionalBoolean(nestedPlayer, 'isOnline');
+        const flags = { isOnline, isUnreplied };
+
+        if (!IS_PROD) {
+          console.log('🔀 [Chat Users] re_arrange:', {
+            chatId: row.id,
+            userId: row.user_id,
+            isUnreplied,
+            isOnline,
+          });
+        }
+
+        if (isUnreplied === true) {
+          setUnrepliedChats((prev) => upsertChatRowByLatestMessage(prev, row, flags));
+        } else if (isUnreplied === false) {
+          setUnrepliedChats((prev) => removeChatRow(prev, row));
+        } else {
+          setUnrepliedChats((prev) => patchChatRow(prev, row, flags));
+        }
+
+        if (isOnline === true) {
+          setOnlineChats((prev) => upsertChatRowByLatestMessage(prev, row, flags));
+        } else if (isOnline === false) {
+          setOnlineChats((prev) => removeChatRow(prev, row));
+        } else {
+          setOnlineChats((prev) => patchChatRow(prev, row, flags));
+        }
+
+        // Keep the sidebar unread badges in sync without a REST refetch.
+        // An absent row is only added when it represents new inbound activity;
+        // otherwise a read receipt for a chat we never listed would land at
+        // the top of the merged All Players order.
+        setActiveChats((prev) => {
+          const exists = prev.some((chat) => chatRowMatches(chat, row));
+          const isNewInbound =
+            row.isUnreplied === true || (row.unreadCount ?? 0) > 0;
+          if (!exists && !isNewInbound) return prev;
+          return upsertChatRowByLatestMessage(prev, row, flags);
+        });
+
+        // All Players is REST-owned: patch the row in place when it is already
+        // loaded, but never insert or refetch on socket traffic.
+        setAllPlayers((prev) => patchChatRow(prev, row, flags));
         return;
       }
 
       // Fallback for other formats
       if (data.chats && Array.isArray(data.chats)) {
-        const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
-        if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
-          return;
-        }
-
         const transformedUsers = data.chats.map((c) => transformChatToUser(c as Record<string, unknown>));
-        setActiveChats(transformedUsers);
+        setActiveChats((prev) => reconcileChatSnapshot(prev, transformedUsers));
+        setOnlineChats((prev) =>
+          reconcileChatSnapshot(prev, transformedUsers.filter((user) => user.isOnline)),
+        );
+        setUnrepliedChats((prev) =>
+          reconcileChatSnapshot(prev, transformedUsers.filter((user) => user.isUnreplied === true)),
+        );
         setIsLoading(false);
       }
 
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [setActiveChats, lastApiRefreshRef, API_REFRESH_COOLDOWN, chatLastUpdateRef, WS_UPDATE_COOLDOWN, invalidatePlayersCache]);
+  }, [invalidatePlayersCache]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {
@@ -699,10 +822,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, [connect, disconnect]);
 
   /**
-   * Refresh active chats from backend API
-   * Called when a new message arrives to get updated counts and last messages
-   * Uses the admin chat endpoint which returns chat data (unread counts, last messages, etc.)
-   * 
+   * Refresh active chats from the admin chat endpoint.
+   *
+   * This is a REST fallback only. Socket traffic must not call it — Online and
+   * Unreplied are kept current by `add_new_chats` + `re_arrange`.
+   *
    * API Response Format:
    * {
    *   chats: [...],           // Chat objects with basic info
@@ -713,9 +837,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const refreshActiveChats = useCallback(async () => {
     if (!IS_PROD) console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
 
-    // Coalesce: a burst of messages (a busy conversation emits one WS event
-    // each) previously fired one 100-row fetch per message. Collapse them into
-    // a single trailing request.
+    // Coalesce: a burst of callers collapses into a single trailing request
+    // rather than one row fetch each.
     if (refreshInFlightRef.current) {
       refreshQueuedRef.current = true;
       if (!IS_PROD) console.log('⏳ [refreshActiveChats] already in flight; queuing one trailing refresh');
@@ -801,10 +924,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         // Update state with fresh data from backend
         setActiveChats(transformedUsers);
 
-        //  Mark the time of this API refresh to prevent WebSocket from overwriting it
-        lastApiRefreshRef.current = Date.now();
-        if (!IS_PROD) console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
-
         // Log chats with unread counts for debugging
         const chatsWithUnread = transformedUsers.filter((c: ChatUser) => (c.unreadCount ?? 0) > 0);
         if (!IS_PROD && chatsWithUnread.length > 0) {
@@ -861,9 +980,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   /**
    * Fetch ALL players from REST API endpoint (First page)
    *  PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
+   * `force` skips the cache — the manual refresh path passes it so the button
+   * actually hits the network instead of re-serving the snapshot.
    * Note: Last messages are provided by WebSocket and merged in chat-component
    */
-  const fetchAllPlayers = useCallback(async () => {
+  const fetchAllPlayers = useCallback(async (options?: { force?: boolean }) => {
+    const force = options?.force === true;
+
     // Set loading state IMMEDIATELY before any checks
     if (!IS_PROD) console.log('🚀 fetchAllPlayers - Starting');
     setIsLoadingAllPlayers(true);
@@ -871,7 +994,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     try {
       //  PERFORMANCE: Check cache first
       const now = Date.now();
-      if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
+      if (!force && playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
         if (!IS_PROD) console.log(' Using cached chats data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
         setChatListOnlinePlayersCount(playersCacheRef.current.onlinePlayersCount);
@@ -1051,57 +1174,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     };
   }, [effectiveEnabled, adminId, connect, disconnect]);
 
-  // Poll for new messages (fallback when WebSocket doesn't push - e.g. chat open, no player selected)
-  const POLL_INTERVAL_MS = 10_000;
-  useEffect(() => {
-    if (!effectiveEnabled) return;
-
-    // `ChatUsersProvider` wraps the whole dashboard layout, so without this an
-    // admin parked on the transactions page kept polling ~360 times an hour
-    // for a list they cannot see. Background tabs paused too.
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    const start = () => {
-      if (timer !== null) return;
-      void refreshActiveChats();
-      timer = setInterval(() => void refreshActiveChats(), POLL_INTERVAL_MS);
-    };
-
-    const stop = () => {
-      if (timer === null) return;
-      clearInterval(timer);
-      timer = null;
-    };
-
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-      // Wait for the tab to become visible before spending the first request.
-      const onVisible = () => {
-        if (document.visibilityState === 'visible') {
-          document.removeEventListener('visibilitychange', onVisible);
-          start();
-        }
-      };
-      document.addEventListener('visibilitychange', onVisible);
-      return () => {
-        document.removeEventListener('visibilitychange', onVisible);
-        stop();
-      };
-    }
-
-    start();
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') start();
-      else stop();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      stop();
-      // Cancel any request still running for this session.
-      refreshAbortRef.current?.abort();
-    };
-  }, [effectiveEnabled, refreshActiveChats]);
+  // No polling: Online and Unreplied are driven entirely by `/ws/chatlist/`.
+  // `/api/chat-all-players` is only requested when the All Players tab needs
+  // data (open / pagination / search / manual refresh).
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1114,7 +1189,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const onlineUsers = useMemo(() => {
     const seen = new Set<string>();
 
-    return [...activeChats, ...allPlayers].filter((user) => {
+    return [...onlineChats, ...activeChats, ...allPlayers].filter((user) => {
       if (!user.isOnline) {
         return false;
       }
@@ -1127,7 +1202,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       seen.add(key);
       return true;
     });
-  }, [activeChats, allPlayers]);
+  }, [onlineChats, activeChats, allPlayers]);
 
   /**
    * Update a specific chat's last message and time in the active chats list
@@ -1175,18 +1250,16 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         newLastMessage: lastMessage.substring(0, 30),
       });
 
-      // Create updated chat list with the new last message
+      // Content only. Ordering belongs to the chat-list socket (`re_arrange`),
+      // never to the open conversation's message stream — a replayed message on
+      // connect used to push the open row to the top.
       const updatedChats = [...prevChats];
       updatedChats[chatIndex] = {
         ...updatedChats[chatIndex],
         lastMessage,
-        lastMessageTime: validTimestamp,
+        lastMessageTime: validTimestamp ?? updatedChats[chatIndex].lastMessageTime,
       };
-
-      // Move updated chat to the top of the list for better UX
-      const [updatedChat] = updatedChats.splice(chatIndex, 1);
-      if (!IS_PROD) console.log(` [updateChatLastMessage] Chat updated and moved to top`);
-      return [updatedChat, ...updatedChats];
+      return updatedChats;
     });
 
     // Also update in allPlayers list if present
@@ -1221,49 +1294,18 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       return;
     }
 
-    setActiveChats((prevChats) => {
-      let hasChanges = false;
-
-      const updatedChats = prevChats.map((chat) => {
-        const isMatch =
-          (normalizedChatId && chat.id === normalizedChatId) ||
-          (normalizedUserId !== null && chat.user_id === normalizedUserId);
-
-        if (!isMatch || !chat.unreadCount) {
-          return chat;
-        }
-
-        hasChanges = true;
-        return {
-          ...chat,
-          unreadCount: 0,
-        };
+    // Clear the badge in every list the tabs render from. The row itself stays
+    // in Unreplied — opening a chat is not a reply.
+    const clearReceipt = (list: ChatUser[]) =>
+      clearUnreadChatRow(list, {
+        chatId: normalizedChatId,
+        userId: normalizedUserId,
       });
 
-      return hasChanges ? updatedChats : prevChats;
-    });
-
-    setAllPlayers((prevPlayers) => {
-      let hasChanges = false;
-
-      const updatedPlayers = prevPlayers.map((player) => {
-        const isMatch =
-          (normalizedChatId && player.id === normalizedChatId) ||
-          (normalizedUserId !== null && player.user_id === normalizedUserId);
-
-        if (!isMatch || !player.unreadCount) {
-          return player;
-        }
-
-        hasChanges = true;
-        return {
-          ...player,
-          unreadCount: 0,
-        };
-      });
-
-      return hasChanges ? updatedPlayers : prevPlayers;
-    });
+    setActiveChats(clearReceipt);
+    setOnlineChats(clearReceipt);
+    setUnrepliedChats(clearReceipt);
+    setAllPlayers(clearReceipt);
   }, []);
 
   /**
@@ -1297,6 +1339,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
   return {
     users: activeChats, // For backward compatibility - return active chats as "users"
+    onlineChats,
+    unrepliedChats,
     allPlayers,
     onlineUsers,
     isLoading,

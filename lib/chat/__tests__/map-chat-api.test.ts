@@ -50,6 +50,38 @@ describe('map-chat-api', () => {
       expect(u.lockedBalance).toBe('10.00');
       expect(u.balance).toBe('100.00');
     });
+
+    it('should map the re_arrange is_unreplied / last_human_message_sender_id fields', () => {
+      const u = transformChatToUser({
+        type: 're_arrange',
+        chat_id: 57,
+        user_id: 67,
+        username: 'testme7',
+        last_message: 'hello',
+        last_message_sender_id: 67,
+        last_human_message_sender_id: 67,
+        last_message_timestamp: '2026-10-25T10:00:00Z',
+        unread_messages_count: 1,
+        is_unreplied: true,
+        is_online: true,
+      });
+
+      expect(u.id).toBe('57');
+      expect(u.user_id).toBe(67);
+      expect(u.isUnreplied).toBe(true);
+      expect(u.isOnline).toBe(true);
+      expect(u.lastHumanMessageSenderId).toBe(67);
+    });
+
+    it('should read is_unreplied from a nested player payload', () => {
+      const u = transformChatToUser({
+        chat_id: 57,
+        player: { id: 67, username: 'testme7', is_online: true, is_unreplied: false },
+      });
+
+      expect(u.isUnreplied).toBe(false);
+      expect(u.isOnline).toBe(true);
+    });
   });
 
   describe('transformPlayerToUser', () => {

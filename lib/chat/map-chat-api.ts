@@ -1,5 +1,5 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
-import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
+import { pickChatroomIdFromRow, firstSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 import { isIdentityVerifiedFromRecord } from '@/lib/players/player-verification';
 import type { ChatUser } from '@/types';
 
@@ -71,6 +71,39 @@ function coercedBooleanOnline(value: unknown): boolean {
     return s === '1' || s === 'true' || s === 'yes';
   }
   return false;
+}
+
+/**
+ * Boolean flags on chat payloads may be missing, 0/1, or "true"/"false".
+ * Returns `undefined` when the payload did not carry the field, so a partial
+ * realtime update can keep the value already held in state.
+ */
+export function readOptionalBoolean(
+  source: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
+  if (!source || !Object.prototype.hasOwnProperty.call(source, key)) {
+    return undefined;
+  }
+  const value = source[key];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  const s = String(value).trim().toLowerCase();
+  if (s === '') return undefined;
+  if (s === '1' || s === 'true' || s === 'yes') return true;
+  if (s === '0' || s === 'false' || s === 'no') return false;
+  return undefined;
+}
+
+function readLastHumanMessageSenderId(row: Record<string, unknown>): number | null | undefined {
+  const raw = row.last_human_message_sender_id ?? row.lastHumanMessageSenderId;
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 /**
@@ -418,6 +451,10 @@ type BackendChatPayload = {
   last_message_time?: string;
   /** ISO timestamp from REST `chats[]` / `player[]` */
   last_message_timestamp?: string;
+  last_message_sender_id?: number | string;
+  last_human_message_sender_id?: number | string;
+  is_unreplied?: boolean | number | string;
+  is_online?: boolean | number | string;
   cashout_limit?: number | string;
   player_cashout_limit?: number | string;
   locked_balance?: number | string;
@@ -437,7 +474,11 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const ledgerRow = { ...raw, ...(player as Record<string, unknown>) };
 
   const userId = Number(chat.user_id ?? chat.player_id ?? player.id ?? 0);
-  const directoryId = pickChatroomIdFromRow(raw, userId);
+  // Flat `chats[]` rows carry the chatroom id in `id`; nested WS payloads use
+  // `chat_id` / `chatroom_id`. `firstSafeChatroomId` still rejects an `id` that
+  // is really the player id.
+  const directoryId =
+    pickChatroomIdFromRow(raw, userId) || firstSafeChatroomId(userId, chat.id) || '';
   const username =
     chat.username ||
     chat.player_username ||
@@ -448,6 +489,14 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const rawTimestamp = chat.last_message_time || chat.last_message_timestamp;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
+  const isOnline =
+    readOptionalBoolean(raw, 'is_online') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'is_online') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'isOnline') ??
+    false;
+  const isUnreplied = readOptionalBoolean(raw, 'is_unreplied') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'is_unreplied');
+
   return withIdentityVerified(
     {
       id: directoryId,
@@ -456,7 +505,7 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
       fullName: player.full_name || player.name || undefined,
       email: player.email || '',
       avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-      isOnline: player.is_online || player.isOnline || false,
+      isOnline,
       lastMessage: chat.last_message || undefined,
       lastMessageTime: validTimestamp,
       balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
@@ -476,6 +525,8 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
       phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
       unreadCount: extractUnreadCount(raw) || chat.unreadCount || 0,
       notes: player.notes || undefined,
+      isUnreplied,
+      lastHumanMessageSenderId: readLastHumanMessageSenderId(raw),
     },
     ledgerRow,
   );
@@ -503,6 +554,8 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
     row.chat_id ??
     row.chatroomId ??
     '';
+
+  const isUnreplied = readOptionalBoolean(row, 'is_unreplied');
 
   return withIdentityVerified(
     {
@@ -535,6 +588,8 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
       phone: (row.phone_number as string | undefined) || (row.mobile_number as string | undefined) || undefined,
       unreadCount: extractUnreadCount(row) || 0,
       notes: (row.notes as string | undefined) || undefined,
+      isUnreplied,
+      lastHumanMessageSenderId: readLastHumanMessageSenderId(row),
     },
     row,
   );
