@@ -3,6 +3,7 @@ import {
   ensureSelectedPlayerVisible,
   readLastChatView,
   resolveInitialChatTab,
+  resolveUnrepliedBadgeCount,
   writeLastChatView,
 } from '../chat-view-state';
 
@@ -82,5 +83,51 @@ describe('ensureSelectedPlayerVisible', () => {
 
   it('ignores a null selection', () => {
     expect(ensureSelectedPlayerVisible([alice], null)).toEqual([alice]);
+  });
+});
+
+describe('resolveUnrepliedBadgeCount', () => {
+  it('follows list length once the list is live', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 5,
+        listLive: true,
+        restCount: 10,
+        apiCount: 10,
+      }),
+    ).toBe(5);
+  });
+
+  it('follows list length when rows already exist even before live flag', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 8,
+        listLive: false,
+        restCount: 10,
+        apiCount: 10,
+      }),
+    ).toBe(8);
+  });
+
+  it('uses REST/API provisional count only while the list is empty and not live', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 0,
+        listLive: false,
+        restCount: 10,
+        apiCount: 7,
+      }),
+    ).toBe(10);
+  });
+
+  it('shows 0 when the live list is empty after replies', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 0,
+        listLive: true,
+        restCount: 10,
+        apiCount: 10,
+      }),
+    ).toBe(0);
   });
 });

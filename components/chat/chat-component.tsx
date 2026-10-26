@@ -66,6 +66,7 @@ import {
   ensureSelectedPlayerVisible,
   readLastChatView,
   resolveInitialChatTab,
+  resolveUnrepliedBadgeCount,
   writeLastChatView,
   type ChatTab,
   type ChatViewSnapshot,
@@ -463,6 +464,9 @@ export function ChatComponent() {
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
     chatListUnrepliedPlayersCount,
+    unrepliedListLive,
+    socketOfflineUserIds,
+    acknowledgeStaffReply,
     invalidatePlayersCache,
     updateChatLastMessage,
     markChatAsReadDebounced,
@@ -495,18 +499,21 @@ export function ChatComponent() {
     ],
   );
 
-  // Prefer the server total so the badge is correct on first paint even when
-  // the Unreplied list has not been fully seeded yet. Fall back to the live
-  // list length once that is all we have.
+  // Badge tracks the Unreplied list once it is live (or already has rows). A
+  // separate REST counter preferred over length caused count≠list after reply.
   const displayUnrepliedPlayersTotal = useMemo(
     () =>
-      chatListUnrepliedPlayersCount ??
-      unrepliedPlayersApiTotalCount ??
-      unrepliedChats.length,
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: unrepliedChats.length,
+        listLive: unrepliedListLive,
+        restCount: chatListUnrepliedPlayersCount,
+        apiCount: unrepliedPlayersApiTotalCount,
+      }),
     [
+      unrepliedChats.length,
+      unrepliedListLive,
       chatListUnrepliedPlayersCount,
       unrepliedPlayersApiTotalCount,
-      unrepliedChats.length,
     ],
   );
 
@@ -922,10 +929,14 @@ export function ChatComponent() {
       // Online is seeded and kept live by `/ws/chatlist/`, but the socket list
       // can be partial (one `re_arrange` row is enough). Union it with the REST
       // online rows so the tab never shows fewer players than its own count.
+      // Socket + REST online endpoint only. Do not union `activeChatsUsers`:
+      // stale `isOnline` flags there leaked replied/offline chats into Online
+      // when toggling tabs.
       players = mergeOnlinePlayerRows({
         socketRows: wsOnlineChats,
         restRows: apiOnlinePlayers,
-        chatListRows: activeChatsUsers,
+        chatListRows: [],
+        excludeUserIds: new Set(socketOfflineUserIds),
       });
     } else if (activeTab === "unreplied") {
       // Unreplied is socket-owned. Membership comes from the server's
@@ -1089,10 +1100,13 @@ export function ChatComponent() {
 
     const trimmedSearch = searchQuery.trim();
     if (!trimmedSearch) {
-      // Keep the open conversation highlighted when switching tabs even if the
-      // player is not in that tab's source list (offline on Online, replied on
-      // Unreplied, deep-linked page not yet loaded on All Players).
-      return ensureSelectedPlayerVisible(players, selectedPlayer);
+      // All Players may pin an off-page / deep-linked selection. Online and
+      // Unreplied must stay faithful to membership — pinning here left replied
+      // chats in Unreplied and leaked them into Online on tab switch.
+      if (activeTab === "all-chats") {
+        return ensureSelectedPlayerVisible(players, selectedPlayer);
+      }
+      return players;
     }
 
     // Below the minimum length nothing is searched, so show the hint rather than
@@ -1227,6 +1241,7 @@ export function ChatComponent() {
     serverSearchForQuery,
     pinnedQueryPlayer,
     selectedPlayer,
+    socketOfflineUserIds,
   ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
@@ -1494,6 +1509,8 @@ export function ChatComponent() {
         const result = await response.json();
         if (!IS_PROD) console.log(" Image uploaded successfully:", result);
 
+        acknowledgeStaffReply(selectedPlayer.user_id);
+
         // The backend should return the file URL in the format:
         // https://serverhub.biz/media/csr/chats/filename.jpeg
         const imageUrl = result.file_url || result.url || result.file;
@@ -1548,8 +1565,10 @@ export function ChatComponent() {
       return;
     }
 
-    // Send text message via WebSocket
+    // Send text message via WebSocket. Leaving Unreplied is immediate — the
+    // socket `re_arrange` confirms it and must not decrement the badge again.
     const messageText = messageInput.trim();
+    acknowledgeStaffReply(selectedPlayer.user_id);
     wsSendMessage(messageText);
 
     // Update the chat list with the sent message
@@ -1582,6 +1601,7 @@ export function ChatComponent() {
     scrollToBottom,
     setMessageInput,
     setDraftFile,
+    acknowledgeStaffReply,
   ]);
 
   /**

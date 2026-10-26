@@ -102,6 +102,177 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
   });
 
+  it('drops a staff reply from Unreplied once, even if the socket confirms later', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow(), onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    act(() => {
+      result.current.acknowledgeStaffReply(67);
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+    // Still online — a reply does not imply offline.
+    expect(result.current.onlineChats.map((c) => c.user_id).sort()).toEqual([67, 68]);
+
+    // The confirming re_arrange must not decrement again.
+    send({ type: 're_arrange', ...onlineRow(), is_unreplied: false, is_online: true });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+
+    // Another agent replying clears the remaining row the same way.
+    send({
+      type: 're_arrange',
+      ...onlineRow({ chat_id: 58, user_id: 68 }),
+      is_unreplied: false,
+      is_online: true,
+    });
+    expect(result.current.unrepliedChats).toHaveLength(0);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(0);
+    expect(result.current.onlineChats.map((c) => c.user_id).sort()).toEqual([67, 68]);
+  });
+
+  it('keeps Unreplied stable when the All Players directory is fetched', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          player: [
+            {
+              id: 99,
+              chatroom_id: 90,
+              username: 'directory-only',
+              is_unreplied: true,
+              is_online: false,
+            },
+          ],
+          counts: {
+            unreplied_players_count: 0,
+            online_players_count: 1,
+            all_players_count: 1,
+          },
+          pagination: { page: 1, total_pages: 1, has_next: false },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    const before = result.current.unrepliedChats.map((c) => c.user_id);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    await act(async () => {
+      await result.current.fetchAllPlayers({ force: true });
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual(before);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+    expect(result.current.allPlayers.map((p) => p.user_id)).toEqual([99]);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('remembers a socket offline so Online membership can drop them', async () => {
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow(), onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+    });
+
+    send({ type: 're_arrange', ...onlineRow(), is_online: false });
+
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.socketOfflineUserIds).toEqual([67]);
+  });
+
+  it('keeps Unreplied list and badge count atomic on reply', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    expect(result.current.unrepliedListLive).toBe(true);
+    expect(result.current.unrepliedChats).toHaveLength(2);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    send({ type: 're_arrange', ...onlineRow(), is_unreplied: false });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+  });
+
+  it('does not wipe a REST unreplied seed with an empty socket unreplied array', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 8,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await waitFor(() =>
+      expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
+        67, 68,
+      ]),
+    );
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    // Empty unreplied before a real socket seed must not flash the badge to 0.
+    send({ type: 'add_new_chats', online: [], unreplied: [] });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
+      67, 68,
+    ]);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    vi.unstubAllGlobals();
+  });
+
   it('applies re_arrange even when it carries a top-level balance', async () => {
     const { result } = await mount();
 
