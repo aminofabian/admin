@@ -113,7 +113,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
       role="option"
       aria-selected={isSelected}
       type="button"
-      className={`group relative flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isSelected
+      className={`group relative flex w-full min-w-0 items-start gap-2.5 rounded-xl px-2 py-2 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isSelected
         ? 'bg-primary/[0.08] ring-1 ring-inset ring-primary/20'
         : 'hover:bg-background/80'
         } ${isNewMessage ? 'bg-primary/[0.06]' : ''} ${isDimmed ? 'opacity-60' : 'opacity-100'
@@ -172,7 +172,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
           </span>
         </div>
 
-        <div className="mt-1 flex items-center gap-2">
+        <div className="mt-1 flex min-h-4 items-center gap-2">
           <div className="min-w-0 flex-1">
             {player.lastMessage && (() => {
               const mockMessage = { text: player.lastMessage };
@@ -372,10 +372,20 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   const selectedUserId = selectedPlayer?.user_id;
   useEffect(() => {
     if (!selectedUserId) return;
-    const row = scrollContainerRef.current?.querySelector(
+    const container = scrollContainerRef.current;
+    const row = container?.querySelector<HTMLElement>(
       '[role="option"][aria-selected="true"]',
     );
-    row?.scrollIntoView({ block: 'nearest' });
+    if (!container || !row) return;
+    // Scroll only this list. scrollIntoView also scrolls the page, which
+    // makes the highlight travel upward and then stop.
+    const c = container.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    if (r.top < c.top) {
+      container.scrollTop -= c.top - r.top;
+    } else if (r.bottom > c.bottom) {
+      container.scrollTop += r.bottom - c.bottom;
+    }
   }, [selectedUserId, activeTab]);
 
   /** Move DOM focus to a row and keep it in view. */

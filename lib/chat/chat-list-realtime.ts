@@ -51,11 +51,12 @@ export function pickNewerPreview<T extends { lastMessage?: string; lastMessageTi
 }
 
 /** Newest activity first. Rows with no timestamp stay at the bottom. */
-export function sortChatsByRecency<T extends { lastMessageTime?: string }>(rows: T[]): T[] {
+export function sortChatsByRecency<
+  T extends { lastMessageTime?: string; listOrderTime?: string },
+>(rows: T[]): T[] {
   if (rows.length < 2) return rows;
-  return [...rows].sort(
-    (a, b) => chatRecencyMs(b.lastMessageTime) - chatRecencyMs(a.lastMessageTime),
-  );
+  const orderMs = (row: T) => chatRecencyMs(row.listOrderTime || row.lastMessageTime);
+  return [...rows].sort((a, b) => orderMs(b) - orderMs(a));
 }
 
 export function chatRowMatches(a: ChatUser, b: ChatUser): boolean {
@@ -98,6 +99,9 @@ export function mergeChatRow(existing: ChatUser, incoming: ChatUser): ChatUser {
         : existing.username,
     lastMessage: incoming.lastMessage || existing.lastMessage,
     lastMessageTime: nextTime,
+    // Opening a thread may correct the visible clock. That must not become
+    // the sort key unless a list event (new activity) sets it.
+    listOrderTime: existing.listOrderTime,
     unreadCount: incoming.unreadCount ?? existing.unreadCount,
     notes: incoming.notes || existing.notes,
     balance: incoming.balance ?? existing.balance,
@@ -171,7 +175,10 @@ export function upsertChatRowByLatestMessage(
     return next;
   }
 
-  return [merged, ...list.filter((_, i) => i !== index)];
+  return [
+    { ...merged, listOrderTime: merged.lastMessageTime ?? existing.listOrderTime },
+    ...list.filter((_, i) => i !== index),
+  ];
 }
 
 /**

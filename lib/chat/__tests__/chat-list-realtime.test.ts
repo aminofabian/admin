@@ -250,5 +250,17 @@ describe('chat-list-realtime', () => {
       ]);
       expect(sorted.map((chat) => chat.user_id)).toEqual([2, 1]);
     });
+
+    it('keeps a row in place when only its visible clock changes', () => {
+      const sorted = sortChatsByRecency([
+        row({
+          user_id: 1,
+          lastMessageTime: '2026-10-26T09:10:00Z',
+          listOrderTime: '2026-04-05T12:00:00Z',
+        }),
+        row({ user_id: 2, lastMessageTime: '2026-10-10T00:00:00Z' }),
+      ]);
+      expect(sorted.map((chat) => chat.user_id)).toEqual([2, 1]);
+    });
   });
 });

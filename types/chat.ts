@@ -8,6 +8,11 @@ export interface ChatUser {
   isOnline: boolean;
   lastMessage?: string;
   lastMessageTime?: string;
+  /**
+   * Sidebar sort key. The visible clock can change when a thread is opened
+   * without this moving, so the selection highlight stays on the clicked row.
+   */
+  listOrderTime?: string;
   playerLastSeenAt?: string; // Timestamp of when player was last seen online
   balance?: string;
   /** Separate winnings bucket; omitted by admin chat list API (only balance / locked / cashout limit). */

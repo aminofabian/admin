@@ -1485,6 +1485,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           ...chat,
           lastMessage: picked.lastMessage,
           lastMessageTime: picked.lastMessageTime,
+          // Freeze the position this row already has. A corrected clock from
+          // the open thread must not slide the highlight up the list.
+          listOrderTime: chat.listOrderTime ?? chat.lastMessageTime,
         };
       });
       return changed ? next : list;
