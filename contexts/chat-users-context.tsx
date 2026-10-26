@@ -31,6 +31,8 @@ interface ChatUsersContextType {
   unrepliedListLive: boolean;
   socketOfflineUserIds: number[];
   acknowledgeStaffReply: (userId: number) => void;
+  /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
+  seedUnrepliedFromRest: () => Promise<void>;
   refreshActiveChats: () => Promise<void>;
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;

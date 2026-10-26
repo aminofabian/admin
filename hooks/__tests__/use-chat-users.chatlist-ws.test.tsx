@@ -255,11 +255,12 @@ describe('useChatUsers — chat-list socket contract', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { result } = await mount();
-    await waitFor(() =>
-      expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
-        67, 68,
-      ]),
-    );
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
+      67, 68,
+    ]);
     expect(result.current.unrepliedListLive).toBe(false);
 
     // Empty unreplied before a real socket seed must not flash the badge to 0.
@@ -505,27 +506,23 @@ describe('useChatUsers — directory refresh', () => {
 
     const { result } = await mount();
 
-    // Mount seeds Unreplied from REST before the directory load.
-    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1));
-    const seedCalls = fetchMock.mock.calls.length;
-
-    // Tab open: one directory request (on top of the unreplied seed).
+    // Tab open: one directory request. Unreplied is no longer seeded on mount.
     await act(async () => {
       await result.current.fetchAllPlayers();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.current.allPlayers.map((p) => p.user_id)).toEqual([67]);
 
     // Opening another tab back within the TTL is served from the cache.
     await act(async () => {
       await result.current.fetchAllPlayers();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // Manual refresh must hit the network.
     await act(async () => {
       await result.current.fetchAllPlayers({ force: true });
     });
-    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

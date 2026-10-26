@@ -467,6 +467,7 @@ export function ChatComponent() {
     unrepliedListLive,
     socketOfflineUserIds,
     acknowledgeStaffReply,
+    seedUnrepliedFromRest,
     invalidatePlayersCache,
     updateChatLastMessage,
     markChatAsReadDebounced,
@@ -1470,6 +1471,24 @@ export function ChatComponent() {
     if (!IS_PROD) console.log("🔄 Loading players for tab:", activeTab);
     fetchAllPlayers();
   }, [activeTab, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
+
+  // Unreplied rows normally arrive on `/ws/chatlist/`. If that tab is open and
+  // the socket has not seeded them, fill once from REST. The wait lets a fast
+  // socket win so chat open does not also download the player directory.
+  useEffect(() => {
+    if (activeTab !== "unreplied" || unrepliedListLive || unrepliedChats.length > 0) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void seedUnrepliedFromRest();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeTab,
+    unrepliedListLive,
+    unrepliedChats.length,
+    seedUnrepliedFromRest,
+  ]);
 
   /** The actual send. Wrapped by `handleSendMessage`, which guards concurrency. */
   const performSend = useCallback(async () => {
@@ -2663,18 +2682,12 @@ export function ChatComponent() {
       return;
     }
 
-    // When a player is selected via query params, ensure we have all players loaded
-    if (allPlayers.length === 0 && !isLoadingAllPlayers) {
-      void fetchAllPlayers();
-    }
-
+    // A deep link resolves that one player. Loading the whole directory here
+    // duplicated `/api/chat-all-players` on every shared conversation URL.
     // Switch to "all-chats" tab when a deep link is resolved
     setActiveTab("all-chats");
   }, [
     queryPlayerId,
-    allPlayers.length,
-    isLoadingAllPlayers,
-    fetchAllPlayers,
     consumeInAppSelection,
     isInAppOrRestoredSelection,
   ]);

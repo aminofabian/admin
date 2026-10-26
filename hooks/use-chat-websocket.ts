@@ -297,6 +297,7 @@ export function useChatWebSocket({
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
   const historyAbortRef = useRef<AbortController | null>(null);
+  const initialHistoryKeyRef = useRef<string | null>(null);
   const purchaseAbortRef = useRef<AbortController | null>(null);
   const sendAbortRef = useRef<AbortController | null>(null);
   const activeConnectionKeyRef = useRef("");
@@ -416,6 +417,7 @@ export function useChatWebSocket({
 
     setMessages([]);
     setPurchaseHistory([]);
+    initialHistoryKeyRef.current = null;
     setIsTyping(false);
     setNotes("");
     setPlayerLastSeenAt(null);
@@ -770,9 +772,19 @@ export function useChatWebSocket({
     }
   }, [chatId, userId]); // Include userId in dependency array
 
-  // Fetch history as soon as a real chatroom_id is available — do not wait for WS onOpen.
-  // Deep-links often select the player before chatroom_id is known; when it arrives we
-  // must load history without tearing down the WebSocket.
+  // Fetch history once per chatroom. The socket onOpen used to fetch again
+  // the moment it connected, so every open conversation hit chat-messages twice.
+  // Purchase cards for the sidebar come from usePlayerPurchases; this hook's
+  // purchase fetch was a second identical call whose result was unused.
+  const loadInitialHistory = useCallback(() => {
+    const safeChatId = resolveSafeChatroomId(chatIdRef.current, userId);
+    if (!effectiveEnabled || !userId || !safeChatId) return;
+    const key = `${userId}:${safeChatId}`;
+    if (initialHistoryKeyRef.current === key) return;
+    initialHistoryKeyRef.current = key;
+    void fetchMessageHistory(1, "replace");
+  }, [effectiveEnabled, userId, fetchMessageHistory]);
+
   useEffect(() => {
     if (!effectiveEnabled || !userId) return;
     const safeChatId = resolveSafeChatroomId(chatId, userId);
@@ -782,14 +794,12 @@ export function useChatWebSocket({
       return;
     }
 
-    void fetchMessageHistory(1, "replace");
-    void fetchPurchaseHistory();
+    loadInitialHistory();
   }, [
     effectiveEnabled,
     userId,
     chatId,
-    fetchMessageHistory,
-    fetchPurchaseHistory,
+    loadInitialHistory,
   ]);
 
   // FIX #8: Centralized balance update handler (single source of truth)
@@ -978,14 +988,9 @@ export function useChatWebSocket({
             });
           }
 
-          // History is fetched by the chatroom-ready effect; refresh if we already have a room.
-          if (resolveSafeChatroomId(chatIdRef.current, userId)) {
-            !IS_PROD &&
-              console.log(
-                "📜 [Chat WS] Refreshing message history after connection...",
-              );
-            void fetchMessageHistory(1, "replace");
-          }
+          // History is fetched once per chatroom by loadInitialHistory. onOpen
+          // only fills it if that effect has not already started the request.
+          loadInitialHistory();
         },
 
         onMessage: (data) => {
@@ -1352,7 +1357,7 @@ export function useChatWebSocket({
     userId,
     adminId,
     effectiveEnabled,
-    fetchMessageHistory,
+    loadInitialHistory,
     handleBalanceUpdate,
   ]);
 

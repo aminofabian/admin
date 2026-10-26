@@ -120,6 +120,8 @@ interface UseChatUsersReturn {
   socketOfflineUserIds: number[];
   /** Drop a player from Unreplied the moment this agent sends a reply, before `re_arrange` arrives. */
   acknowledgeStaffReply: (userId: number) => void;
+  /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
+  seedUnrepliedFromRest: () => Promise<void>;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;
@@ -1333,17 +1335,17 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     }
   }, [applyChatListServerCounts, seedUnrepliedFromRestRows]);
 
-  // Connect on mount
+  // Connect on mount. Unreplied rows come from `/ws/chatlist/`. The REST fill
+  // runs only if that tab is opened before the socket seeds it.
   useEffect(() => {
     if (effectiveEnabled && adminId) {
       connect();
-      void seedUnrepliedFromRestApi();
     }
 
     return () => {
       disconnect();
     };
-  }, [effectiveEnabled, adminId, connect, disconnect, seedUnrepliedFromRestApi]);
+  }, [effectiveEnabled, adminId, connect, disconnect]);
 
   // No polling: Online stays socket-driven. Unreplied is socket-driven after the
   // connect snapshot; the one-shot REST seed above only covers a missing seed.
@@ -1530,6 +1532,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     unrepliedListLive,
     socketOfflineUserIds,
     acknowledgeStaffReply,
+    seedUnrepliedFromRest: seedUnrepliedFromRestApi,
     refreshActiveChats,
     invalidatePlayersCache,
     updateChatLastMessage,
