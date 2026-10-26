@@ -11,11 +11,9 @@ import {
   isPurchaseNotification,
   isPrizeWheelMessage,
   isKycVerificationMessage,
-  formatTransactionMessage,
   prepareChatMessageHtmlForDisplay,
   stripHtml as stripHtmlForPreview,
 } from '../utils/message-helpers';
-import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
 import { PlayerAvatar } from '../components/player-avatar';
 
 // Strip HTML for preview text. Shared implementation lives in
@@ -183,23 +181,11 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
               const isPrizeWheel = isPrizeWheelMessage(mockMessage);
               const isKyc = isKycVerificationMessage(mockMessage);
 
-              if (isKyc) {
-                return <p className={previewClass}>Identity Verification</p>;
-              }
-              if (isAuto || isPurchase || isPrizeWheel) {
-                // Format the transaction message
-                const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
-
-                // For preview, we only want the first line (the action itself)
-                // Split by newline or <br> tags to be safe
-                const previewText = formatted.split(/\n|<br\s*\/?>/i)[0];
-
-                return (
-                  <p
-                    className={previewClass}
-                    dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(previewText) }}
-                  />
-                );
+              // Welcome, bonus, purchase, recharge, cashout, and identity
+              // lines are not a conversation. The name and time stay; the
+              // preview stays blank until a person has written.
+              if (isKyc || isAuto || isPurchase || isPrizeWheel) {
+                return null;
               }
 
               const plainText = conversationPreviewText({
@@ -243,6 +229,20 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
   );
 });
 
+function TabCount({ value }: { value: number | null }) {
+  if (value == null) {
+    return (
+      <span
+        className="inline-block h-3.5 w-5 animate-pulse rounded bg-current opacity-30"
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <span className="text-[13px] font-bold leading-none tabular-nums">{value}</span>
+  );
+}
+
 interface PlayerListSidebarProps {
   mobileView: 'list' | 'chat' | 'info';
   searchQuery: string;
@@ -252,10 +252,10 @@ interface PlayerListSidebarProps {
   setActiveTab: (tab: 'online' | 'all-chats' | 'unreplied') => void;
   displayedPlayers: ChatUser[];
   selectedPlayer: ChatUser | null;
-  onlinePlayersCount: number;
-  activeChatsCount: number;
+  onlinePlayersCount: number | null;
+  activeChatsCount: number | null;
   /** Chats the server flags `is_unreplied` (socket-driven). */
-  unrepliedCount?: number;
+  unrepliedCount?: number | null;
   /** From chat APIs `counts.all_players_count` when present; improves “with chats” when pagination total is missing. */
   directoryAllPlayersCount?: number | null;
   /** From chat list API `pagination.total_count` when present; subtitle falls back to `activeChatsCount`. */
@@ -296,7 +296,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   selectedPlayer,
   onlinePlayersCount,
   activeChatsCount,
-  unrepliedCount = 0,
+  unrepliedCount = null,
   directoryAllPlayersCount = null,
   playersWithChatsTotalCount,
   isCurrentTabLoading,
@@ -315,7 +315,9 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   onLoadMore,
 }: PlayerListSidebarProps) {
   const withChatsDisplayCount =
-    playersWithChatsTotalCount ?? directoryAllPlayersCount ?? activeChatsCount;
+    playersWithChatsTotalCount ??
+    directoryAllPlayersCount ??
+    (activeChatsCount != null && activeChatsCount > 0 ? activeChatsCount : null);
 
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -589,7 +591,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
                 }`}
             >
-              <span className="text-[13px] font-bold leading-none tabular-nums">{onlinePlayersCount}</span>
+              <TabCount value={onlinePlayersCount} />
               <span
                 className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'online' ? 'text-primary-foreground/90' : ''
                   }`}
@@ -602,13 +604,17 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               role="tab"
               aria-selected={activeTab === 'all-chats'}
               onClick={() => setActiveTab('all-chats')}
-              title={`${withChatsDisplayCount} players have an active chat in the directory`}
+              title={
+                withChatsDisplayCount == null
+                  ? 'All players'
+                  : `${withChatsDisplayCount} players have an active chat in the directory`
+              }
               className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${activeTab === 'all-chats'
                 ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
                 : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
                 }`}
             >
-              <span className="text-[13px] font-bold leading-none tabular-nums">{withChatsDisplayCount}</span>
+              <TabCount value={withChatsDisplayCount} />
               <span
                 className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'all-chats' ? 'text-primary-foreground/90' : ''
                   }`}
@@ -627,7 +633,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
                 }`}
             >
-              <span className="text-[13px] font-bold leading-none tabular-nums">{unrepliedCount}</span>
+              <TabCount value={unrepliedCount} />
               <span
                 className={`truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${activeTab === 'unreplied' ? 'text-primary-foreground/90' : ''
                   }`}

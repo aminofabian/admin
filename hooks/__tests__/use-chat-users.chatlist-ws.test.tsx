@@ -308,6 +308,107 @@ describe('useChatUsers — chat-list socket contract', () => {
     vi.unstubAllGlobals();
   });
 
+  it('moves the REST unreplied total when a seeded row is replied to', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 8,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(8);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    act(() => {
+      result.current.acknowledgeStaffReply(67);
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    // Two of eight were on screen. Replying to one of them is 7, not 1.
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(7);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('adds one when a new unreplied player arrives after the seeded set is complete', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 2,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    send({
+      type: 're_arrange',
+      ...onlineRow({ chat_id: 59, user_id: 69, username: 'fresh' }),
+      is_unreplied: true,
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toContain(69);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(3);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    vi.unstubAllGlobals();
+  });
+
   it('applies re_arrange even when it carries a top-level balance', async () => {
     const { result } = await mount();
 

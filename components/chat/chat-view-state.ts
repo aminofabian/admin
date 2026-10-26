@@ -104,7 +104,7 @@ export function resolveUnrepliedBadgeCount(options: {
   listLive: boolean;
   restCount: number | null;
   apiCount: number | null;
-}): number {
+}): number | null {
   const { unrepliedChatsLength, listLive, restCount, apiCount } = options;
   if (listLive) {
     return unrepliedChatsLength;
@@ -113,5 +113,7 @@ export function resolveUnrepliedBadgeCount(options: {
   if (provisional != null) {
     return provisional;
   }
-  return unrepliedChatsLength;
+  // No census and no REST total yet. A length of 0 here is "still loading",
+  // not "nobody is waiting".
+  return null;
 }

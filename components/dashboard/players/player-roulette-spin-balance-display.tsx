@@ -5,7 +5,7 @@ import { usePlayerRouletteSpinInfo } from '@/hooks/use-player-roulette-spin-info
 import { PlayerRouletteSpinStatusDisplay } from '@/components/dashboard/players/player-roulette-spin-status-display';
 
 export interface PlayerRouletteSpinBalanceDisplayProps {
-  playerId: number;
+  playerId: number | null;
   variant?: 'card' | 'inline';
   className?: string;
   /** Increment to refetch spin balance after admin adjustments. */

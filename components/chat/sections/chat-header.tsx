@@ -153,17 +153,6 @@ export const ChatHeader = memo(function ChatHeader({
                 Unreplied
               </span>
             ) : null}
-            {isConnected ? (
-              <span className="hidden shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-emerald-600 dark:text-emerald-400 sm:inline-flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Live
-              </span>
-            ) : (
-              <span className="hidden shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400 sm:inline-flex">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                Connecting
-              </span>
-            )}
           </div>
 
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-tight">

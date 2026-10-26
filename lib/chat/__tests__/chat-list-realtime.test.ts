@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   clearUnreadChatRow,
   mergeChatRow,
+  pickNewerPreview,
   reconcileChatSnapshot,
   patchChatRow,
   removeChatRow,
   removeChatRowByRef,
+  sortChatsByRecency,
   upsertChatRowByLatestMessage,
 } from '../chat-list-realtime';
 import type { ChatUser } from '@/types';
@@ -217,6 +219,36 @@ describe('chat-list-realtime', () => {
     it('does not allocate when the badge is already zero', () => {
       const list = [row({ unreadCount: 0 })];
       expect(clearUnreadChatRow(list, { chatId: 57 })).toBe(list);
+    });
+  });
+
+  describe('pickNewerPreview', () => {
+    it('keeps the newer stamp when the incoming preview is older', () => {
+      const picked = pickNewerPreview(
+        row({ lastMessage: 'today', lastMessageTime: '2026-10-26T09:10:00Z' }),
+        { lastMessage: 'welcome', lastMessageTime: '2026-04-05T12:00:00Z' },
+      );
+      expect(picked.lastMessage).toBe('today');
+      expect(picked.lastMessageTime).toBe('2026-10-26T09:10:00Z');
+    });
+
+    it('takes the incoming preview when it is newer', () => {
+      const picked = pickNewerPreview(
+        row({ lastMessage: 'welcome', lastMessageTime: '2026-04-05T12:00:00Z' }),
+        { lastMessage: 'hello', lastMessageTime: '2026-10-26T09:10:00Z' },
+      );
+      expect(picked.lastMessage).toBe('hello');
+      expect(picked.lastMessageTime).toBe('2026-10-26T09:10:00Z');
+    });
+  });
+
+  describe('sortChatsByRecency', () => {
+    it('orders newest first', () => {
+      const sorted = sortChatsByRecency([
+        row({ user_id: 1, lastMessageTime: '2026-02-28T00:00:00Z' }),
+        row({ user_id: 2, lastMessageTime: '2026-10-26T09:10:00Z' }),
+      ]);
+      expect(sorted.map((chat) => chat.user_id)).toEqual([2, 1]);
     });
   });
 });

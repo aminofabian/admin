@@ -25,6 +25,39 @@ export function isChatRowUsable(row: ChatUser): boolean {
   return (Number.isFinite(row.user_id) && row.user_id > 0) || row.id.length > 0;
 }
 
+export function chatRecencyMs(time: string | undefined): number {
+  if (!isValidTimestamp(time)) return 0;
+  const ms = Date.parse(time as string);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Keep the preview that belongs to the later timestamp. */
+export function pickNewerPreview<T extends { lastMessage?: string; lastMessageTime?: string }>(
+  current: T,
+  incoming: { lastMessage?: string; lastMessageTime?: string },
+): { lastMessage?: string; lastMessageTime?: string } {
+  const currentMs = chatRecencyMs(current.lastMessageTime);
+  const incomingMs = chatRecencyMs(incoming.lastMessageTime);
+  if (incomingMs > currentMs) {
+    return {
+      lastMessage: incoming.lastMessage || current.lastMessage,
+      lastMessageTime: incoming.lastMessageTime,
+    };
+  }
+  return {
+    lastMessage: current.lastMessage || incoming.lastMessage,
+    lastMessageTime: current.lastMessageTime || incoming.lastMessageTime,
+  };
+}
+
+/** Newest activity first. Rows with no timestamp stay at the bottom. */
+export function sortChatsByRecency<T extends { lastMessageTime?: string }>(rows: T[]): T[] {
+  if (rows.length < 2) return rows;
+  return [...rows].sort(
+    (a, b) => chatRecencyMs(b.lastMessageTime) - chatRecencyMs(a.lastMessageTime),
+  );
+}
+
 export function chatRowMatches(a: ChatUser, b: ChatUser): boolean {
   if (a.user_id > 0 && b.user_id > 0) {
     return a.user_id === b.user_id;

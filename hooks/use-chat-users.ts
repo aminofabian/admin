@@ -23,6 +23,7 @@ import {
   clearUnreadChatRow,
   mergeChatRow,
   patchChatRow,
+  pickNewerPreview,
   reconcileChatSnapshot,
   removeChatRow,
   removeChatRowByRef,
@@ -121,6 +122,11 @@ interface UseChatUsersReturn {
   socketOfflineUserIds: number[];
   /** Drop a player from Unreplied the moment this agent sends a reply, before `re_arrange` arrives. */
   acknowledgeStaffReply: (userId: number) => void;
+  /**
+   * Remember the REST unreplied total once. Replies then move a delta
+   * around it; a later poll must not snap the badge back to the old total.
+   */
+  noteUnrepliedServerCount: (count: number) => void;
   /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
   seedUnrepliedFromRest: () => Promise<void>;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
@@ -162,7 +168,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
   //  Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMorePlayers, setHasMorePlayers] = useState(true);
+  const [hasMorePlayers, setHasMorePlayers] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [playersWithChatsTotalCount, setPlayersWithChatsTotalCount] = useState<number | null>(null);
   const [chatListOnlinePlayersCount, setChatListOnlinePlayersCount] = useState<number | null>(null);
@@ -177,6 +183,18 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    */
   const unrepliedSocketSeededRef = useRef(false);
   const [unrepliedListLive, setUnrepliedListLive] = useState(false);
+  /** REST `unreplied_players_count` captured once. Later replies adjust a delta. */
+  const unrepliedBaselineRef = useRef<number | null>(null);
+  const unrepliedDeltaRef = useRef(0);
+  /** Ids already represented in the baseline, so a reply subtracts once. */
+  const unrepliedAccountedIdsRef = useRef<Set<number>>(new Set());
+  const unrepliedIdsRef = useRef<Set<number>>(new Set());
+  /**
+   * True once the seeded rows cover the REST total. Until then a socket
+   * `re_arrange` for someone we have not listed is treated as one of the
+   * unknown rows, not a new unreplied chat.
+   */
+  const unrepliedMembershipKnownRef = useRef(false);
   const pageSize = 50;
 
   /** Keep the parallel count identical to list length whenever membership moves. */
@@ -189,6 +207,54 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     unrepliedSocketSeededRef.current = true;
     setUnrepliedListLive(true);
   }, []);
+
+  const publishUnrepliedBaseline = useCallback(() => {
+    if (unrepliedSocketSeededRef.current) return;
+    const base = unrepliedBaselineRef.current;
+    if (base == null) return;
+    setChatListUnrepliedPlayersCount(
+      Math.max(0, base + unrepliedDeltaRef.current),
+    );
+  }, []);
+
+  const noteUnrepliedServerCount = useCallback((count: number) => {
+    if (unrepliedSocketSeededRef.current || !Number.isFinite(count)) return;
+    if (unrepliedBaselineRef.current != null) return;
+    unrepliedBaselineRef.current = count;
+    publishUnrepliedBaseline();
+  }, [publishUnrepliedBaseline]);
+
+  // A row leaving the visible Unreplied list subtracts from the REST total.
+  // Appearing rows are marked as already counted until the seeded set covers
+  // that total — otherwise one socket event would turn 9 into 10.
+  useEffect(() => {
+    const nextIds = new Set(
+      unrepliedChats
+        .map((chat) => chat.user_id)
+        .filter((id) => Number.isFinite(id) && id > 0),
+    );
+    if (!unrepliedListLive) {
+      let removed = false;
+      for (const id of unrepliedIdsRef.current) {
+        if (!nextIds.has(id) && unrepliedAccountedIdsRef.current.delete(id)) {
+          unrepliedDeltaRef.current -= 1;
+          removed = true;
+        }
+      }
+      for (const id of nextIds) {
+        unrepliedAccountedIdsRef.current.add(id);
+      }
+      if (
+        !unrepliedMembershipKnownRef.current &&
+        unrepliedBaselineRef.current != null &&
+        unrepliedAccountedIdsRef.current.size >= unrepliedBaselineRef.current
+      ) {
+        unrepliedMembershipKnownRef.current = true;
+      }
+      if (removed) publishUnrepliedBaseline();
+    }
+    unrepliedIdsRef.current = nextIds;
+  }, [unrepliedChats, unrepliedListLive, publishUnrepliedBaseline]);
 
   const [socketOfflineUserIds, setSocketOfflineUserIds] = useState<number[]>([]);
 
@@ -239,10 +305,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         counts.unrepliedPlayersCount != null &&
         !unrepliedSocketSeededRef.current
       ) {
-        setChatListUnrepliedPlayersCount(counts.unrepliedPlayersCount);
+        noteUnrepliedServerCount(counts.unrepliedPlayersCount);
       }
     },
-    [],
+    [noteUnrepliedServerCount],
   );
 
   /** Merge REST `is_unreplied` rows into the Unreplied tab before the socket seeds it. */
@@ -872,8 +938,21 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isUnreplied === true) {
-          // Per-player membership. This does not make the partial list the
-          // badge until a full `unreplied` census has been accepted.
+          // Per-player membership. A player who was not part of the REST
+          // total bumps the badge by one. Someone already inside that total
+          // is only added to the list.
+          const arrivingId = row.user_id;
+          if (
+            arrivingId > 0 &&
+            unrepliedMembershipKnownRef.current &&
+            !unrepliedSocketSeededRef.current &&
+            !unrepliedIdsRef.current.has(arrivingId) &&
+            !unrepliedAccountedIdsRef.current.has(arrivingId)
+          ) {
+            unrepliedAccountedIdsRef.current.add(arrivingId);
+            unrepliedDeltaRef.current += 1;
+            publishUnrepliedBaseline();
+          }
           setUnrepliedChats((prev) => {
             const next = upsertChatRowByLatestMessage(prev, row, flags);
             return unrepliedSocketSeededRef.current
@@ -931,7 +1010,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence]);
+  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence, publishUnrepliedBaseline]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {
@@ -1388,6 +1467,28 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   ) => {
     // Validate timestamp before using it
     const validTimestamp = isValidTimestamp(lastMessageTime) ? lastMessageTime : undefined;
+    const incoming = { lastMessage, lastMessageTime: validTimestamp };
+
+    const patchPreview = (list: ChatUser[]) => {
+      let changed = false;
+      const next = list.map((chat) => {
+        if (chat.user_id !== userId && chat.id !== chatId) return chat;
+        const picked = pickNewerPreview(chat, incoming);
+        if (
+          picked.lastMessage === chat.lastMessage &&
+          picked.lastMessageTime === chat.lastMessageTime
+        ) {
+          return chat;
+        }
+        changed = true;
+        return {
+          ...chat,
+          lastMessage: picked.lastMessage,
+          lastMessageTime: picked.lastMessageTime,
+        };
+      });
+      return changed ? next : list;
+    };
 
     if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Called with:`, {
       userId,
@@ -1397,62 +1498,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       validTimestamp,
     });
 
-    setActiveChats((prevChats) => {
-      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Current activeChats count: ${prevChats.length}`);
-
-      // Find and update the matching chat
-      const chatIndex = prevChats.findIndex(
-        (chat) => chat.id === chatId || chat.user_id === userId
-      );
-
-      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Found chat at index: ${chatIndex}`);
-
-      if (chatIndex === -1) {
-        // Chat not found in active chats - this could be a new conversation
-        // The WebSocket should send an update to add it, but we can log this
-        if (!IS_PROD) console.warn(`⚠️ [updateChatLastMessage] Chat not found! Looking for chatId: ${chatId} or userId: ${userId}`);
-        if (!IS_PROD) console.log(`⚠️ [updateChatLastMessage] Available chats:`, prevChats.map(c => ({ id: c.id, user_id: c.user_id, username: c.username })));
-        return prevChats;
-      }
-
-      const oldChat = prevChats[chatIndex];
-      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Updating chat:`, {
-        username: oldChat.username,
-        oldLastMessage: oldChat.lastMessage?.substring(0, 30),
-        newLastMessage: lastMessage.substring(0, 30),
-      });
-
-      // Content only. Ordering belongs to the chat-list socket (`re_arrange`),
-      // never to the open conversation's message stream — a replayed message on
-      // connect used to push the open row to the top.
-      const updatedChats = [...prevChats];
-      updatedChats[chatIndex] = {
-        ...updatedChats[chatIndex],
-        lastMessage,
-        lastMessageTime: validTimestamp ?? updatedChats[chatIndex].lastMessageTime,
-      };
-      return updatedChats;
-    });
-
-    // Also update in allPlayers list if present
-    setAllPlayers((prevPlayers) => {
-      const playerIndex = prevPlayers.findIndex(
-        (player) => player.user_id === userId
-      );
-
-      if (playerIndex === -1) {
-        return prevPlayers;
-      }
-
-      const updatedPlayers = [...prevPlayers];
-      updatedPlayers[playerIndex] = {
-        ...updatedPlayers[playerIndex],
-        lastMessage,
-        lastMessageTime: validTimestamp,
-      };
-
-      return updatedPlayers;
-    });
+    // Content only, and only when this preview is newer. A replayed history
+    // message must not put an older stamp back on the row.
+    setActiveChats(patchPreview);
+    setOnlineChats(patchPreview);
+    setUnrepliedChats(patchPreview);
+    setAllPlayers(patchPreview);
   }, []);
 
   /**
@@ -1532,6 +1583,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     socketOfflineUserIds,
     acknowledgeStaffReply,
     seedUnrepliedFromRest: seedUnrepliedFromRestApi,
+    noteUnrepliedServerCount,
     refreshActiveChats,
     invalidatePlayersCache,
     updateChatLastMessage,

@@ -11,6 +11,7 @@ import {
   type MessageActionResult,
 } from "@/hooks/use-chat-websocket";
 import { conversationPreviewText } from "@/lib/chat/apply-chat-message-event";
+import { pickNewerPreview, sortChatsByRecency } from "@/lib/chat/chat-list-realtime";
 import { useOnlinePlayers } from "@/hooks/use-online-players";
 import { storage } from "@/lib/utils/storage";
 import { API_ENDPOINTS, TOKEN_KEY } from "@/lib/constants/api";
@@ -467,6 +468,7 @@ export function ChatComponent() {
     unrepliedListLive,
     socketOfflineUserIds,
     acknowledgeStaffReply,
+    noteUnrepliedServerCount,
     seedUnrepliedFromRest,
     invalidatePlayersCache,
     updateChatLastMessage,
@@ -489,15 +491,8 @@ export function ChatComponent() {
   });
 
   const displayOnlinePlayersTotal = useMemo(
-    () =>
-      onlinePlayersApiTotalCount ??
-      chatListOnlinePlayersCount ??
-      onlinePlayers.length,
-    [
-      onlinePlayersApiTotalCount,
-      chatListOnlinePlayersCount,
-      onlinePlayers.length,
-    ],
+    () => onlinePlayersApiTotalCount ?? chatListOnlinePlayersCount ?? null,
+    [onlinePlayersApiTotalCount, chatListOnlinePlayersCount],
   );
 
   // REST total until the socket sends an unreplied census. One partial row
@@ -517,6 +512,11 @@ export function ChatComponent() {
       unrepliedPlayersApiTotalCount,
     ],
   );
+
+  useEffect(() => {
+    if (unrepliedPlayersApiTotalCount == null) return;
+    noteUnrepliedServerCount(unrepliedPlayersApiTotalCount);
+  }, [unrepliedPlayersApiTotalCount, noteUnrepliedServerCount]);
 
   // WebSocket connection for real-time chat
   const {
@@ -682,6 +682,37 @@ export function ChatComponent() {
       [selectedPlayer, updateChatLastMessage],
     ),
   });
+
+  // The directory row often still says "Apr 5" after history has a message
+  // from today. Write the newest human line back onto every list that row
+  // lives in. Older history must not win — updateChatLastMessage keeps the
+  // newer stamp.
+  useEffect(() => {
+    if (!selectedPlayer || !hasCompletedInitialHistory || wsMessages.length === 0) {
+      return;
+    }
+    let newest: ChatMessage | null = null;
+    let newestMs = 0;
+    for (const message of wsMessages) {
+      if (classifyMessage(message).isSystemMessage) continue;
+      const ms = Date.parse(message.timestamp);
+      if (!Number.isFinite(ms) || ms < newestMs) continue;
+      newest = message;
+      newestMs = ms;
+    }
+    if (!newest) return;
+    updateChatLastMessage(
+      selectedPlayer.user_id,
+      selectedPlayer.id,
+      conversationPreviewText(newest),
+      newest.timestamp,
+    );
+  }, [
+    selectedPlayer,
+    hasCompletedInitialHistory,
+    wsMessages,
+    updateChatLastMessage,
+  ]);
 
   const {
     isUserAtBottom,
@@ -1004,6 +1035,7 @@ export function ChatComponent() {
 
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
             // Start with WebSocket data, only add missing fields from REST API
+            const preview = pickNewerPreview(existing, player);
             seenUserIds.set(player.user_id, {
               ...existing, // WebSocket data (real-time unreadCount, lastMessage, etc.)
               id:
@@ -1024,12 +1056,10 @@ export function ChatComponent() {
               winRate: player.winRate || existing.winRate,
               phone: player.phone || existing.phone,
               notes: player.notes || existing.notes, // Preserve notes from REST API
-              //  FIXED: Preserve lastMessageTime from REST API if WebSocket doesn't have it
-              // Use WebSocket value if it exists and is valid, otherwise fall back to REST API
-              lastMessage: existing.lastMessage || player.lastMessage,
-              lastMessageTime: isValidTimestamp(existing.lastMessageTime)
-                ? existing.lastMessageTime
-                : player.lastMessageTime,
+              // Keep whichever preview is actually newer. A valid socket stamp
+              // used to win even when the directory (or history) was later.
+              lastMessage: preview.lastMessage,
+              lastMessageTime: preview.lastMessageTime,
             });
           } else {
             // Player not in activeChats - add as is (with notes if present)
@@ -1056,12 +1086,7 @@ export function ChatComponent() {
               existingInList.unreadCount ??
               pinnedQueryPlayer.current.unreadCount ??
               0,
-            lastMessage:
-              existingInList.lastMessage ||
-              pinnedQueryPlayer.current.lastMessage,
-            lastMessageTime: isValidTimestamp(existingInList.lastMessageTime)
-              ? existingInList.lastMessageTime
-              : pinnedQueryPlayer.current.lastMessageTime,
+            ...pickNewerPreview(existingInList, pinnedQueryPlayer.current),
             isOnline:
               existingInList.isOnline ?? pinnedQueryPlayer.current.isOnline,
           });
@@ -1101,13 +1126,16 @@ export function ChatComponent() {
 
     const trimmedSearch = searchQuery.trim();
     if (!trimmedSearch) {
-      // All Players may pin an off-page / deep-linked selection. Online and
+      // All Players may include an off-page / deep-linked selection. Online and
       // Unreplied must stay faithful to membership — pinning here left replied
       // chats in Unreplied and leaked them into Online on tab switch.
-      if (activeTab === "all-chats") {
-        return ensureSelectedPlayerVisible(players, selectedPlayer);
-      }
-      return players;
+      // Sort after the pin so an old selected player is in the list without
+      // sitting above newer chats.
+      const visible =
+        activeTab === "all-chats"
+          ? ensureSelectedPlayerVisible(players, selectedPlayer)
+          : players;
+      return sortChatsByRecency(visible);
     }
 
     // Below the minimum length nothing is searched, so show the hint rather than
@@ -1119,8 +1147,10 @@ export function ChatComponent() {
     // Unreplied is a socket-derived subset. Searching it must stay inside that
     // subset — the server-wide player search would surface replied chats.
     if (activeTab === "unreplied") {
-      return players.filter((player) =>
-        playerMatchesSearchQuery(player, normalizedSearchQuery),
+      return sortChatsByRecency(
+        players.filter((player) =>
+          playerMatchesSearchQuery(player, normalizedSearchQuery),
+        ),
       );
     }
 
@@ -1149,10 +1179,7 @@ export function ChatComponent() {
             winRate: apiPlayer.winRate || ws.winRate,
             phone: apiPlayer.phone || ws.phone,
             notes: apiPlayer.notes || ws.notes,
-            lastMessage: ws.lastMessage || apiPlayer.lastMessage,
-            lastMessageTime: isValidTimestamp(ws.lastMessageTime)
-              ? ws.lastMessageTime
-              : apiPlayer.lastMessageTime,
+            ...pickNewerPreview(ws, apiPlayer),
             isOnline: ws.isOnline ?? apiPlayer.isOnline,
           };
         }
@@ -1164,10 +1191,7 @@ export function ChatComponent() {
           return {
             ...apiOn,
             id: firstSafeChatroomId(apiOn.user_id, ws.id, apiOn.id, apiPlayer.id) ?? apiOn.id,
-            lastMessage: ws.lastMessage || apiOn.lastMessage,
-            lastMessageTime: isValidTimestamp(ws.lastMessageTime)
-              ? ws.lastMessageTime
-              : apiOn.lastMessageTime,
+            ...pickNewerPreview(apiOn, ws),
             unreadCount: ws.unreadCount ?? apiOn.unreadCount ?? 0,
             isOnline: ws.isOnline ?? apiOn.isOnline ?? apiPlayer.isOnline,
             notes: apiOn.notes || ws.notes,
@@ -3974,7 +3998,11 @@ export function ChatComponent() {
           </>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
-            <EmptyState onlinePlayersCount={displayOnlinePlayersTotal} />
+            {queryPlayerId ? (
+              <MessageHistorySkeleton />
+            ) : (
+              <EmptyState onlinePlayersCount={displayOnlinePlayersTotal} />
+            )}
           </div>
         )}
       </div>

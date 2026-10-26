@@ -3,7 +3,7 @@
 import { memo } from 'react';
 
 interface EmptyStateProps {
-  onlinePlayersCount: number;
+  onlinePlayersCount: number | null;
 }
 
 export const EmptyState = memo(function EmptyState({ onlinePlayersCount }: EmptyStateProps) {
@@ -28,10 +28,12 @@ export const EmptyState = memo(function EmptyState({ onlinePlayersCount }: Empty
         <span className="font-medium text-foreground"> Unreplied </span> tab.
       </p>
 
-      <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/80 px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground shadow-sm backdrop-blur-sm">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-        {onlinePlayersCount} {onlinePlayersCount === 1 ? 'player' : 'players'} online
-      </div>
+      {onlinePlayersCount != null ? (
+        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/80 px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground shadow-sm backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          {onlinePlayersCount} {onlinePlayersCount === 1 ? 'player' : 'players'} online
+        </div>
+      ) : null}
     </div>
   );
 });

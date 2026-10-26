@@ -120,6 +120,17 @@ describe('resolveUnrepliedBadgeCount', () => {
     ).toBe(10);
   });
 
+  it('stays blank until a count or a live list exists', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 0,
+        listLive: false,
+        restCount: null,
+        apiCount: null,
+      }),
+    ).toBeNull();
+  });
+
   it('shows 0 when the live list is empty after replies', () => {
     expect(
       resolveUnrepliedBadgeCount({

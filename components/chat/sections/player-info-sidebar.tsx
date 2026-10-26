@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { Button, ConfirmModal, useToast } from '@/components/ui';
@@ -45,7 +45,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 }: PlayerInfoSidebarProps) {
   const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [loadedSections, setLoadedSections] = useState<Record<string, boolean>>({});
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setExpandedSection(null);
+    setLoadedSections({});
+  }, [selectedPlayer.user_id]);
 
   // Games section is hidden - removed usePlayerGames hook to prevent unnecessary API calls
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
@@ -60,19 +66,21 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
   // Pass player info for real-time websocket matching
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(
-    selectedPlayer.id || null,
+    loadedSections.purchases ? selectedPlayer.id || null : null,
     selectedPlayer.username,
     selectedPlayer.email,
     selectedPlayer.user_id
   );
   const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(
-    selectedPlayer.id || null,
+    loadedSections.cashouts ? selectedPlayer.id || null : null,
     selectedPlayer.username,
     selectedPlayer.email,
     selectedPlayer.user_id
   );
   // Use user_id for game activities
-  const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
+  const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(
+    loadedSections.activities ? selectedPlayer.user_id || null : null,
+  );
 
   // Filter cashouts and activities to only show data for the selected player
   const cashouts = allCashouts.filter(cashout =>
@@ -84,7 +92,16 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   );
 
   const toggleSection = (sectionName: string) => {
-    setExpandedSection(expandedSection === sectionName ? null : sectionName);
+    setLoadedSections((prev) =>
+      prev[sectionName] ? prev : { ...prev, [sectionName]: true },
+    );
+    setExpandedSection((current) => (current === sectionName ? null : sectionName));
+  };
+
+  const sectionSummary = (sectionName: string, loading: boolean, count: number) => {
+    if (!loadedSections[sectionName]) return 'View';
+    if (loading) return 'Loading…';
+    return `${count} ${count === 1 ? 'item' : 'items'}`;
   };
 
   const handleDeleteGame = useCallback(async () => {
@@ -257,11 +274,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </p>
             </div>
           ) : null}
-          <PlayerRouletteSpinBalanceDisplay
-            playerId={selectedPlayer.user_id}
-            variant="inline"
-            refreshKey={spinBalanceRefreshKey}
-          />
+          {spinBalanceRefreshKey != null && spinBalanceRefreshKey > 0 ? (
+            <PlayerRouletteSpinBalanceDisplay
+              playerId={selectedPlayer.user_id}
+              variant="inline"
+              refreshKey={spinBalanceRefreshKey}
+            />
+          ) : null}
         </section>
 
         <div className="flex w-full flex-col gap-2">
@@ -319,7 +338,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Purchases</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingPurchases ? 'Loading…' : `${purchases.length} ${purchases.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('purchases', isLoadingPurchases, purchases.length)}
                   </p>
                 </div>
               </div>
@@ -418,7 +437,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Cashouts</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingCashouts ? 'Loading…' : `${cashouts.length} ${cashouts.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('cashouts', isLoadingCashouts, cashouts.length)}
                   </p>
                 </div>
               </div>
@@ -507,7 +526,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Game activities</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingActivities ? 'Loading…' : `${activities.length} ${activities.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('activities', isLoadingActivities, activities.length)}
                   </p>
                 </div>
               </div>
