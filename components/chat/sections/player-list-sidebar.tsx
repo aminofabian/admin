@@ -677,9 +677,13 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         tabIndex={0}
         onKeyDown={handleListKeyDown}
       >
-        {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
-          <div className="p-2">
-            <PlayerListSkeleton count={5} />
+        {isCurrentTabLoading &&
+        !usersError &&
+        !hasSearchQuery &&
+        (displayedPlayers.length === 0 || activeTab === "all-chats") ? (
+          <div className="p-2" aria-busy="true" aria-live="polite">
+            <PlayerListSkeleton count={6} />
+            <span className="sr-only">Loading players</span>
           </div>
         ) : usersError && displayedPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -799,15 +803,11 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
 
             {/* Infinite scroll trigger */}
             {activeTab === 'all-chats' && hasMorePlayers && (
-              <div ref={loadMoreTriggerRef} className="py-4">
+              <div ref={loadMoreTriggerRef} className="py-1">
                 {isLoadingMore && (
-                  <div className="flex items-center justify-center">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span className="text-xs">Loading more...</span>
-                    </div>
+                  <div aria-busy="true" aria-live="polite">
+                    <PlayerListSkeleton count={3} />
+                    <span className="sr-only">Loading more players</span>
                   </div>
                 )}
               </div>

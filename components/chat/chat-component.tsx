@@ -1418,6 +1418,27 @@ export function ChatComponent() {
     allPlayers.length,
   ]);
 
+  // 'idle' until the directory request settles, so the first paint of All
+  // Players is a skeleton rather than the empty state or the refresh spinner.
+  const [directoryPhase, setDirectoryPhase] = useState<
+    "idle" | "loading" | "ready"
+  >("idle");
+  const [unrepliedSeedPhase, setUnrepliedSeedPhase] = useState<
+    "idle" | "loading" | "ready"
+  >("idle");
+
+  useEffect(() => {
+    if (allPlayers.length > 0) {
+      setDirectoryPhase("ready");
+      return;
+    }
+    if (isLoadingAllPlayers) {
+      setDirectoryPhase("loading");
+      return;
+    }
+    setDirectoryPhase((phase) => (phase === "loading" ? "ready" : phase));
+  }, [allPlayers.length, isLoadingAllPlayers]);
+
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
     if (activeTab === "online") {
@@ -1427,21 +1448,29 @@ export function ChatComponent() {
     }
 
     if (activeTab === "unreplied") {
-      // Seeded by the chat-list socket's connect payload.
-      return isLoadingUsers && unrepliedChats.length === 0;
+      // The live socket does not send an unreplied census, so this tab fills
+      // from REST. Keep the skeleton up through that wait. A connected socket
+      // (`isLoadingUsers === false`) used to fall through to a blank list.
+      return (
+        unrepliedChats.length === 0 &&
+        !unrepliedListLive &&
+        unrepliedSeedPhase !== "ready"
+      );
     }
 
-    // For "all-chats" tab, we need both activeChatsUsers and allPlayers
-    // Show loading if either is loading (but prioritize activeChatsUsers loading)
-    return isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers);
+    // The recent-chat socket window is not the directory. Skeleton until the
+    // first `/api/chat-all-players` page arrives, including the frame before
+    // the request's loading flag flips on.
+    return allPlayers.length === 0 && directoryPhase !== "ready";
   }, [
     activeTab,
     isLoadingApiOnlinePlayers,
     wsOnlineChats.length,
-    isLoadingUsers,
     unrepliedChats.length,
-    isLoadingAllPlayers,
+    unrepliedListLive,
+    unrepliedSeedPhase,
     allPlayers.length,
+    directoryPhase,
   ]);
 
   // Which tab the list is leaving, so only an actual tab change triggers the
@@ -1477,20 +1506,44 @@ export function ChatComponent() {
   // this tab fills once from REST. The wait lets a fast census win and skip
   // the directory download. A single `re_arrange` row must not block the fill.
   const unrepliedRestSeedAttemptedRef = useRef(false);
+  const unrepliedSeedInFlightRef = useRef(false);
   useEffect(() => {
-    if (
-      activeTab !== "unreplied" ||
-      unrepliedListLive ||
-      unrepliedRestSeedAttemptedRef.current
-    ) {
+    if (unrepliedListLive || unrepliedChats.length > 0) {
+      setUnrepliedSeedPhase("ready");
       return;
     }
+    if (activeTab !== "unreplied") return;
+    if (
+      unrepliedRestSeedAttemptedRef.current &&
+      !unrepliedSeedInFlightRef.current
+    ) {
+      setUnrepliedSeedPhase("ready");
+      return;
+    }
+    if (unrepliedSeedInFlightRef.current) {
+      setUnrepliedSeedPhase("loading");
+      return;
+    }
+    setUnrepliedSeedPhase("loading");
+    let cancelled = false;
     const timer = window.setTimeout(() => {
       unrepliedRestSeedAttemptedRef.current = true;
-      void seedUnrepliedFromRest();
+      unrepliedSeedInFlightRef.current = true;
+      void seedUnrepliedFromRest().finally(() => {
+        unrepliedSeedInFlightRef.current = false;
+        if (!cancelled) setUnrepliedSeedPhase("ready");
+      });
     }, 400);
-    return () => window.clearTimeout(timer);
-  }, [activeTab, unrepliedListLive, seedUnrepliedFromRest]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    activeTab,
+    unrepliedListLive,
+    unrepliedChats.length,
+    seedUnrepliedFromRest,
+  ]);
 
   /** The actual send. Wrapped by `handleSendMessage`, which guards concurrency. */
   const performSend = useCallback(async () => {
@@ -3584,7 +3637,11 @@ export function ChatComponent() {
         searchCharactersRemaining={searchCharactersRemaining}
         searchQueryNormalized={normalizedSearchQuery}
         isRefreshingPlayers={
-          activeTab === "all-chats" ? isLoadingAllPlayers : isLoadingApiOnlinePlayers
+          activeTab === "all-chats"
+            ? isLoadingAllPlayers && allPlayers.length > 0
+            : activeTab === "online"
+              ? isLoadingApiOnlinePlayers && apiOnlinePlayers.length > 0
+              : false
         }
         refreshDisabled={activeTab === "unreplied"}
         refreshTitle={
