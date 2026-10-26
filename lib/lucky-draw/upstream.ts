@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
-export const LUCKY_DRAW_BACKEND_BASE = `${RAW_BACKEND_URL.replace(/\/$/, '')}/api/v1/lucky-draw`;
+export const LUCKY_DRAW_BACKEND_BASE = `${RAW_BACKEND_URL.replace(/\/$/, '')}/api/v1/admin/lucky-draw`;
 
 export function luckyDrawMockEnabled(): boolean {
   return process.env.LUCKY_DRAW_USE_MOCK === '1' || process.env.LUCKY_DRAW_USE_MOCK === 'true';
@@ -15,10 +15,11 @@ export async function proxyLuckyDraw(
   if (luckyDrawMockEnabled()) return null;
 
   const authHeader = request.headers.get('authorization');
-  const url = `${LUCKY_DRAW_BACKEND_BASE}${upstreamPath}`;
+  const search = request.nextUrl.search || '';
+  const url = `${LUCKY_DRAW_BACKEND_BASE}${upstreamPath}${search}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 4_000);
+  const timer = setTimeout(() => controller.abort(), 8_000);
 
   try {
     const response = await fetch(url, {
@@ -52,6 +53,9 @@ export function jsonOk<T>(data: T, status = 200) {
   return NextResponse.json({ status: 'success', data }, { status });
 }
 
-export function jsonError(message: string, status = 400) {
-  return NextResponse.json({ status: 'error', message }, { status });
+export function jsonError(message: string, code?: string, status = 400) {
+  return NextResponse.json(
+    { status: 'error', message, ...(code ? { code } : {}) },
+    { status },
+  );
 }

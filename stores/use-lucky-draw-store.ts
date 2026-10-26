@@ -1,76 +1,87 @@
 import { create } from 'zustand';
 import { luckyDrawApi } from '@/lib/api';
 import type {
-  ActiveCyclesResponse,
-  CreateTicketEarningRuleRequest,
   DrawHistoryEntry,
-  LuckyDrawCompanyConfig,
-  ManualDrawThresholds,
-  TicketEarningRule,
+  DrawType,
+  LuckyDrawCompanySettings,
+  LuckyDrawGlobalSettings,
+  LuckyDrawStatusResponse,
 } from '@/types/lucky-draw';
 
 type LuckyDrawState = {
-  config: LuckyDrawCompanyConfig | null;
-  thresholds: ManualDrawThresholds | null;
-  rules: TicketEarningRule[];
-  active: ActiveCyclesResponse | null;
+  settings: LuckyDrawCompanySettings | null;
+  global: LuckyDrawGlobalSettings | null;
+  status: LuckyDrawStatusResponse | null;
   history: DrawHistoryEntry[];
+  historyDetail: DrawHistoryEntry | null;
   isLoading: boolean;
   error: string | null;
-  fetchAllCompany: () => Promise<void>;
-  fetchThresholds: () => Promise<void>;
-  fetchHistory: () => Promise<void>;
-  saveConfig: (patch: Partial<LuckyDrawCompanyConfig>) => Promise<LuckyDrawCompanyConfig>;
-  saveThresholds: (patch: Partial<ManualDrawThresholds>) => Promise<ManualDrawThresholds>;
-  createRule: (body: CreateTicketEarningRuleRequest) => Promise<void>;
-  patchRule: (id: number, body: Partial<CreateTicketEarningRuleRequest>) => Promise<void>;
-  deleteRule: (id: number) => Promise<void>;
-  runManual: (cycleId: number) => Promise<void>;
+  companyId: number | null;
+  setCompanyId: (id: number | null) => void;
+  fetchStatus: () => Promise<void>;
+  fetchGlobalSettings: () => Promise<void>;
+  fetchHistory: (opts?: { drawType?: DrawType; limit?: number }) => Promise<void>;
+  fetchHistoryDetail: (cycleId: number) => Promise<void>;
+  saveSettings: (
+    patch: Partial<LuckyDrawCompanySettings>,
+  ) => Promise<LuckyDrawCompanySettings>;
+  saveGlobalSettings: (
+    patch: Partial<LuckyDrawGlobalSettings>,
+  ) => Promise<LuckyDrawGlobalSettings>;
+  runDraw: (drawType: DrawType) => Promise<void>;
+  creditWinner: (winnerId: number) => Promise<void>;
 };
 
 export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
-  config: null,
-  thresholds: null,
-  rules: [],
-  active: null,
+  settings: null,
+  global: null,
+  status: null,
   history: [],
+  historyDetail: null,
   isLoading: false,
   error: null,
+  companyId: null,
 
-  fetchAllCompany: async () => {
+  setCompanyId: (id) => set({ companyId: id }),
+
+  fetchStatus: async () => {
     set({ isLoading: true, error: null });
     try {
-      const [config, rules, active] = await Promise.all([
-        luckyDrawApi.getConfig(),
-        luckyDrawApi.listRules(),
-        luckyDrawApi.getActiveCycles(),
-      ]);
-      set({ config, rules, active, isLoading: false });
+      const status = await luckyDrawApi.getStatus(get().companyId);
+      set({
+        status,
+        settings: status.settings,
+        global: status.global,
+        isLoading: false,
+      });
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load lucky draw',
+        error: err instanceof Error ? err.message : 'Failed to load lucky draw status',
       });
     }
   },
 
-  fetchThresholds: async () => {
+  fetchGlobalSettings: async () => {
     set({ isLoading: true, error: null });
     try {
-      const thresholds = await luckyDrawApi.getThresholds();
-      set({ thresholds, isLoading: false });
+      const global = await luckyDrawApi.getGlobalSettings();
+      set({ global, isLoading: false });
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load thresholds',
+        error: err instanceof Error ? err.message : 'Failed to load global settings',
       });
     }
   },
 
-  fetchHistory: async () => {
+  fetchHistory: async (opts) => {
     set({ isLoading: true, error: null });
     try {
-      const history = await luckyDrawApi.listHistory();
+      const history = await luckyDrawApi.listHistory({
+        ...opts,
+        companyId: get().companyId,
+      });
       set({ history, isLoading: false });
     } catch (err) {
       set({
@@ -80,36 +91,41 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
     }
   },
 
-  saveConfig: async (patch) => {
-    const config = await luckyDrawApi.patchConfig(patch);
-    set({ config });
-    await get().fetchAllCompany();
-    return config;
+  fetchHistoryDetail: async (cycleId) => {
+    try {
+      const historyDetail = await luckyDrawApi.getHistoryDetail(cycleId, get().companyId);
+      set({ historyDetail });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : 'Failed to load draw detail',
+      });
+    }
   },
 
-  saveThresholds: async (patch) => {
-    const thresholds = await luckyDrawApi.patchThresholds(patch);
-    set({ thresholds });
-    return thresholds;
+  saveSettings: async (patch) => {
+    const settings = await luckyDrawApi.patchSettings(patch, get().companyId);
+    set({ settings });
+    await get().fetchStatus();
+    return settings;
   },
 
-  createRule: async (body) => {
-    await luckyDrawApi.createRule(body);
-    await get().fetchAllCompany();
+  saveGlobalSettings: async (patch) => {
+    const global = await luckyDrawApi.patchGlobalSettings(patch);
+    set({ global });
+    return global;
   },
 
-  patchRule: async (id, body) => {
-    await luckyDrawApi.patchRule(id, body);
-    await get().fetchAllCompany();
+  runDraw: async (drawType) => {
+    await luckyDrawApi.runDraw(drawType, get().companyId);
+    await Promise.all([get().fetchStatus(), get().fetchHistory({ limit: 20 })]);
   },
 
-  deleteRule: async (id) => {
-    await luckyDrawApi.deleteRule(id);
-    await get().fetchAllCompany();
-  },
-
-  runManual: async (cycleId) => {
-    await luckyDrawApi.runManual(cycleId);
-    await Promise.all([get().fetchAllCompany(), get().fetchHistory()]);
+  creditWinner: async (winnerId) => {
+    await luckyDrawApi.creditWinner(winnerId, get().companyId);
+    await get().fetchHistory({ limit: 20 });
+    const detail = get().historyDetail;
+    if (detail) {
+      await get().fetchHistoryDetail(detail.id);
+    }
   },
 }));

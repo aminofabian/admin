@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
@@ -14,13 +14,12 @@ import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
 import type {
-  ActiveDrawCycle,
-  CreateTicketEarningRuleRequest,
   DrawType,
-  DrawTypeConfig,
-  ManualDrawEligibility,
-  TicketEarningRule,
+  DrawTypeStatus,
+  LuckyDrawCompanySettings,
+  PrizeMode,
 } from '@/types/lucky-draw';
+import { MANUAL_DRAW_BLOCK_COPY } from '@/types/lucky-draw';
 
 function formatWhen(iso: string) {
   try {
@@ -30,21 +29,39 @@ function formatWhen(iso: string) {
   }
 }
 
+function blockReasonCopy(code: string) {
+  return MANUAL_DRAW_BLOCK_COPY[code] ?? code;
+}
+
 function CycleCard({
   title,
-  cycle,
-  eligibility,
+  enabled,
+  status,
   canRun,
+  showRunButton,
   onRun,
   running,
 }: {
   title: string;
-  cycle: ActiveDrawCycle | null;
-  eligibility: ManualDrawEligibility;
+  enabled: boolean;
+  status: DrawTypeStatus | undefined;
   canRun: boolean;
+  showRunButton: boolean;
   onRun: () => void;
   running: boolean;
 }) {
+  const cycle = status?.cycle ?? null;
+  const manual = status?.manual_draw;
+
+  if (!enabled) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
+        <h3 className="font-medium text-gray-900 dark:text-gray-50">{title}</h3>
+        <p className="mt-1 text-sm text-gray-500">Disabled — enable in configuration below.</p>
+      </div>
+    );
+  }
+
   if (!cycle) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
@@ -54,17 +71,24 @@ function CycleCard({
     );
   }
 
+  const ticketPct = manual
+    ? Math.min(100, Math.round((manual.ticket_count / Math.max(1, manual.min_tickets)) * 100))
+    : 0;
+  const playerPct = manual
+    ? Math.min(100, Math.round((manual.player_count / Math.max(1, manual.min_players)) * 100))
+    : 0;
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-medium text-gray-900 dark:text-gray-50">{title}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Scheduled {formatWhen(cycle.scheduled_at)}
+            Scheduled {formatWhen(cycle.scheduled_draw_at)}
           </p>
         </div>
         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-          {cycle.ticket_type} tickets
+          {cycle.status}
         </span>
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -74,188 +98,258 @@ function CycleCard({
         </div>
         <div>
           <dt className="text-gray-500">Players</dt>
-          <dd className="font-semibold text-gray-900 dark:text-gray-50">
-            {cycle.unique_player_count}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-gray-500">Winners</dt>
-          <dd className="font-semibold text-gray-900 dark:text-gray-50">{cycle.winner_count}</dd>
-        </div>
-        <div>
-          <dt className="text-gray-500">Prize mode</dt>
-          <dd className="font-semibold capitalize text-gray-900 dark:text-gray-50">
-            {cycle.prize_distribution.replace('_', ' ')}
-          </dd>
+          <dd className="font-semibold text-gray-900 dark:text-gray-50">{cycle.player_count}</dd>
         </div>
       </dl>
-      <div className="mt-4 space-y-2">
-        <Button
-          type="button"
-          disabled={!canRun || !eligibility.allowed || running}
-          onClick={onRun}
-          className="w-full"
-        >
-          {running ? 'Running…' : 'Run Draw Now'}
-        </Button>
-        {!eligibility.allowed && (
-          <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
-            {eligibility.reasons.map((reason) => (
-              <li key={reason}>• {reason}</li>
-            ))}
-          </ul>
-        )}
-        {eligibility.allowed && (
-          <p className="text-xs text-gray-500">
-            Thresholds met ({eligibility.min_tickets} tickets / {eligibility.min_players} players).
-            Manual draw resets the cycle from now.
-          </p>
-        )}
-      </div>
+
+      {manual && showRunButton && (
+        <div className="mt-4 space-y-2">
+          <div className="space-y-1 text-xs text-gray-500">
+            <div className="flex justify-between">
+              <span>
+                Tickets {manual.ticket_count}/{manual.min_tickets}
+              </span>
+              <span>{ticketPct}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${ticketPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between">
+              <span>
+                Players {manual.player_count}/{manual.min_players}
+              </span>
+              <span>{playerPct}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${playerPct}%` }}
+              />
+            </div>
+          </div>
+          <Button
+            type="button"
+            disabled={!canRun || !manual.eligible || running}
+            onClick={onRun}
+            className="w-full"
+            title={
+              !manual.eligible
+                ? manual.block_reasons.map(blockReasonCopy).join(' · ')
+                : 'Run draw now and start a new cycle'
+            }
+          >
+            {running ? 'Running…' : 'Run Draw Now'}
+          </Button>
+          {!manual.eligible && (
+            <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
+              {manual.block_reasons.map((reason) => (
+                <li key={reason}>• {blockReasonCopy(reason)}</li>
+              ))}
+            </ul>
+          )}
+          {manual.eligible && (
+            <p className="text-xs text-gray-500">
+              Thresholds met. Manual draw resets the schedule from now.
+            </p>
+          )}
+        </div>
+      )}
+
+      {!showRunButton && (
+        <p className="mt-4 text-xs text-gray-500">
+          Early/manual draws are disabled globally. Scheduled countdown still applies.
+        </p>
+      )}
     </div>
   );
 }
 
-function ConfigEditor({
-  label,
-  drawType,
-  value,
+function SettingsEditor({
+  draft,
   disabled,
   onChange,
 }: {
-  label: string;
-  drawType: DrawType;
-  value: DrawTypeConfig;
+  draft: LuckyDrawCompanySettings;
   disabled: boolean;
-  onChange: (next: DrawTypeConfig) => void;
+  onChange: (next: LuckyDrawCompanySettings) => void;
 }) {
-  return (
-    <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-medium text-gray-900 dark:text-gray-50">{label}</h3>
-        <Switch
-          checked={value.enabled}
-          disabled={disabled}
-          onChange={(enabled) => onChange({ ...value, enabled })}
-        />
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="text-gray-500">Winner count</span>
-          <Input
-            type="number"
-            min={1}
+  const update = (patch: Partial<LuckyDrawCompanySettings>) =>
+    onChange({ ...draft, ...patch });
+
+  const renderPrizeSection = (drawType: DrawType) => {
+    const enabledKey = drawType === 'weekly' ? 'weekly_enabled' : 'monthly_enabled';
+    const winnerKey = drawType === 'weekly' ? 'weekly_winner_count' : 'monthly_winner_count';
+    const modeKey = drawType === 'weekly' ? 'weekly_prize_mode' : 'monthly_prize_mode';
+    const totalKey = drawType === 'weekly' ? 'weekly_prize_total' : 'monthly_prize_total';
+    const amountsKey =
+      drawType === 'weekly' ? 'weekly_prize_amounts' : 'monthly_prize_amounts';
+    const thresholdKey =
+      drawType === 'weekly' ? 'weekly_purchase_threshold' : 'monthly_purchase_threshold';
+    const ticketsKey =
+      drawType === 'weekly'
+        ? 'weekly_tickets_per_threshold'
+        : 'monthly_tickets_per_threshold';
+
+    const mode = draft[modeKey] as PrizeMode;
+    const winnerCount = draft[winnerKey] as number;
+    const amounts = draft[amountsKey] as string[];
+
+    return (
+      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-medium capitalize text-gray-900 dark:text-gray-50">
+            {drawType} ({drawType === 'weekly' ? 'Silver' : 'Gold'})
+          </h3>
+          <Switch
+            checked={draft[enabledKey] as boolean}
             disabled={disabled}
-            value={value.winner_count}
-            onChange={(e) =>
-              onChange({ ...value, winner_count: Number(e.target.value) || 1 })
-            }
+            onChange={(v) => update({ [enabledKey]: v })}
           />
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-500">Equal prize amount</span>
-          <Input
-            disabled={disabled || value.prize_distribution !== 'equal'}
-            value={value.prize_amount}
-            onChange={(e) => onChange({ ...value, prize_amount: e.target.value })}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-500">Prize distribution</span>
-          <select
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-            disabled={disabled}
-            value={value.prize_distribution}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                prize_distribution: e.target.value as DrawTypeConfig['prize_distribution'],
-              })
-            }
-          >
-            <option value="equal">Equal</option>
-            <option value="by_position">By position</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-500">Prize credit</span>
-          <select
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-            disabled={disabled}
-            value={value.prize_credit_mode}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                prize_credit_mode: e.target.value as DrawTypeConfig['prize_credit_mode'],
-              })
-            }
-          >
-            <option value="auto">Auto credit</option>
-            <option value="approval">Require approval</option>
-          </select>
-        </label>
-      </div>
-      {value.prize_distribution === 'by_position' && (
-        <div className="mt-3 space-y-2">
-          <p className="text-xs text-gray-500">Prize by winner position ({drawType})</p>
-          {Array.from({ length: value.winner_count }, (_, i) => (
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="text-gray-500">Winner count</span>
             <Input
-              key={`${drawType}-pos-${i}`}
+              type="number"
+              min={1}
               disabled={disabled}
-              value={value.prize_amounts_by_position[i] ?? ''}
-              placeholder={`Position ${i + 1}`}
+              value={winnerCount}
               onChange={(e) => {
-                const next = [...value.prize_amounts_by_position];
-                next[i] = e.target.value;
-                onChange({ ...value, prize_amounts_by_position: next });
+                const n = Math.max(1, Number(e.target.value) || 1);
+                const nextAmounts = [...amounts];
+                while (nextAmounts.length < n) nextAmounts.push('');
+                update({
+                  [winnerKey]: n,
+                  [amountsKey]: nextAmounts.slice(0, n),
+                });
               }}
             />
-          ))}
+          </label>
+          <label className="block text-sm">
+            <span className="text-gray-500">Prize mode</span>
+            <select
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+              disabled={disabled}
+              value={mode}
+              onChange={(e) => update({ [modeKey]: e.target.value as PrizeMode })}
+            >
+              <option value="equal">Equal (split total)</option>
+              <option value="individual">Individual amounts</option>
+            </select>
+          </label>
+          {mode === 'equal' ? (
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-gray-500">Prize total (split across winners)</span>
+              <Input
+                disabled={disabled}
+                value={draft[totalKey] as string}
+                onChange={(e) => update({ [totalKey]: e.target.value })}
+              />
+            </label>
+          ) : (
+            <div className="space-y-2 sm:col-span-2">
+              <p className="text-xs text-gray-500">
+                Amount per winner position ({winnerCount} required)
+              </p>
+              {Array.from({ length: winnerCount }, (_, i) => (
+                <Input
+                  key={`${drawType}-amt-${i}`}
+                  disabled={disabled}
+                  value={amounts[i] ?? ''}
+                  placeholder={`Position ${i + 1}`}
+                  onChange={(e) => {
+                    const next = [...amounts];
+                    next[i] = e.target.value;
+                    update({ [amountsKey]: next });
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <label className="block text-sm">
+            <span className="text-gray-500">Purchase threshold ($)</span>
+            <Input
+              disabled={disabled}
+              value={draft[thresholdKey] as string}
+              onChange={(e) => update({ [thresholdKey]: e.target.value })}
+              placeholder="0 = disabled"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-gray-500">Tickets per threshold</span>
+            <Input
+              type="number"
+              min={0}
+              disabled={disabled}
+              value={draft[ticketsKey] as number}
+              onChange={(e) =>
+                update({ [ticketsKey]: Math.max(0, Number(e.target.value) || 0) })
+              }
+            />
+          </label>
         </div>
-      )}
-      <label className="mt-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-        <input
-          type="checkbox"
-          disabled={disabled}
-          checked={value.allow_multi_win}
-          onChange={(e) => onChange({ ...value, allow_multi_win: e.target.checked })}
-        />
-        Allow one player to win multiple times in the same draw
-      </label>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {renderPrizeSection('weekly')}
+        {renderPrizeSection('monthly')}
+      </div>
+      <div className="flex flex-wrap gap-6 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={draft.allow_multiple_wins_same_player}
+            onChange={(e) =>
+              update({ allow_multiple_wins_same_player: e.target.checked })
+            }
+          />
+          Allow same player to win multiple times in one draw
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={draft.prize_auto_credit}
+            onChange={(e) => update({ prize_auto_credit: e.target.checked })}
+          />
+          Auto-credit prizes (off = require admin approval)
+        </label>
+      </div>
+      <p className="text-xs text-gray-500">
+        Spin tickets are configured on Roulette reward configs (
+        <code>weekly_ticket</code> / <code>monthly_ticket</code>).
+      </p>
     </div>
   );
 }
+
+const STATUS_POLL_MS = 45_000;
 
 export default function LuckyDrawSettingsPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
   const {
-    config,
-    rules,
-    active,
+    settings,
+    status,
     isLoading,
     error,
-    fetchAllCompany,
-    saveConfig,
-    createRule,
-    patchRule,
-    deleteRule,
-    runManual,
+    fetchStatus,
+    saveSettings,
+    runDraw,
   } = useLuckyDrawStore();
 
-  const [weeklyDraft, setWeeklyDraft] = useState<DrawTypeConfig | null>(null);
-  const [monthlyDraft, setMonthlyDraft] = useState<DrawTypeConfig | null>(null);
+  const [draft, setDraft] = useState<LuckyDrawCompanySettings | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
-  const [runningId, setRunningId] = useState<number | null>(null);
-  const [newRule, setNewRule] = useState<CreateTicketEarningRuleRequest>({
-    draw_type: 'weekly',
-    ticket_type: 'silver',
-    source: 'purchase_threshold',
-    threshold_amount: '50.00',
-    ticket_quantity: 1,
-    is_enabled: true,
-  });
+  const [runningType, setRunningType] = useState<DrawType | null>(null);
 
   const canEdit = canEditLuckyDrawConfig(user?.role);
   const canOperate = canOperateLuckyDraw(user?.role);
@@ -268,26 +362,44 @@ export default function LuckyDrawSettingsPage() {
   }, [user?.role, canOperate, router]);
 
   useEffect(() => {
-    if (canOperate) void fetchAllCompany();
-  }, [canOperate, fetchAllCompany]);
+    if (!canOperate) return;
+    void fetchStatus();
+    const timer = setInterval(() => void fetchStatus(), STATUS_POLL_MS);
+    return () => clearInterval(timer);
+  }, [canOperate, fetchStatus]);
 
   useEffect(() => {
-    if (!config) return;
-    setWeeklyDraft(config.weekly);
-    setMonthlyDraft(config.monthly);
-  }, [config]);
-
-  const sortedRules = useMemo(
-    () => [...rules].sort((a, b) => a.id - b.id),
-    [rules],
-  );
+    if (settings) setDraft(settings);
+  }, [settings]);
 
   const handleSaveConfig = async () => {
-    if (!weeklyDraft || !monthlyDraft) return;
+    if (!draft) return;
+    if (
+      draft.weekly_prize_mode === 'individual' &&
+      draft.weekly_prize_amounts.length !== draft.weekly_winner_count
+    ) {
+      addToast({
+        type: 'error',
+        title: 'Invalid prize amounts',
+        description: 'Weekly individual amounts must match winner count',
+      });
+      return;
+    }
+    if (
+      draft.monthly_prize_mode === 'individual' &&
+      draft.monthly_prize_amounts.length !== draft.monthly_winner_count
+    ) {
+      addToast({
+        type: 'error',
+        title: 'Invalid prize amounts',
+        description: 'Monthly individual amounts must match winner count',
+      });
+      return;
+    }
     setSavingConfig(true);
     try {
-      await saveConfig({ weekly: weeklyDraft, monthly: monthlyDraft });
-      addToast({ type: 'success', title: 'Lucky draw config saved' });
+      await saveSettings(draft);
+      addToast({ type: 'success', title: 'Lucky draw settings saved' });
     } catch (err) {
       addToast({
         type: 'error',
@@ -299,14 +411,14 @@ export default function LuckyDrawSettingsPage() {
     }
   };
 
-  const handleRun = async (cycle: ActiveDrawCycle) => {
-    setRunningId(cycle.id);
+  const handleRun = async (drawType: DrawType) => {
+    setRunningType(drawType);
     try {
-      await runManual(cycle.id);
+      await runDraw(drawType);
       addToast({
         type: 'success',
         title: 'Manual draw completed',
-        description: `Next ${cycle.draw_type} draw scheduled from now (+${cycle.draw_type === 'weekly' ? '7' : '30'} days).`,
+        description: `Next ${drawType} cycle scheduled from now (+${drawType === 'weekly' ? '7' : '30'} days).`,
       });
     } catch (err) {
       addToast({
@@ -314,47 +426,19 @@ export default function LuckyDrawSettingsPage() {
         title: 'Draw blocked',
         description: err instanceof Error ? err.message : 'Could not run draw',
       });
+      void fetchStatus();
     } finally {
-      setRunningId(null);
-    }
-  };
-
-  const handleCreateRule = async () => {
-    try {
-      const payload: CreateTicketEarningRuleRequest = {
-        ...newRule,
-        ticket_type: newRule.draw_type === 'weekly' ? 'silver' : 'gold',
-        threshold_amount:
-          newRule.source === 'purchase_threshold' ? newRule.threshold_amount : null,
-      };
-      await createRule(payload);
-      addToast({ type: 'success', title: 'Earning rule added' });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        title: 'Could not add rule',
-        description: err instanceof Error ? err.message : 'Error',
-      });
-    }
-  };
-
-  const toggleRule = async (rule: TicketEarningRule) => {
-    try {
-      await patchRule(rule.id, { is_enabled: !rule.is_enabled });
-    } catch (err) {
-      addToast({
-        type: 'error',
-        title: 'Update failed',
-        description: err instanceof Error ? err.message : 'Error',
-      });
+      setRunningType(null);
     }
   };
 
   if (isAuthLoading || isLoading) return <LoadingState />;
   if (!canOperate) return null;
-  if (error && !config) {
-    return <ErrorState message={error} onRetry={fetchAllCompany} />;
+  if (error && !status) {
+    return <ErrorState message={error} onRetry={fetchStatus} />;
   }
+
+  const earlyEnabled = status?.global.early_draw_enabled !== false;
 
   return (
     <div className="space-y-10 pb-12">
@@ -364,8 +448,8 @@ export default function LuckyDrawSettingsPage() {
             Lucky Draw
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-            Weekly (Silver) and Monthly (Gold) draws for this company. Manual draws are
-            gated by Superadmin thresholds and reset the cycle from the draw time.
+            Weekly (Silver) and Monthly (Gold) draws. Manual draws are gated by Superadmin
+            thresholds and reset the cycle from the draw time.
           </p>
         </div>
         <Link
@@ -377,191 +461,53 @@ export default function LuckyDrawSettingsPage() {
       </header>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">Live cycles</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">Live status</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <CycleCard
             title="Weekly Draw"
-            cycle={active?.weekly ?? null}
-            eligibility={
-              active?.eligibility.weekly ?? {
-                allowed: false,
-                early_manual_enabled: false,
-                min_tickets: 0,
-                min_players: 0,
-                ticket_count: 0,
-                unique_player_count: 0,
-                reasons: ['Loading…'],
-              }
-            }
+            enabled={status?.settings.weekly_enabled ?? true}
+            status={status?.weekly}
             canRun={canOperate}
-            running={runningId === active?.weekly?.id}
-            onRun={() => active?.weekly && void handleRun(active.weekly)}
+            showRunButton={earlyEnabled}
+            running={runningType === 'weekly'}
+            onRun={() => void handleRun('weekly')}
           />
           <CycleCard
             title="Monthly Draw"
-            cycle={active?.monthly ?? null}
-            eligibility={
-              active?.eligibility.monthly ?? {
-                allowed: false,
-                early_manual_enabled: false,
-                min_tickets: 0,
-                min_players: 0,
-                ticket_count: 0,
-                unique_player_count: 0,
-                reasons: ['Loading…'],
-              }
-            }
+            enabled={status?.settings.monthly_enabled ?? true}
+            status={status?.monthly}
             canRun={canOperate}
-            running={runningId === active?.monthly?.id}
-            onRun={() => active?.monthly && void handleRun(active.monthly)}
+            showRunButton={earlyEnabled}
+            running={runningType === 'monthly'}
+            onRun={() => void handleRun('monthly')}
           />
         </div>
       </section>
 
-      {canEdit && weeklyDraft && monthlyDraft && (
+      {canEdit && draft && (
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">
               Draw configuration
             </h2>
             <Button type="button" disabled={savingConfig} onClick={() => void handleSaveConfig()}>
-              {savingConfig ? 'Saving…' : 'Save config'}
+              {savingConfig ? 'Saving…' : 'Save settings'}
             </Button>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ConfigEditor
-              label="Weekly (Silver)"
-              drawType="weekly"
-              value={weeklyDraft}
-              disabled={savingConfig}
-              onChange={setWeeklyDraft}
-            />
-            <ConfigEditor
-              label="Monthly (Gold)"
-              drawType="monthly"
-              value={monthlyDraft}
-              disabled={savingConfig}
-              onChange={setMonthlyDraft}
-            />
-          </div>
+          <SettingsEditor draft={draft} disabled={savingConfig} onChange={setDraft} />
         </section>
       )}
 
       {!canEdit && (
         <p className="text-sm text-gray-500">
           Managers can operate live draws and view history. Company admins configure prizes
-          and earning rules.
+          and purchase thresholds.
         </p>
-      )}
-
-      {canEdit && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">
-            Ticket earning rules
-          </h2>
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
-            <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Draw</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Ticket</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Source</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Threshold</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Qty</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Enabled</th>
-                  <th className="px-3 py-2 text-right font-medium text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-900">
-                {sortedRules.map((rule) => (
-                  <tr key={rule.id}>
-                    <td className="px-3 py-2 capitalize">{rule.draw_type}</td>
-                    <td className="px-3 py-2 capitalize">{rule.ticket_type}</td>
-                    <td className="px-3 py-2">{rule.source.replace('_', ' ')}</td>
-                    <td className="px-3 py-2">{rule.threshold_amount ?? '—'}</td>
-                    <td className="px-3 py-2">{rule.ticket_quantity}</td>
-                    <td className="px-3 py-2">
-                      <Switch
-                        checked={rule.is_enabled}
-                        onChange={() => void toggleRule(rule)}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        className="text-red-600 hover:underline"
-                        onClick={() => void deleteRule(rule.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="rounded-xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-50">Add rule</h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <select
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-                value={newRule.draw_type}
-                onChange={(e) => {
-                  const draw_type = e.target.value as DrawType;
-                  setNewRule((prev) => ({
-                    ...prev,
-                    draw_type,
-                    ticket_type: draw_type === 'weekly' ? 'silver' : 'gold',
-                  }));
-                }}
-              >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-              <select
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-                value={newRule.source}
-                onChange={(e) =>
-                  setNewRule((prev) => ({
-                    ...prev,
-                    source: e.target.value as CreateTicketEarningRuleRequest['source'],
-                  }))
-                }
-              >
-                <option value="purchase_threshold">Purchase threshold</option>
-                <option value="spin">Eligible game spin</option>
-              </select>
-              <Input
-                placeholder="Threshold $"
-                disabled={newRule.source !== 'purchase_threshold'}
-                value={newRule.threshold_amount ?? ''}
-                onChange={(e) =>
-                  setNewRule((prev) => ({ ...prev, threshold_amount: e.target.value }))
-                }
-              />
-              <Input
-                type="number"
-                min={1}
-                value={newRule.ticket_quantity}
-                onChange={(e) =>
-                  setNewRule((prev) => ({
-                    ...prev,
-                    ticket_quantity: Number(e.target.value) || 1,
-                  }))
-                }
-              />
-              <Button type="button" onClick={() => void handleCreateRule()}>
-                Add rule
-              </Button>
-            </div>
-          </div>
-        </section>
       )}
 
       {user?.role === USER_ROLES.SUPERADMIN && (
         <p className="text-sm text-gray-500">
-          Superadmin global manual-draw gates live under{' '}
+          Superadmin global early-draw gates live under{' '}
           <Link href="/dashboard/settings/lucky-draw-thresholds" className="text-primary underline">
             Lucky Draw Thresholds
           </Link>

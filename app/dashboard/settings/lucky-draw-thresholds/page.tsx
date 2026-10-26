@@ -8,14 +8,15 @@ import { useLuckyDrawStore } from '@/stores';
 import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
-import type { ManualDrawThresholds } from '@/types/lucky-draw';
+import type { LuckyDrawGlobalSettings } from '@/types/lucky-draw';
 
 export default function LuckyDrawThresholdsPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
-  const { thresholds, isLoading, error, fetchThresholds, saveThresholds } = useLuckyDrawStore();
-  const [draft, setDraft] = useState<ManualDrawThresholds | null>(null);
+  const { global, isLoading, error, fetchGlobalSettings, saveGlobalSettings } =
+    useLuckyDrawStore();
+  const [draft, setDraft] = useState<LuckyDrawGlobalSettings | null>(null);
   const [saving, setSaving] = useState(false);
 
   const canEdit = canEditLuckyDrawManualThresholds(user?.role);
@@ -26,19 +27,19 @@ export default function LuckyDrawThresholdsPage() {
   }, [user?.role, canEdit, router]);
 
   useEffect(() => {
-    if (canEdit) void fetchThresholds();
-  }, [canEdit, fetchThresholds]);
+    if (canEdit) void fetchGlobalSettings();
+  }, [canEdit, fetchGlobalSettings]);
 
   useEffect(() => {
-    if (thresholds) setDraft(thresholds);
-  }, [thresholds]);
+    if (global) setDraft(global);
+  }, [global]);
 
   const handleSave = async () => {
     if (!draft) return;
     setSaving(true);
     try {
-      await saveThresholds(draft);
-      addToast({ type: 'success', title: 'Manual draw thresholds saved' });
+      await saveGlobalSettings(draft);
+      addToast({ type: 'success', title: 'Global lucky draw gates saved' });
     } catch (err) {
       addToast({
         type: 'error',
@@ -53,7 +54,7 @@ export default function LuckyDrawThresholdsPage() {
   if (isAuthLoading || isLoading) return <LoadingState />;
   if (!canEdit) return null;
   if (error && !draft) {
-    return <ErrorState message={error} onRetry={fetchThresholds} />;
+    return <ErrorState message={error} onRetry={fetchGlobalSettings} />;
   }
   if (!draft) return <LoadingState />;
 
@@ -61,11 +62,10 @@ export default function LuckyDrawThresholdsPage() {
     <div className="mx-auto max-w-2xl space-y-8 pb-12">
       <header>
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-          Lucky Draw — Manual thresholds
+          Lucky Draw — Global gates
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Global Superadmin gates for early/manual draws. Company admins configure prizes
-          and earning rules separately. Scheduled automatic draws do not use these
+          Superadmin early/manual draw gates. Scheduled automatic draws do not use these
           thresholds.
         </p>
       </header>
@@ -74,16 +74,16 @@ export default function LuckyDrawThresholdsPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-medium text-gray-900 dark:text-gray-50">
-              Allow early / manual draws
+              Allow early / manual draws globally
             </h2>
             <p className="text-sm text-gray-500">
-              When off, company “Run Draw Now” stays blocked everywhere.
+              When off, company “Run Draw Now” is hidden everywhere.
             </p>
           </div>
           <Switch
-            checked={draft.early_manual_enabled}
-            onChange={(early_manual_enabled) =>
-              setDraft((prev) => (prev ? { ...prev, early_manual_enabled } : prev))
+            checked={draft.early_draw_enabled}
+            onChange={(early_draw_enabled) =>
+              setDraft((prev) => (prev ? { ...prev, early_draw_enabled } : prev))
             }
           />
         </div>
@@ -159,7 +159,7 @@ export default function LuckyDrawThresholdsPage() {
       </section>
 
       <Button type="button" disabled={saving} onClick={() => void handleSave()}>
-        {saving ? 'Saving…' : 'Save thresholds'}
+        {saving ? 'Saving…' : 'Save global settings'}
       </Button>
     </div>
   );

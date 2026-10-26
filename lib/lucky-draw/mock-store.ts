@@ -1,14 +1,13 @@
 import type {
-  ActiveCyclesResponse,
-  ActiveDrawCycle,
-  CreateTicketEarningRuleRequest,
   DrawHistoryEntry,
   DrawType,
-  LuckyDrawCompanyConfig,
-  ManualDrawEligibility,
-  ManualDrawThresholds,
-  RunManualDrawResponse,
-  TicketEarningRule,
+  DrawTypeStatus,
+  LuckyDrawCompanySettings,
+  LuckyDrawCycle,
+  LuckyDrawGlobalSettings,
+  LuckyDrawStatusResponse,
+  ManualDrawInfo,
+  RunDrawResponse,
 } from '@/types/lucky-draw';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -21,104 +20,107 @@ function daysFromNow(days: number): string {
 function buildCycle(
   id: number,
   drawType: DrawType,
-  scheduledAt: string,
+  scheduledDrawAt: string,
   ticketCount: number,
-  uniquePlayers: number,
-  config: LuckyDrawCompanyConfig,
-): ActiveDrawCycle {
-  const typeConfig = config[drawType];
+  playerCount: number,
+): LuckyDrawCycle {
   return {
     id,
     draw_type: drawType,
-    ticket_type: drawType === 'weekly' ? 'silver' : 'gold',
     status: 'active',
-    started_at: new Date(Date.parse(scheduledAt) - (drawType === 'weekly' ? WEEK_MS : MONTH_MS)).toISOString(),
-    scheduled_at: scheduledAt,
+    started_at: new Date(
+      Date.parse(scheduledDrawAt) - (drawType === 'weekly' ? WEEK_MS : MONTH_MS),
+    ).toISOString(),
+    scheduled_draw_at: scheduledDrawAt,
     ticket_count: ticketCount,
-    unique_player_count: uniquePlayers,
-    winner_count: typeConfig.winner_count,
-    prize_distribution: typeConfig.prize_distribution,
-    prize_amount: typeConfig.prize_amount,
-    prize_amounts_by_position: [...typeConfig.prize_amounts_by_position],
+    player_count: playerCount,
   };
 }
 
-function eligibilityFor(
+function manualDrawFor(
   drawType: DrawType,
-  cycle: ActiveDrawCycle | null,
-  thresholds: ManualDrawThresholds,
-): ManualDrawEligibility {
+  cycle: LuckyDrawCycle | null,
+  global: LuckyDrawGlobalSettings,
+  settings: LuckyDrawCompanySettings,
+): ManualDrawInfo {
+  const enabled = drawType === 'weekly' ? settings.weekly_enabled : settings.monthly_enabled;
   const minTickets =
-    drawType === 'weekly' ? thresholds.weekly_min_tickets : thresholds.monthly_min_tickets;
+    drawType === 'weekly' ? global.weekly_min_tickets : global.monthly_min_tickets;
   const minPlayers =
-    drawType === 'weekly' ? thresholds.weekly_min_players : thresholds.monthly_min_players;
+    drawType === 'weekly' ? global.weekly_min_players : global.monthly_min_players;
   const ticketCount = cycle?.ticket_count ?? 0;
-  const uniquePlayerCount = cycle?.unique_player_count ?? 0;
-  const reasons: string[] = [];
+  const playerCount = cycle?.player_count ?? 0;
+  const ticketsMet = ticketCount >= minTickets;
+  const playersMet = playerCount >= minPlayers;
+  const block_reasons: string[] = [];
 
-  if (!thresholds.early_manual_enabled) {
-    reasons.push('Early/manual draws are disabled globally by Superadmin.');
-  }
-  if (!cycle) {
-    reasons.push(`No active ${drawType} cycle.`);
-  }
-  if (ticketCount < minTickets) {
-    reasons.push(`Need at least ${minTickets} tickets (have ${ticketCount}).`);
-  }
-  if (uniquePlayerCount < minPlayers) {
-    reasons.push(`Need at least ${minPlayers} unique players (have ${uniquePlayerCount}).`);
-  }
+  if (!global.early_draw_enabled) block_reasons.push('early_draw_disabled');
+  if (!enabled) block_reasons.push('draw_disabled');
+  if (!cycle) block_reasons.push('no_active_cycle');
+  if (!ticketsMet) block_reasons.push('min_tickets_not_met');
+  if (!playersMet) block_reasons.push('min_players_not_met');
 
   return {
-    allowed: reasons.length === 0,
-    early_manual_enabled: thresholds.early_manual_enabled,
+    eligible: block_reasons.length === 0,
+    ticket_count: ticketCount,
+    player_count: playerCount,
     min_tickets: minTickets,
     min_players: minPlayers,
-    ticket_count: ticketCount,
-    unique_player_count: uniquePlayerCount,
-    reasons,
+    tickets_met: ticketsMet,
+    players_met: playersMet,
+    early_draw_globally_enabled: global.early_draw_enabled,
+    block_reasons,
+  };
+}
+
+function typeStatus(
+  drawType: DrawType,
+  cycle: LuckyDrawCycle | null,
+  global: LuckyDrawGlobalSettings,
+  settings: LuckyDrawCompanySettings,
+): DrawTypeStatus {
+  return {
+    cycle: cycle ? structuredClone(cycle) : null,
+    manual_draw: manualDrawFor(drawType, cycle, global, settings),
   };
 }
 
 type StoreState = {
-  thresholds: ManualDrawThresholds;
-  config: LuckyDrawCompanyConfig;
-  rules: TicketEarningRule[];
-  weekly: ActiveDrawCycle | null;
-  monthly: ActiveDrawCycle | null;
+  global: LuckyDrawGlobalSettings;
+  settings: LuckyDrawCompanySettings;
+  weekly: LuckyDrawCycle | null;
+  monthly: LuckyDrawCycle | null;
   history: DrawHistoryEntry[];
-  nextRuleId: number;
   nextCycleId: number;
+  nextWinnerId: number;
 };
 
 const globalForMock = globalThis as typeof globalThis & {
-  __luckyDrawMockStore?: StoreState;
+  __luckyDrawMockStoreV2?: StoreState;
 };
 
 function createInitialState(): StoreState {
-  const config: LuckyDrawCompanyConfig = {
-    weekly: {
-      enabled: true,
-      winner_count: 3,
-      prize_distribution: 'equal',
-      prize_amount: '50.00',
-      prize_amounts_by_position: ['100.00', '50.00', '25.00'],
-      allow_multi_win: false,
-      prize_credit_mode: 'auto',
-    },
-    monthly: {
-      enabled: true,
-      winner_count: 5,
-      prize_distribution: 'by_position',
-      prize_amount: '200.00',
-      prize_amounts_by_position: ['500.00', '250.00', '150.00', '75.00', '50.00'],
-      allow_multi_win: false,
-      prize_credit_mode: 'auto',
-    },
+  const settings: LuckyDrawCompanySettings = {
+    weekly_enabled: true,
+    monthly_enabled: true,
+    weekly_winner_count: 3,
+    monthly_winner_count: 5,
+    weekly_prize_mode: 'equal',
+    monthly_prize_mode: 'individual',
+    weekly_prize_total: '500.00',
+    monthly_prize_total: '0.00',
+    weekly_prize_amounts: [],
+    monthly_prize_amounts: ['1000.00', '500.00', '250.00', '100.00', '50.00'],
+    allow_multiple_wins_same_player: false,
+    prize_auto_credit: true,
+    weekly_purchase_threshold: '50.00',
+    weekly_tickets_per_threshold: 1,
+    monthly_purchase_threshold: '100.00',
+    monthly_tickets_per_threshold: 1,
   };
 
-  const thresholds: ManualDrawThresholds = {
-    early_manual_enabled: true,
+  const global: LuckyDrawGlobalSettings = {
+    early_draw_enabled: true,
     weekly_min_tickets: 500,
     weekly_min_players: 50,
     monthly_min_tickets: 2000,
@@ -126,220 +128,197 @@ function createInitialState(): StoreState {
   };
 
   return {
-    thresholds,
-    config,
-    rules: [
-      {
-        id: 1,
-        draw_type: 'weekly',
-        ticket_type: 'silver',
-        source: 'purchase_threshold',
-        threshold_amount: '50.00',
-        ticket_quantity: 1,
-        is_enabled: true,
-      },
-      {
-        id: 2,
-        draw_type: 'weekly',
-        ticket_type: 'silver',
-        source: 'spin',
-        threshold_amount: null,
-        ticket_quantity: 1,
-        is_enabled: true,
-      },
-      {
-        id: 3,
-        draw_type: 'monthly',
-        ticket_type: 'gold',
-        source: 'purchase_threshold',
-        threshold_amount: '100.00',
-        ticket_quantity: 1,
-        is_enabled: true,
-      },
-    ],
-    weekly: buildCycle(101, 'weekly', daysFromNow(3), 620, 78, config),
-    monthly: buildCycle(102, 'monthly', daysFromNow(16), 1840, 132, config),
+    global,
+    settings,
+    weekly: buildCycle(12, 'weekly', daysFromNow(3), 620, 78),
+    monthly: buildCycle(13, 'monthly', daysFromNow(16), 1840, 132),
     history: [
       {
         id: 90,
         draw_type: 'weekly',
         status: 'completed',
-        method: 'automatic',
+        draw_method: 'automatic',
         started_at: daysFromNow(-14),
         completed_at: daysFromNow(-7),
-        scheduled_at: daysFromNow(-7),
+        scheduled_draw_at: daysFromNow(-7),
         ticket_count: 540,
-        unique_player_count: 61,
+        player_count: 61,
+        prize_status: 'credited',
         winners: [
           {
+            id: 901,
             position: 1,
             player_id: 1001,
             player_username: 'lucky_player',
-            ticket_id: 9001,
-            prize_amount: '50.00',
-            credited: true,
+            prize_amount: '166.67',
+            prize_status: 'credited',
           },
           {
+            id: 902,
             position: 2,
             player_id: 1002,
             player_username: 'spin_queen',
-            ticket_id: 9002,
-            prize_amount: '50.00',
-            credited: true,
+            prize_amount: '166.67',
+            prize_status: 'credited',
           },
           {
+            id: 903,
             position: 3,
             player_id: 1003,
             player_username: 'goldrush',
-            ticket_id: 9003,
-            prize_amount: '50.00',
-            credited: true,
+            prize_amount: '166.66',
+            prize_status: 'credited',
           },
         ],
       },
     ],
-    nextRuleId: 4,
-    nextCycleId: 103,
+    nextCycleId: 14,
+    nextWinnerId: 1000,
   };
 }
 
 function getStore(): StoreState {
-  if (!globalForMock.__luckyDrawMockStore) {
-    globalForMock.__luckyDrawMockStore = createInitialState();
+  if (!globalForMock.__luckyDrawMockStoreV2) {
+    globalForMock.__luckyDrawMockStoreV2 = createInitialState();
   }
-  return globalForMock.__luckyDrawMockStore;
+  return globalForMock.__luckyDrawMockStoreV2;
 }
 
 export const luckyDrawMock = {
-  getThresholds(): ManualDrawThresholds {
-    return { ...getStore().thresholds };
+  getGlobalSettings(): LuckyDrawGlobalSettings {
+    return { ...getStore().global };
   },
 
-  patchThresholds(patch: Partial<ManualDrawThresholds>): ManualDrawThresholds {
+  patchGlobalSettings(patch: Partial<LuckyDrawGlobalSettings>): LuckyDrawGlobalSettings {
     const store = getStore();
-    store.thresholds = { ...store.thresholds, ...patch };
-    return { ...store.thresholds };
+    store.global = { ...store.global, ...patch };
+    return { ...store.global };
   },
 
-  getConfig(): LuckyDrawCompanyConfig {
+  getSettings(): LuckyDrawCompanySettings {
+    return structuredClone(getStore().settings);
+  },
+
+  patchSettings(patch: Partial<LuckyDrawCompanySettings>): LuckyDrawCompanySettings {
     const store = getStore();
-    return structuredClone(store.config);
+    store.settings = { ...store.settings, ...patch };
+    return structuredClone(store.settings);
   },
 
-  patchConfig(patch: Partial<LuckyDrawCompanyConfig>): LuckyDrawCompanyConfig {
-    const store = getStore();
-    if (patch.weekly) {
-      store.config.weekly = { ...store.config.weekly, ...patch.weekly };
-    }
-    if (patch.monthly) {
-      store.config.monthly = { ...store.config.monthly, ...patch.monthly };
-    }
-    if (store.weekly) {
-      store.weekly.winner_count = store.config.weekly.winner_count;
-      store.weekly.prize_distribution = store.config.weekly.prize_distribution;
-      store.weekly.prize_amount = store.config.weekly.prize_amount;
-      store.weekly.prize_amounts_by_position = [
-        ...store.config.weekly.prize_amounts_by_position,
-      ];
-    }
-    if (store.monthly) {
-      store.monthly.winner_count = store.config.monthly.winner_count;
-      store.monthly.prize_distribution = store.config.monthly.prize_distribution;
-      store.monthly.prize_amount = store.config.monthly.prize_amount;
-      store.monthly.prize_amounts_by_position = [
-        ...store.config.monthly.prize_amounts_by_position,
-      ];
-    }
-    return structuredClone(store.config);
-  },
-
-  listRules(): TicketEarningRule[] {
-    return structuredClone(getStore().rules);
-  },
-
-  createRule(body: CreateTicketEarningRuleRequest): TicketEarningRule {
-    const store = getStore();
-    const rule: TicketEarningRule = { ...body, id: store.nextRuleId++ };
-    store.rules.push(rule);
-    return structuredClone(rule);
-  },
-
-  patchRule(id: number, patch: Partial<CreateTicketEarningRuleRequest>): TicketEarningRule | null {
-    const store = getStore();
-    const idx = store.rules.findIndex((r) => r.id === id);
-    if (idx < 0) return null;
-    store.rules[idx] = { ...store.rules[idx], ...patch };
-    return structuredClone(store.rules[idx]);
-  },
-
-  deleteRule(id: number): boolean {
-    const store = getStore();
-    const before = store.rules.length;
-    store.rules = store.rules.filter((r) => r.id !== id);
-    return store.rules.length < before;
-  },
-
-  getActiveCycles(): ActiveCyclesResponse {
+  getStatus(): LuckyDrawStatusResponse {
     const store = getStore();
     return {
-      weekly: store.weekly ? structuredClone(store.weekly) : null,
-      monthly: store.monthly ? structuredClone(store.monthly) : null,
-      eligibility: {
-        weekly: eligibilityFor('weekly', store.weekly, store.thresholds),
-        monthly: eligibilityFor('monthly', store.monthly, store.thresholds),
-      },
+      settings: structuredClone(store.settings),
+      global: { ...store.global },
+      weekly: typeStatus('weekly', store.weekly, store.global, store.settings),
+      monthly: typeStatus('monthly', store.monthly, store.global, store.settings),
     };
   },
 
-  listHistory(): DrawHistoryEntry[] {
-    return structuredClone(getStore().history);
+  listHistory(opts?: { drawType?: DrawType; limit?: number }): DrawHistoryEntry[] {
+    let rows = structuredClone(getStore().history);
+    if (opts?.drawType) {
+      rows = rows.filter((r) => r.draw_type === opts.drawType);
+    }
+    if (opts?.limit != null) {
+      rows = rows.slice(0, opts.limit);
+    }
+    return rows;
   },
 
-  runManual(cycleId: number): RunManualDrawResponse | { error: string; status: number } {
+  getHistoryDetail(cycleId: number): DrawHistoryEntry | null {
+    const entry = getStore().history.find((h) => h.id === cycleId);
+    return entry ? structuredClone(entry) : null;
+  },
+
+  creditWinner(winnerId: number): { id: number; prize_status: 'credited' } | { error: string; code: string; status: number } {
     const store = getStore();
-    const drawType: DrawType | null =
-      store.weekly?.id === cycleId ? 'weekly' : store.monthly?.id === cycleId ? 'monthly' : null;
-    if (!drawType) {
-      return { error: 'Active cycle not found', status: 404 };
+    for (const entry of store.history) {
+      const winner = entry.winners.find((w) => w.id === winnerId);
+      if (!winner) continue;
+      if (winner.prize_status !== 'pending') {
+        return { error: 'Prize is not pending', code: 'prize_not_pending', status: 400 };
+      }
+      winner.prize_status = 'credited';
+      if (entry.winners.every((w) => w.prize_status === 'credited')) {
+        entry.prize_status = 'credited';
+      }
+      return { id: winnerId, prize_status: 'credited' };
     }
+    return { error: 'Winner not found', code: 'not_found', status: 404 };
+  },
 
+  runDraw(drawType: DrawType): RunDrawResponse | { error: string; code: string; status: number } {
+    const store = getStore();
     const cycle = drawType === 'weekly' ? store.weekly : store.monthly;
-    if (!cycle) {
-      return { error: 'Active cycle not found', status: 404 };
-    }
+    const status = typeStatus(drawType, cycle, store.global, store.settings);
 
-    const elig = eligibilityFor(drawType, cycle, store.thresholds);
-    if (!elig.allowed) {
-      return { error: elig.reasons.join(' '), status: 400 };
-    }
-
-    const typeConfig = store.config[drawType];
-    const now = new Date();
-    const winners = Array.from({ length: typeConfig.winner_count }, (_, i) => {
-      const amount =
-        typeConfig.prize_distribution === 'by_position'
-          ? typeConfig.prize_amounts_by_position[i] ?? typeConfig.prize_amount
-          : typeConfig.prize_amount;
+    if (!status.manual_draw.eligible) {
       return {
-        position: i + 1,
-        player_id: 2000 + i,
-        player_username: `winner_${i + 1}`,
-        ticket_id: cycle.id * 1000 + i,
-        prize_amount: amount,
-        credited: typeConfig.prize_credit_mode === 'auto',
+        error: 'Manual draw thresholds not met',
+        code: 'manual_thresholds_not_met',
+        status: 409,
       };
-    });
+    }
+    if (!cycle) {
+      return { error: 'No active cycle', code: 'no_active_cycle', status: 400 };
+    }
+    if (cycle.ticket_count <= 0) {
+      return { error: 'No eligible tickets', code: 'no_eligible_tickets', status: 400 };
+    }
+
+    const winnerCount =
+      drawType === 'weekly'
+        ? store.settings.weekly_winner_count
+        : store.settings.monthly_winner_count;
+    const prizeMode =
+      drawType === 'weekly'
+        ? store.settings.weekly_prize_mode
+        : store.settings.monthly_prize_mode;
+    const prizeTotal =
+      drawType === 'weekly'
+        ? store.settings.weekly_prize_total
+        : store.settings.monthly_prize_total;
+    const prizeAmounts =
+      drawType === 'weekly'
+        ? store.settings.weekly_prize_amounts
+        : store.settings.monthly_prize_amounts;
+
+    if (prizeMode === 'individual' && prizeAmounts.length !== winnerCount) {
+      return {
+        error: 'Prize amounts length must match winner count',
+        code: 'invalid_prize_amounts',
+        status: 400,
+      };
+    }
+
+    const equalShare =
+      prizeMode === 'equal'
+        ? (Number(prizeTotal) / Math.max(1, winnerCount)).toFixed(2)
+        : '0.00';
+    const autoCredit = store.settings.prize_auto_credit;
+    const now = new Date();
+
+    const winners = Array.from({ length: winnerCount }, (_, i) => ({
+      id: store.nextWinnerId++,
+      position: i + 1,
+      player_id: 2000 + i,
+      player_username: `winner_${i + 1}`,
+      prize_amount: prizeMode === 'individual' ? prizeAmounts[i] ?? '0.00' : equalShare,
+      prize_status: (autoCredit ? 'credited' : 'pending') as 'credited' | 'pending',
+    }));
 
     const completed: DrawHistoryEntry = {
       id: cycle.id,
       draw_type: drawType,
       status: 'completed',
-      method: 'manual',
+      draw_method: 'manual',
       started_at: cycle.started_at,
       completed_at: now.toISOString(),
-      scheduled_at: cycle.scheduled_at,
+      scheduled_draw_at: cycle.scheduled_draw_at,
       ticket_count: cycle.ticket_count,
-      unique_player_count: cycle.unique_player_count,
+      player_count: cycle.player_count,
+      prize_status: autoCredit ? 'credited' : 'pending',
       winners,
     };
     store.history.unshift(completed);
@@ -347,14 +326,7 @@ export const luckyDrawMock = {
     const nextScheduled = new Date(
       now.getTime() + (drawType === 'weekly' ? WEEK_MS : MONTH_MS),
     ).toISOString();
-    const next = buildCycle(
-      store.nextCycleId++,
-      drawType,
-      nextScheduled,
-      0,
-      0,
-      store.config,
-    );
+    const next = buildCycle(store.nextCycleId++, drawType, nextScheduled, 0, 0);
     next.started_at = now.toISOString();
 
     if (drawType === 'weekly') store.weekly = next;
@@ -363,6 +335,7 @@ export const luckyDrawMock = {
     return {
       cycle: structuredClone(completed),
       next_cycle: structuredClone(next),
+      winners: structuredClone(winners),
     };
   },
 };
