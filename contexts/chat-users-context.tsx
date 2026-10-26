@@ -27,6 +27,7 @@ interface ChatUsersContextType {
   playersWithChatsTotalCount: number | null;
   chatListOnlinePlayersCount: number | null;
   chatListAllPlayersCount: number | null;
+  chatListUnrepliedPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>;
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;

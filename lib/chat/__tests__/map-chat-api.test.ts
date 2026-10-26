@@ -200,22 +200,39 @@ describe('map-chat-api', () => {
     it('should read counts from admin chat list response', () => {
       expect(
         extractChatListServerCounts({
-          counts: { all_players_count: 43, online_players_count: 4 },
+          counts: {
+            all_players_count: 43,
+            online_players_count: 4,
+            unreplied_players_count: 10,
+          },
           chats: [],
         }),
-      ).toEqual({ allPlayersCount: 43, onlinePlayersCount: 4 });
+      ).toEqual({
+        allPlayersCount: 43,
+        onlinePlayersCount: 4,
+        unrepliedPlayersCount: 10,
+      });
     });
 
     it('should accept numeric strings and return null when counts missing', () => {
       expect(
         extractChatListServerCounts({
-          counts: { all_players_count: '10', online_players_count: '2' },
+          counts: {
+            all_players_count: '10',
+            online_players_count: '2',
+            unreplied_players_count: '7',
+          },
         }),
-      ).toEqual({ allPlayersCount: 10, onlinePlayersCount: 2 });
+      ).toEqual({
+        allPlayersCount: 10,
+        onlinePlayersCount: 2,
+        unrepliedPlayersCount: 7,
+      });
 
       expect(extractChatListServerCounts({})).toEqual({
         allPlayersCount: null,
         onlinePlayersCount: null,
+        unrepliedPlayersCount: null,
       });
     });
   });

@@ -462,6 +462,7 @@ export function ChatComponent() {
     playersWithChatsTotalCount,
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
+    chatListUnrepliedPlayersCount,
     invalidatePlayersCache,
     updateChatLastMessage,
     markChatAsReadDebounced,
@@ -472,6 +473,7 @@ export function ChatComponent() {
     onlinePlayers: apiOnlinePlayers,
     onlinePlayersTotalCount: onlinePlayersApiTotalCount,
     allPlayersTotalCount: allPlayersApiTotalCount,
+    unrepliedPlayersTotalCount: unrepliedPlayersApiTotalCount,
     isLoading: isLoadingApiOnlinePlayers,
     error: onlinePlayersError,
     refetch: refetchOnlinePlayers,
@@ -490,6 +492,21 @@ export function ChatComponent() {
       onlinePlayersApiTotalCount,
       chatListOnlinePlayersCount,
       onlinePlayers.length,
+    ],
+  );
+
+  // Prefer the server total so the badge is correct on first paint even when
+  // the Unreplied list has not been fully seeded yet. Fall back to the live
+  // list length once that is all we have.
+  const displayUnrepliedPlayersTotal = useMemo(
+    () =>
+      chatListUnrepliedPlayersCount ??
+      unrepliedPlayersApiTotalCount ??
+      unrepliedChats.length,
+    [
+      chatListUnrepliedPlayersCount,
+      unrepliedPlayersApiTotalCount,
+      unrepliedChats.length,
     ],
   );
 
@@ -3521,7 +3538,7 @@ export function ChatComponent() {
             ? displayOnlinePlayersTotal
             : activeChatsUsers.length
         }
-        unrepliedCount={unrepliedChats.length}
+        unrepliedCount={displayUnrepliedPlayersTotal}
         directoryAllPlayersCount={
           allPlayersApiTotalCount ?? chatListAllPlayersCount
         }

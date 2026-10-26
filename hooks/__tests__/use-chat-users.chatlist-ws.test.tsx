@@ -334,23 +334,27 @@ describe('useChatUsers — directory refresh', () => {
 
     const { result } = await mount();
 
-    // Tab open: one request.
+    // Mount seeds Unreplied from REST before the directory load.
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1));
+    const seedCalls = fetchMock.mock.calls.length;
+
+    // Tab open: one directory request (on top of the unreplied seed).
     await act(async () => {
       await result.current.fetchAllPlayers();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 1);
     expect(result.current.allPlayers.map((p) => p.user_id)).toEqual([67]);
 
     // Opening another tab back within the TTL is served from the cache.
     await act(async () => {
       await result.current.fetchAllPlayers();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 1);
 
     // Manual refresh must hit the network.
     await act(async () => {
       await result.current.fetchAllPlayers({ force: true });
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(seedCalls + 2);
   });
 });

@@ -109,6 +109,8 @@ interface UseChatUsersReturn {
   chatListOnlinePlayersCount: number | null;
   /** From last `/api/chat-all-players` response `counts.all_players_count` when present. */
   chatListAllPlayersCount: number | null;
+  /** From last chat-list REST response `counts.unreplied_players_count` when present. */
+  chatListUnrepliedPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;
@@ -142,6 +144,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     timestamp: number;
     onlinePlayersCount: number | null;
     allPlayersCount: number | null;
+    unrepliedPlayersCount: number | null;
   } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -152,7 +155,48 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [playersWithChatsTotalCount, setPlayersWithChatsTotalCount] = useState<number | null>(null);
   const [chatListOnlinePlayersCount, setChatListOnlinePlayersCount] = useState<number | null>(null);
   const [chatListAllPlayersCount, setChatListAllPlayersCount] = useState<number | null>(null);
+  const [chatListUnrepliedPlayersCount, setChatListUnrepliedPlayersCount] =
+    useState<number | null>(null);
+  /**
+   * True once `/ws/chatlist/` has sent an `unreplied` array on `add_new_chats`.
+   * Until then the REST `unreplied_players_count` + `is_unreplied` rows own the
+   * badge/list so a missing socket seed does not leave Unreplied stuck at 0.
+   */
+  const unrepliedSocketSeededRef = useRef(false);
   const pageSize = 50;
+
+  const applyChatListServerCounts = useCallback(
+    (counts: ReturnType<typeof extractChatListServerCounts>) => {
+      if (counts.onlinePlayersCount != null) {
+        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
+      }
+      if (counts.allPlayersCount != null) {
+        setChatListAllPlayersCount(counts.allPlayersCount);
+      }
+      if (
+        counts.unrepliedPlayersCount != null &&
+        !unrepliedSocketSeededRef.current
+      ) {
+        setChatListUnrepliedPlayersCount(counts.unrepliedPlayersCount);
+      }
+    },
+    [],
+  );
+
+  /** Merge REST `is_unreplied` rows into the Unreplied tab before the socket seeds it. */
+  const seedUnrepliedFromRestRows = useCallback((rows: ChatUser[]) => {
+    if (unrepliedSocketSeededRef.current) return;
+    const unreplied = rows.filter((user) => user.isUnreplied === true);
+    if (unreplied.length === 0) return;
+    setUnrepliedChats((prev) => {
+      if (prev.length === 0) return unreplied;
+      let next = prev;
+      for (const row of unreplied) {
+        next = upsertChatRowByLatestMessage(next, row, { isUnreplied: true });
+      }
+      return next;
+    });
+  }, []);
 
   //  Track last update per chat to prevent rapid updates
   const chatLastUpdateRef = useRef<Map<string, number>>(new Map());
@@ -601,9 +645,19 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (Array.isArray(addNewChatsPayload.unreplied)) {
-          setUnrepliedChats((prev) => reconcileChatSnapshot(prev, unrepliedUsers));
+          unrepliedSocketSeededRef.current = true;
+          setUnrepliedChats((prev) => {
+            const next = reconcileChatSnapshot(prev, unrepliedUsers);
+            setChatListUnrepliedPlayersCount(next.length);
+            return next;
+          });
         } else if (Array.isArray(addNewChatsPayload.chats)) {
-          setUnrepliedChats(snapshotRows.filter((user) => user.isUnreplied === true));
+          const fromLegacy = snapshotRows.filter(
+            (user) => user.isUnreplied === true,
+          );
+          unrepliedSocketSeededRef.current = true;
+          setUnrepliedChats(fromLegacy);
+          setChatListUnrepliedPlayersCount(fromLegacy.length);
         }
 
         if (Array.isArray(addNewChatsPayload.chats) || snapshotRows.length > 0) {
@@ -751,9 +805,31 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isUnreplied === true) {
-          setUnrepliedChats((prev) => upsertChatRowByLatestMessage(prev, row, flags));
+          setUnrepliedChats((prev) => {
+            const existed = prev.some((chat) => chatRowMatches(chat, row));
+            const next = upsertChatRowByLatestMessage(prev, row, flags);
+            if (!existed) {
+              setChatListUnrepliedPlayersCount((count) =>
+                count == null ? next.length : count + 1,
+              );
+            } else if (unrepliedSocketSeededRef.current) {
+              setChatListUnrepliedPlayersCount(next.length);
+            }
+            return next;
+          });
         } else if (isUnreplied === false) {
-          setUnrepliedChats((prev) => removeChatRow(prev, row));
+          setUnrepliedChats((prev) => {
+            const next = removeChatRow(prev, row);
+            setChatListUnrepliedPlayersCount((count) => {
+              // Socket snapshot is authoritative once it has arrived.
+              if (unrepliedSocketSeededRef.current) return next.length;
+              // Otherwise keep the REST total in step: the server just cleared
+              // unreplied for this chat, even if it was not on the loaded page.
+              if (count == null) return next.length;
+              return Math.max(0, count - 1);
+            });
+            return next;
+          });
         } else {
           setUnrepliedChats((prev) => patchChatRow(prev, row, flags));
         }
@@ -887,12 +963,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setPlayersWithChatsTotalCount(listTotal);
       }
       const counts = extractChatListServerCounts(data as Record<string, unknown>);
-      if (counts.onlinePlayersCount != null) {
-        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
-      }
-      if (counts.allPlayersCount != null) {
-        setChatListAllPlayersCount(counts.allPlayersCount);
-      }
+      applyChatListServerCounts(counts);
       if (!IS_PROD) console.log('🔄 [refreshActiveChats] Raw API response:', {
         hasPlayer: !!data.player,
         playerCount: data.player?.length,
@@ -923,6 +994,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         // Update state with fresh data from backend
         setActiveChats(transformedUsers);
+        seedUnrepliedFromRestRows(transformedUsers);
 
         // Log chats with unread counts for debugging
         const chatsWithUnread = transformedUsers.filter((c: ChatUser) => (c.unreadCount ?? 0) > 0);
@@ -948,6 +1020,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
         if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
         setActiveChats(transformedUsers);
+        seedUnrepliedFromRestRows(transformedUsers);
       } else {
         console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
       }
@@ -970,7 +1043,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
     refreshInFlightRef.current = run;
     return run;
-  }, []);
+  }, [applyChatListServerCounts, seedUnrepliedFromRestRows]);
 
   // FIX #4: Keep refreshActiveChats ref in sync via useEffect (not self-referencing)
   useEffect(() => {
@@ -999,6 +1072,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setAllPlayers(playersCacheRef.current.data);
         setChatListOnlinePlayersCount(playersCacheRef.current.onlinePlayersCount);
         setChatListAllPlayersCount(playersCacheRef.current.allPlayersCount);
+        if (
+          playersCacheRef.current.unrepliedPlayersCount != null &&
+          !unrepliedSocketSeededRef.current
+        ) {
+          setChatListUnrepliedPlayersCount(
+            playersCacheRef.current.unrepliedPlayersCount,
+          );
+        }
+        seedUnrepliedFromRestRows(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
         return;
@@ -1030,12 +1112,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setPlayersWithChatsTotalCount(listTotal);
       }
       const counts = extractChatListServerCounts(data as Record<string, unknown>);
-      if (counts.onlinePlayersCount != null) {
-        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
-      }
-      if (counts.allPlayersCount != null) {
-        setChatListAllPlayersCount(counts.allPlayersCount);
-      }
+      applyChatListServerCounts(counts);
       const totalCount = data.count || pagination?.total_count || playersArray?.length || 0;
 
       if (!IS_PROD) console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
@@ -1044,6 +1121,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
         setAllPlayers(transformedUsers);
+        seedUnrepliedFromRestRows(transformedUsers);
 
         // Update pagination state
         if (pagination) {
@@ -1061,6 +1139,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           timestamp: now,
           onlinePlayersCount: counts.onlinePlayersCount,
           allPlayersCount: counts.allPlayersCount,
+          unrepliedPlayersCount: counts.unrepliedPlayersCount,
         };
       } else {
         console.warn('⚠️ No player or results array in response');
@@ -1075,7 +1154,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (!IS_PROD) console.log('🏁 fetchAllPlayers - Complete');
       setIsLoadingAllPlayers(false); // Use separate loading state
     }
-  }, [CACHE_TTL, pageSize]);
+  }, [CACHE_TTL, pageSize, applyChatListServerCounts, seedUnrepliedFromRestRows]);
 
   /**
    * Load more players (next page) for infinite scroll
@@ -1112,18 +1191,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setPlayersWithChatsTotalCount(listTotal);
       }
       const counts = extractChatListServerCounts(data as Record<string, unknown>);
-      if (counts.onlinePlayersCount != null) {
-        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
-      }
-      if (counts.allPlayersCount != null) {
-        setChatListAllPlayersCount(counts.allPlayersCount);
-      }
+      applyChatListServerCounts(counts);
 
       if (!IS_PROD) console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
       if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
+        seedUnrepliedFromRestRows(transformedUsers);
 
         // Append new players to existing list.
         // Dedupe by user_id: the upstream list is ordered by last-message time,
@@ -1161,22 +1236,76 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       setIsLoadingMore(false);
       if (!IS_PROD) console.log('🏁 loadMorePlayers - Complete');
     }
-  }, [hasMorePlayers, isLoadingMore, isLoadingAllPlayers, currentPage, pageSize, totalPages, invalidatePlayersCache]);
+  }, [
+    hasMorePlayers,
+    isLoadingMore,
+    isLoadingAllPlayers,
+    currentPage,
+    pageSize,
+    totalPages,
+    invalidatePlayersCache,
+    applyChatListServerCounts,
+    seedUnrepliedFromRestRows,
+  ]);
+
+  /**
+   * REST fallback for the Unreplied badge/list on first paint.
+   *
+   * Live membership still comes from `/ws/chatlist/` (`add_new_chats.unreplied`
+   * + `re_arrange`). When that socket seed is missing, the tab stayed at 0
+   * until the next inbound message — even though `/api/chat-all-players`
+   * already returns `counts.unreplied_players_count` and `is_unreplied` rows.
+   */
+  const seedUnrepliedFromRestApi = useCallback(async () => {
+    if (unrepliedSocketSeededRef.current) return;
+
+    try {
+      const token = storage.get(TOKEN_KEY);
+      const response = await fetch('/api/chat-all-players?page=1&page_size=100', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (unrepliedSocketSeededRef.current) return;
+
+      applyChatListServerCounts(
+        extractChatListServerCounts(data as Record<string, unknown>),
+      );
+      const listTotal = readChatListTotalCount(data as Record<string, unknown>);
+      if (listTotal != null) {
+        setPlayersWithChatsTotalCount(listTotal);
+      }
+
+      const rows = extractPlayerArrayFromAdminChatResponse(
+        data as Record<string, unknown>,
+      ).map(mapAdminSearchRowToChatUser);
+      seedUnrepliedFromRestRows(rows);
+    } catch (error) {
+      if (!IS_PROD) {
+        console.warn('⚠️ [seedUnreplied] REST seed failed:', error);
+      }
+    }
+  }, [applyChatListServerCounts, seedUnrepliedFromRestRows]);
 
   // Connect on mount
   useEffect(() => {
     if (effectiveEnabled && adminId) {
       connect();
+      void seedUnrepliedFromRestApi();
     }
 
     return () => {
       disconnect();
     };
-  }, [effectiveEnabled, adminId, connect, disconnect]);
+  }, [effectiveEnabled, adminId, connect, disconnect, seedUnrepliedFromRestApi]);
 
-  // No polling: Online and Unreplied are driven entirely by `/ws/chatlist/`.
-  // `/api/chat-all-players` is only requested when the All Players tab needs
-  // data (open / pagination / search / manual refresh).
+  // No polling: Online stays socket-driven. Unreplied is socket-driven after the
+  // connect snapshot; the one-shot REST seed above only covers a missing seed.
+  // `/api/chat-all-players` directory pages still load only for All Players.
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1355,6 +1484,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     playersWithChatsTotalCount,
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
+    chatListUnrepliedPlayersCount,
     refreshActiveChats,
     invalidatePlayersCache,
     updateChatLastMessage,

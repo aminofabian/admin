@@ -17,6 +17,7 @@ function withIdentityVerified(
 export type ChatListServerCounts = {
   allPlayersCount: number | null;
   onlinePlayersCount: number | null;
+  unrepliedPlayersCount: number | null;
 };
 
 function readNonNegativeInt(value: unknown): number | null {
@@ -33,17 +34,23 @@ function readNonNegativeInt(value: unknown): number | null {
 }
 
 /**
- * Read `counts.all_players_count` / `counts.online_players_count` when the backend sends them.
+ * Read `counts.all_players_count` / `counts.online_players_count` /
+ * `counts.unreplied_players_count` when the backend sends them.
  */
 export function extractChatListServerCounts(data: Record<string, unknown>): ChatListServerCounts {
   const raw = data.counts;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { allPlayersCount: null, onlinePlayersCount: null };
+    return {
+      allPlayersCount: null,
+      onlinePlayersCount: null,
+      unrepliedPlayersCount: null,
+    };
   }
   const c = raw as Record<string, unknown>;
   return {
     allPlayersCount: readNonNegativeInt(c.all_players_count),
     onlinePlayersCount: readNonNegativeInt(c.online_players_count),
+    unrepliedPlayersCount: readNonNegativeInt(c.unreplied_players_count),
   };
 }
 

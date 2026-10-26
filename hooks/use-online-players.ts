@@ -33,6 +33,8 @@ interface UseOnlinePlayersReturn {
   onlinePlayersTotalCount: number | null;
   /** From `/api/chat-online-players` `counts.all_players_count` when the backend sends it. */
   allPlayersTotalCount: number | null;
+  /** From `/api/chat-online-players` `counts.unreplied_players_count` when the backend sends it. */
+  unrepliedPlayersTotalCount: number | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -138,6 +140,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   const [onlinePlayers, setOnlinePlayers] = useState<ChatUser[]>([]);
   const [onlinePlayersTotalCount, setOnlinePlayersTotalCount] = useState<number | null>(null);
   const [allPlayersTotalCount, setAllPlayersTotalCount] = useState<number | null>(null);
+  const [unrepliedPlayersTotalCount, setUnrepliedPlayersTotalCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -153,6 +156,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     timestamp: number;
     onlinePlayersTotalCount: number | null;
     allPlayersTotalCount: number | null;
+    unrepliedPlayersTotalCount: number | null;
   } | null>(null);
   const isMountedRef = useRef(true);
 
@@ -185,6 +189,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       if (cacheRef.current.allPlayersTotalCount != null) {
         setAllPlayersTotalCount(cacheRef.current.allPlayersTotalCount);
       }
+      if (cacheRef.current.unrepliedPlayersTotalCount != null) {
+        setUnrepliedPlayersTotalCount(cacheRef.current.unrepliedPlayersTotalCount);
+      }
       return cacheRef.current.data;
     }
 
@@ -210,6 +217,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
       if (serverCounts.allPlayersCount != null) {
         setAllPlayersTotalCount(serverCounts.allPlayersCount);
+      }
+      if (serverCounts.unrepliedPlayersCount != null) {
+        setUnrepliedPlayersTotalCount(serverCounts.unrepliedPlayersCount);
       }
       !IS_PROD && console.log('📊 [Online Players] API response structure:', {
         hasChats: !!data.chats,
@@ -330,6 +340,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         timestamp: now,
         onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
         allPlayersTotalCount: serverCounts.allPlayersCount,
+        unrepliedPlayersTotalCount: serverCounts.unrepliedPlayersCount,
       };
       onlinePlayerIdsRef.current = new Set(
         transformedPlayers.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
@@ -631,6 +642,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     onlinePlayers,
     onlinePlayersTotalCount,
     allPlayersTotalCount,
+    unrepliedPlayersTotalCount,
     isLoading,
     error,
     refetch,
