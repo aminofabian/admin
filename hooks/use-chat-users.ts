@@ -111,6 +111,15 @@ interface UseChatUsersReturn {
   chatListAllPlayersCount: number | null;
   /** From last chat-list REST response `counts.unreplied_players_count` when present. */
   chatListUnrepliedPlayersCount: number | null;
+  /**
+   * True once the Unreplied list is driven by live socket membership (or a
+   * reply/`re_arrange` has mutated it). The badge then follows list length.
+   */
+  unrepliedListLive: boolean;
+  /** Players the chat-list socket has marked offline. Online must not resurrect them from a stale REST cache. */
+  socketOfflineUserIds: number[];
+  /** Drop a player from Unreplied the moment this agent sends a reply, before `re_arrange` arrives. */
+  acknowledgeStaffReply: (userId: number) => void;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;
@@ -158,22 +167,65 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [chatListUnrepliedPlayersCount, setChatListUnrepliedPlayersCount] =
     useState<number | null>(null);
   /**
-   * True once `/ws/chatlist/` has sent an `unreplied` array on `add_new_chats`.
-   * Until then the REST `unreplied_players_count` + `is_unreplied` rows own the
-   * badge/list so a missing socket seed does not leave Unreplied stuck at 0.
+   * True once `/ws/chatlist/` has accepted an unreplied snapshot or a
+   * `re_arrange` has changed membership. Until then REST may bridge the badge.
    */
   const unrepliedSocketSeededRef = useRef(false);
+  const [unrepliedListLive, setUnrepliedListLive] = useState(false);
   const pageSize = 50;
 
+  /** Keep the parallel count identical to list length whenever membership moves. */
+  const commitUnrepliedList = useCallback((next: ChatUser[]) => {
+    setChatListUnrepliedPlayersCount(next.length);
+    return next;
+  }, []);
+
+  const markUnrepliedListLive = useCallback(() => {
+    unrepliedSocketSeededRef.current = true;
+    setUnrepliedListLive(true);
+  }, []);
+
+  const [socketOfflineUserIds, setSocketOfflineUserIds] = useState<number[]>([]);
+
+  const noteSocketPresence = useCallback((userId: number, isOnline: boolean) => {
+    if (!Number.isFinite(userId) || userId <= 0) return;
+    setSocketOfflineUserIds((prev) => {
+      const has = prev.includes(userId);
+      if (!isOnline && !has) return [...prev, userId];
+      if (isOnline && has) return prev.filter((id) => id !== userId);
+      return prev;
+    });
+  }, []);
+
+  /**
+   * Staff just replied. Unreplied membership and the badge move together,
+   * without waiting for the socket — and a later `re_arrange` for the same
+   * clear is a no-op remove, so the count does not drop twice.
+   */
+  const acknowledgeStaffReply = useCallback((userId: number) => {
+    if (!Number.isFinite(userId) || userId <= 0) return;
+    markUnrepliedListLive();
+    setUnrepliedChats((prev) => {
+      const next = prev.filter((chat) => chat.user_id !== userId);
+      return commitUnrepliedList(next.length === prev.length ? prev : next);
+    });
+  }, [commitUnrepliedList, markUnrepliedListLive]);
+
   const applyChatListServerCounts = useCallback(
-    (counts: ReturnType<typeof extractChatListServerCounts>) => {
+    (
+      counts: ReturnType<typeof extractChatListServerCounts>,
+      options?: { unreplied?: boolean },
+    ) => {
       if (counts.onlinePlayersCount != null) {
         setChatListOnlinePlayersCount(counts.onlinePlayersCount);
       }
       if (counts.allPlayersCount != null) {
         setChatListAllPlayersCount(counts.allPlayersCount);
       }
+      // Directory pagination must not rewrite the Unreplied badge. Only the
+      // one-shot mount seed passes `unreplied: true`.
       if (
+        options?.unreplied &&
         counts.unrepliedPlayersCount != null &&
         !unrepliedSocketSeededRef.current
       ) {
@@ -645,19 +697,27 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (Array.isArray(addNewChatsPayload.unreplied)) {
-          unrepliedSocketSeededRef.current = true;
           setUnrepliedChats((prev) => {
-            const next = reconcileChatSnapshot(prev, unrepliedUsers);
-            setChatListUnrepliedPlayersCount(next.length);
-            return next;
+            // An empty unreplied array before we have accepted a socket seed
+            // would wipe a valid REST seed and flash the badge to 0 (8→0→6).
+            if (
+              unrepliedUsers.length === 0 &&
+              prev.length > 0 &&
+              !unrepliedSocketSeededRef.current
+            ) {
+              return prev;
+            }
+            markUnrepliedListLive();
+            return commitUnrepliedList(
+              reconcileChatSnapshot(prev, unrepliedUsers),
+            );
           });
         } else if (Array.isArray(addNewChatsPayload.chats)) {
           const fromLegacy = snapshotRows.filter(
             (user) => user.isUnreplied === true,
           );
-          unrepliedSocketSeededRef.current = true;
-          setUnrepliedChats(fromLegacy);
-          setChatListUnrepliedPlayersCount(fromLegacy.length);
+          markUnrepliedListLive();
+          setUnrepliedChats(commitUnrepliedList(fromLegacy));
         }
 
         if (Array.isArray(addNewChatsPayload.chats) || snapshotRows.length > 0) {
@@ -725,7 +785,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         setActiveChats(removeRow);
         setOnlineChats(removeRow);
-        setUnrepliedChats(removeRow);
+        setUnrepliedChats((prev) => commitUnrepliedList(removeRow(prev)));
         setAllPlayers(removeRow);
       }
 
@@ -805,38 +865,26 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isUnreplied === true) {
-          setUnrepliedChats((prev) => {
-            const existed = prev.some((chat) => chatRowMatches(chat, row));
-            const next = upsertChatRowByLatestMessage(prev, row, flags);
-            if (!existed) {
-              setChatListUnrepliedPlayersCount((count) =>
-                count == null ? next.length : count + 1,
-              );
-            } else if (unrepliedSocketSeededRef.current) {
-              setChatListUnrepliedPlayersCount(next.length);
-            }
-            return next;
-          });
+          markUnrepliedListLive();
+          setUnrepliedChats((prev) =>
+            commitUnrepliedList(
+              upsertChatRowByLatestMessage(prev, row, flags),
+            ),
+          );
         } else if (isUnreplied === false) {
-          setUnrepliedChats((prev) => {
-            const next = removeChatRow(prev, row);
-            setChatListUnrepliedPlayersCount((count) => {
-              // Socket snapshot is authoritative once it has arrived.
-              if (unrepliedSocketSeededRef.current) return next.length;
-              // Otherwise keep the REST total in step: the server just cleared
-              // unreplied for this chat, even if it was not on the loaded page.
-              if (count == null) return next.length;
-              return Math.max(0, count - 1);
-            });
-            return next;
-          });
+          markUnrepliedListLive();
+          setUnrepliedChats((prev) =>
+            commitUnrepliedList(removeChatRow(prev, row)),
+          );
         } else {
           setUnrepliedChats((prev) => patchChatRow(prev, row, flags));
         }
 
         if (isOnline === true) {
+          noteSocketPresence(row.user_id, true);
           setOnlineChats((prev) => upsertChatRowByLatestMessage(prev, row, flags));
         } else if (isOnline === false) {
+          noteSocketPresence(row.user_id, false);
           setOnlineChats((prev) => removeChatRow(prev, row));
         } else {
           setOnlineChats((prev) => patchChatRow(prev, row, flags));
@@ -868,15 +916,21 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           reconcileChatSnapshot(prev, transformedUsers.filter((user) => user.isOnline)),
         );
         setUnrepliedChats((prev) =>
-          reconcileChatSnapshot(prev, transformedUsers.filter((user) => user.isUnreplied === true)),
+          commitUnrepliedList(
+            reconcileChatSnapshot(
+              prev,
+              transformedUsers.filter((user) => user.isUnreplied === true),
+            ),
+          ),
         );
+        markUnrepliedListLive();
         setIsLoading(false);
       }
 
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [invalidatePlayersCache]);
+  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {
@@ -992,9 +1046,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           });
         }
 
-        // Update state with fresh data from backend
+        // Update state with fresh data from backend. Do not touch Unreplied —
+        // directory refreshes are not a membership source for that tab.
         setActiveChats(transformedUsers);
-        seedUnrepliedFromRestRows(transformedUsers);
 
         // Log chats with unread counts for debugging
         const chatsWithUnread = transformedUsers.filter((c: ChatUser) => (c.unreadCount ?? 0) > 0);
@@ -1020,7 +1074,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
         if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
         setActiveChats(transformedUsers);
-        seedUnrepliedFromRestRows(transformedUsers);
       } else {
         console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
       }
@@ -1043,7 +1096,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
     refreshInFlightRef.current = run;
     return run;
-  }, [applyChatListServerCounts, seedUnrepliedFromRestRows]);
+  }, [applyChatListServerCounts]);
 
   // FIX #4: Keep refreshActiveChats ref in sync via useEffect (not self-referencing)
   useEffect(() => {
@@ -1072,15 +1125,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setAllPlayers(playersCacheRef.current.data);
         setChatListOnlinePlayersCount(playersCacheRef.current.onlinePlayersCount);
         setChatListAllPlayersCount(playersCacheRef.current.allPlayersCount);
-        if (
-          playersCacheRef.current.unrepliedPlayersCount != null &&
-          !unrepliedSocketSeededRef.current
-        ) {
-          setChatListUnrepliedPlayersCount(
-            playersCacheRef.current.unrepliedPlayersCount,
-          );
-        }
-        seedUnrepliedFromRestRows(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
         return;
@@ -1121,7 +1165,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
         setAllPlayers(transformedUsers);
-        seedUnrepliedFromRestRows(transformedUsers);
 
         // Update pagination state
         if (pagination) {
@@ -1154,7 +1197,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (!IS_PROD) console.log('🏁 fetchAllPlayers - Complete');
       setIsLoadingAllPlayers(false); // Use separate loading state
     }
-  }, [CACHE_TTL, pageSize, applyChatListServerCounts, seedUnrepliedFromRestRows]);
+  }, [CACHE_TTL, pageSize, applyChatListServerCounts]);
 
   /**
    * Load more players (next page) for infinite scroll
@@ -1198,7 +1241,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
-        seedUnrepliedFromRestRows(transformedUsers);
 
         // Append new players to existing list.
         // Dedupe by user_id: the upstream list is ordered by last-message time,
@@ -1245,7 +1287,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     totalPages,
     invalidatePlayersCache,
     applyChatListServerCounts,
-    seedUnrepliedFromRestRows,
   ]);
 
   /**
@@ -1274,6 +1315,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       applyChatListServerCounts(
         extractChatListServerCounts(data as Record<string, unknown>),
+        { unreplied: true },
       );
       const listTotal = readChatListTotalCount(data as Record<string, unknown>);
       if (listTotal != null) {
@@ -1485,6 +1527,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
     chatListUnrepliedPlayersCount,
+    unrepliedListLive,
+    socketOfflineUserIds,
+    acknowledgeStaffReply,
     refreshActiveChats,
     invalidatePlayersCache,
     updateChatLastMessage,

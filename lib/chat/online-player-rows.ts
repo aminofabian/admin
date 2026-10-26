@@ -18,6 +18,7 @@ export function mergeOnlinePlayerRows({
   socketRows,
   restRows,
   chatListRows,
+  excludeUserIds,
 }: {
   /** Rows from the chat-list socket (`online` seed / `re_arrange`). */
   socketRows: ChatUser[];
@@ -25,10 +26,12 @@ export function mergeOnlinePlayerRows({
   restRows: ChatUser[];
   /** Rows from the merged chat list; only `isOnline` ones are considered. */
   chatListRows: ChatUser[];
+  /** Players the socket has since marked offline. A stale REST row must not bring them back. */
+  excludeUserIds?: ReadonlySet<number>;
 }): ChatUser[] {
   const restById = new Map<number, ChatUser>();
   for (const row of restRows) {
-    if (row.user_id > 0) restById.set(row.user_id, row);
+    if (row.user_id > 0 && row.isOnline !== false) restById.set(row.user_id, row);
   }
 
   const seen = new Map<number, ChatUser>();
@@ -37,6 +40,8 @@ export function mergeOnlinePlayerRows({
   /** Add once; `detail` (REST) supplies fields the realtime row omitted. */
   const add = (player: ChatUser, detail?: ChatUser) => {
     if (!(player.user_id > 0) || seen.has(player.user_id)) return;
+    if (player.isOnline === false) return;
+    if (excludeUserIds?.has(player.user_id)) return;
 
     seen.set(
       player.user_id,
@@ -65,8 +70,9 @@ export function mergeOnlinePlayerRows({
     add(player, restById.get(player.user_id));
   }
 
-  // REST rows the socket has not reported yet are online by definition.
+  // REST rows the socket has not reported yet. Explicitly offline rows are skipped.
   for (const player of restRows) {
+    if (player.isOnline === false) continue;
     add(player);
   }
 

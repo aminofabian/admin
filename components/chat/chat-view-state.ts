@@ -73,10 +73,11 @@ export function resolveInitialChatTab(
 }
 
 /**
- * Keep the open conversation visible in the sidebar when the active tab's
- * source list does not include them (e.g. Online → offline player, Unreplied
- * after a reply). Without this the chat stays open but the list loses its
- * selection highlight.
+ * Keep a deep-linked / off-page player visible on **All Players** only.
+ *
+ * Do not use this on Online or Unreplied: injecting the open conversation into
+ * those filtered tabs made replied chats linger in Unreplied (count dropped,
+ * row stayed) and offline/replied chats leak into Online on tab switch.
  */
 export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
   players: T[],
@@ -87,4 +88,25 @@ export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
     return players;
   }
   return [selected, ...players];
+}
+
+/**
+ * Unreplied badge value that stays atomic with the rendered list.
+ *
+ * - Once the live list is authoritative (`listLive`) or already has rows, the
+ *   badge is always `unrepliedChats.length`.
+ * - Before that, a REST `unreplied_players_count` may bridge first paint so the
+ *   tab does not flash 0 while rows are still seeding.
+ */
+export function resolveUnrepliedBadgeCount(options: {
+  unrepliedChatsLength: number;
+  listLive: boolean;
+  restCount: number | null;
+  apiCount: number | null;
+}): number {
+  const { unrepliedChatsLength, listLive, restCount, apiCount } = options;
+  if (listLive || unrepliedChatsLength > 0) {
+    return unrepliedChatsLength;
+  }
+  return restCount ?? apiCount ?? 0;
 }

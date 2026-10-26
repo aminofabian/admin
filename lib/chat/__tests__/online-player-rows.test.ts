@@ -90,6 +90,33 @@ describe('mergeOnlinePlayerRows', () => {
     expect(merged.map((player) => player.user_id)).toEqual([67]);
   });
 
+  it('does not resurrect a player the socket marked offline', () => {
+    const merged = mergeOnlinePlayerRows({
+      socketRows: [row({ user_id: 68, id: '58', username: 'still-online' })],
+      restRows: [
+        row({ user_id: 67, id: '57', username: 'went-offline' }),
+        row({ user_id: 68, id: '58' }),
+      ],
+      chatListRows: [],
+      excludeUserIds: new Set([67]),
+    });
+
+    expect(merged.map((player) => player.user_id)).toEqual([68]);
+  });
+
+  it('skips REST rows that are explicitly offline', () => {
+    const merged = mergeOnlinePlayerRows({
+      socketRows: [],
+      restRows: [
+        row({ user_id: 67, isOnline: false }),
+        row({ user_id: 68, id: '58', isOnline: true }),
+      ],
+      chatListRows: [],
+    });
+
+    expect(merged.map((player) => player.user_id)).toEqual([68]);
+  });
+
   it('ignores rows without a usable player id', () => {
     const merged = mergeOnlinePlayerRows({
       socketRows: [row({ user_id: 0, id: 'orphan' })],

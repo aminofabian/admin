@@ -28,6 +28,9 @@ interface ChatUsersContextType {
   chatListOnlinePlayersCount: number | null;
   chatListAllPlayersCount: number | null;
   chatListUnrepliedPlayersCount: number | null;
+  unrepliedListLive: boolean;
+  socketOfflineUserIds: number[];
+  acknowledgeStaffReply: (userId: number) => void;
   refreshActiveChats: () => Promise<void>;
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;
