@@ -98,15 +98,15 @@ describe('resolveUnrepliedBadgeCount', () => {
     ).toBe(5);
   });
 
-  it('follows list length when rows already exist even before live flag', () => {
+  it('keeps the REST total when the socket list is only a partial row', () => {
     expect(
       resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 8,
+        unrepliedChatsLength: 1,
         listLive: false,
-        restCount: 10,
-        apiCount: 10,
+        restCount: null,
+        apiCount: 9,
       }),
-    ).toBe(8);
+    ).toBe(9);
   });
 
   it('uses REST/API provisional count only while the list is empty and not live', () => {

@@ -112,8 +112,9 @@ interface UseChatUsersReturn {
   /** From last chat-list REST response `counts.unreplied_players_count` when present. */
   chatListUnrepliedPlayersCount: number | null;
   /**
-   * True once the Unreplied list is driven by live socket membership (or a
-   * reply/`re_arrange` has mutated it). The badge then follows list length.
+   * True once `add_new_chats.unreplied` has delivered a full census. The
+   * badge then follows list length. Per-player socket updates before that
+   * do not replace the REST total.
    */
   unrepliedListLive: boolean;
   /** Players the chat-list socket has marked offline. Online must not resurrect them from a stale REST cache. */
@@ -169,8 +170,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [chatListUnrepliedPlayersCount, setChatListUnrepliedPlayersCount] =
     useState<number | null>(null);
   /**
-   * True once `/ws/chatlist/` has accepted an unreplied snapshot or a
-   * `re_arrange` has changed membership. Until then REST may bridge the badge.
+   * True only after `add_new_chats.unreplied` delivered a real census.
+   * A recent-chat `chats` window, a single `re_arrange`, or an empty
+   * `unreplied: []` must not flip this: those were turning a REST count
+   * of 9 into 0.
    */
   const unrepliedSocketSeededRef = useRef(false);
   const [unrepliedListLive, setUnrepliedListLive] = useState(false);
@@ -206,12 +209,17 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    */
   const acknowledgeStaffReply = useCallback((userId: number) => {
     if (!Number.isFinite(userId) || userId <= 0) return;
-    markUnrepliedListLive();
     setUnrepliedChats((prev) => {
       const next = prev.filter((chat) => chat.user_id !== userId);
-      return commitUnrepliedList(next.length === prev.length ? prev : next);
+      const unchanged = next.length === prev.length;
+      // Before a real unreplied census, the badge is the REST total. Dropping
+      // a row we never held must not rewrite that total to the partial length.
+      if (!unrepliedSocketSeededRef.current) {
+        return unchanged ? prev : next;
+      }
+      return commitUnrepliedList(unchanged ? prev : next);
     });
-  }, [commitUnrepliedList, markUnrepliedListLive]);
+  }, [commitUnrepliedList]);
 
   const applyChatListServerCounts = useCallback(
     (
@@ -693,18 +701,16 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         if (Array.isArray(addNewChatsPayload.online)) {
           setOnlineChats((prev) => reconcileChatSnapshot(prev, onlineUsers));
-        } else if (Array.isArray(addNewChatsPayload.chats)) {
-          // Legacy payload: derive the online subset from the chat rows.
-          setOnlineChats(snapshotRows.filter((user) => user.isOnline));
         }
 
         if (Array.isArray(addNewChatsPayload.unreplied)) {
           setUnrepliedChats((prev) => {
-            // An empty unreplied array before we have accepted a socket seed
-            // would wipe a valid REST seed and flash the badge to 0 (8→0→6).
+            // `unreplied: []` on connect is not a census. The live socket
+            // often sends that (or omits the key and sends a recent `chats`
+            // window with no is_unreplied flag). Treating either as the full
+            // set replaced a REST count of 9 with 0.
             if (
               unrepliedUsers.length === 0 &&
-              prev.length > 0 &&
               !unrepliedSocketSeededRef.current
             ) {
               return prev;
@@ -714,12 +720,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               reconcileChatSnapshot(prev, unrepliedUsers),
             );
           });
-        } else if (Array.isArray(addNewChatsPayload.chats)) {
-          const fromLegacy = snapshotRows.filter(
-            (user) => user.isUnreplied === true,
-          );
-          markUnrepliedListLive();
-          setUnrepliedChats(commitUnrepliedList(fromLegacy));
         }
 
         if (Array.isArray(addNewChatsPayload.chats) || snapshotRows.length > 0) {
@@ -752,10 +752,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         setIsLoading(false);
 
-        // The connect payload is the authoritative seed for both socket tabs.
-        // Returning here stops the generic `chats` fallback below from
-        // re-deriving Unreplied/Online from the optional legacy recent list,
-        // which wiped the seed whenever the server sent one.
+        // `online` / `unreplied` are the censuses. A bare `chats` array on
+        // this event is the recent-conversation window and is applied to
+        // `activeChats` above only. Returning here keeps the generic
+        // `chats` fallback from deriving Unreplied or Online from it.
         return;
       }
 
@@ -787,7 +787,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         setActiveChats(removeRow);
         setOnlineChats(removeRow);
-        setUnrepliedChats((prev) => commitUnrepliedList(removeRow(prev)));
+        setUnrepliedChats((prev) => {
+          const next = removeRow(prev);
+          return unrepliedSocketSeededRef.current
+            ? commitUnrepliedList(next)
+            : next;
+        });
         setAllPlayers(removeRow);
       }
 
@@ -867,17 +872,21 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isUnreplied === true) {
-          markUnrepliedListLive();
-          setUnrepliedChats((prev) =>
-            commitUnrepliedList(
-              upsertChatRowByLatestMessage(prev, row, flags),
-            ),
-          );
+          // Per-player membership. This does not make the partial list the
+          // badge until a full `unreplied` census has been accepted.
+          setUnrepliedChats((prev) => {
+            const next = upsertChatRowByLatestMessage(prev, row, flags);
+            return unrepliedSocketSeededRef.current
+              ? commitUnrepliedList(next)
+              : next;
+          });
         } else if (isUnreplied === false) {
-          markUnrepliedListLive();
-          setUnrepliedChats((prev) =>
-            commitUnrepliedList(removeChatRow(prev, row)),
-          );
+          setUnrepliedChats((prev) => {
+            const next = removeChatRow(prev, row);
+            return unrepliedSocketSeededRef.current
+              ? commitUnrepliedList(next)
+              : next;
+          });
         } else {
           setUnrepliedChats((prev) => patchChatRow(prev, row, flags));
         }
@@ -910,22 +919,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
-      // Fallback for other formats
+      // A bare `chats` array is the recent-conversation window. It has no
+      // unreplied census on the live socket (rows omit `is_unreplied`), so
+      // it must not replace Online, Unreplied, or the badge.
       if (data.chats && Array.isArray(data.chats)) {
         const transformedUsers = data.chats.map((c) => transformChatToUser(c as Record<string, unknown>));
         setActiveChats((prev) => reconcileChatSnapshot(prev, transformedUsers));
-        setOnlineChats((prev) =>
-          reconcileChatSnapshot(prev, transformedUsers.filter((user) => user.isOnline)),
-        );
-        setUnrepliedChats((prev) =>
-          commitUnrepliedList(
-            reconcileChatSnapshot(
-              prev,
-              transformedUsers.filter((user) => user.isUnreplied === true),
-            ),
-          ),
-        );
-        markUnrepliedListLive();
         setIsLoading(false);
       }
 

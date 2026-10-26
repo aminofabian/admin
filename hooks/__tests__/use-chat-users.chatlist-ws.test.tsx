@@ -71,6 +71,40 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
   });
 
+  it('does not let a recent-chat window replace the unreplied total', async () => {
+    const { result } = await mount();
+
+    // Live `/ws/chatlist/` connect payload: 50 recent chats, no is_unreplied.
+    send({
+      message: {
+        type: 'add_new_chats',
+        chats: [
+          onlineRow({ is_online: false }),
+          onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_online: false }),
+        ],
+      },
+    });
+
+    expect(result.current.unrepliedListLive).toBe(false);
+    expect(result.current.unrepliedChats).toHaveLength(0);
+    expect(result.current.chatListUnrepliedPlayersCount).toBeNull();
+    expect(result.current.onlineChats).toHaveLength(0);
+
+    // A later per-player event still updates that player, without turning
+    // the badge into the length of the partial list.
+    send({
+      type: 're_arrange',
+      ...onlineRow(),
+      is_unreplied: true,
+      is_online: true,
+    });
+
+    expect(result.current.unrepliedListLive).toBe(false);
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBeNull();
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
   it('keeps the seed when the legacy recent list is also present', async () => {
     const { result } = await mount();
 

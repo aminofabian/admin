@@ -91,12 +91,13 @@ export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
 }
 
 /**
- * Unreplied badge value that stays atomic with the rendered list.
+ * Unreplied badge.
  *
- * - Once the live list is authoritative (`listLive`) or already has rows, the
- *   badge is always `unrepliedChats.length`.
- * - Before that, a REST `unreplied_players_count` may bridge first paint so the
- *   tab does not flash 0 while rows are still seeding.
+ * A full socket census (`listLive`) owns the number, including 0 after the
+ * last reply. Until that census arrives, the REST `unreplied_players_count`
+ * stays put. The connect payload is often a recent-chat window with no
+ * `is_unreplied` flag, so one partial row must not replace a count of 9
+ * with 1, and an empty window must not replace it with 0.
  */
 export function resolveUnrepliedBadgeCount(options: {
   unrepliedChatsLength: number;
@@ -105,8 +106,12 @@ export function resolveUnrepliedBadgeCount(options: {
   apiCount: number | null;
 }): number {
   const { unrepliedChatsLength, listLive, restCount, apiCount } = options;
-  if (listLive || unrepliedChatsLength > 0) {
+  if (listLive) {
     return unrepliedChatsLength;
   }
-  return restCount ?? apiCount ?? 0;
+  const provisional = restCount ?? apiCount;
+  if (provisional != null) {
+    return provisional;
+  }
+  return unrepliedChatsLength;
 }

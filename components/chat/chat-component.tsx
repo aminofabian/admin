@@ -500,8 +500,8 @@ export function ChatComponent() {
     ],
   );
 
-  // Badge tracks the Unreplied list once it is live (or already has rows). A
-  // separate REST counter preferred over length caused count≠list after reply.
+  // REST total until the socket sends an unreplied census. One partial row
+  // must not replace that total.
   const displayUnrepliedPlayersTotal = useMemo(
     () =>
       resolveUnrepliedBadgeCount({
@@ -1472,23 +1472,25 @@ export function ChatComponent() {
     fetchAllPlayers();
   }, [activeTab, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
 
-  // Unreplied rows normally arrive on `/ws/chatlist/`. If that tab is open and
-  // the socket has not seeded them, fill once from REST. The wait lets a fast
-  // socket win so chat open does not also download the player directory.
+  // Unreplied rows normally arrive on `/ws/chatlist/` as an `unreplied`
+  // census. The live socket sends a recent-chat window instead, so opening
+  // this tab fills once from REST. The wait lets a fast census win and skip
+  // the directory download. A single `re_arrange` row must not block the fill.
+  const unrepliedRestSeedAttemptedRef = useRef(false);
   useEffect(() => {
-    if (activeTab !== "unreplied" || unrepliedListLive || unrepliedChats.length > 0) {
+    if (
+      activeTab !== "unreplied" ||
+      unrepliedListLive ||
+      unrepliedRestSeedAttemptedRef.current
+    ) {
       return;
     }
     const timer = window.setTimeout(() => {
+      unrepliedRestSeedAttemptedRef.current = true;
       void seedUnrepliedFromRest();
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [
-    activeTab,
-    unrepliedListLive,
-    unrepliedChats.length,
-    seedUnrepliedFromRest,
-  ]);
+  }, [activeTab, unrepliedListLive, seedUnrepliedFromRest]);
 
   /** The actual send. Wrapped by `handleSendMessage`, which guards concurrency. */
   const performSend = useCallback(async () => {
