@@ -287,6 +287,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
+    name: 'Lucky Draw',
+    icon: <SettingsIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/lucky-draw',
+  },
+  {
     name: 'Lucky Draw Thresholds',
     icon: <SettingsIcon />,
     roles: [USER_ROLES.SUPERADMIN],

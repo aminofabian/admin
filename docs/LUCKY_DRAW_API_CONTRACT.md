@@ -1,7 +1,7 @@
 # Lucky Draw API Contract
 
 Domain owner: **Django SlotAdmin API** (`NEXT_PUBLIC_API_URL`).
-Frontends (`admindashboard`, `slotthingg`) BFF-proxy these routes; mock fixtures serve when upstream 404s/network fails or `LUCKY_DRAW_USE_MOCK=1`.
+Frontends (`admindashboard`, `slotthingg`) BFF-proxy these routes. Mock fixtures serve only when `LUCKY_DRAW_USE_MOCK=1`. Upstream 404s and network failures are returned as errors.
 
 Aligned with **ProjectX Beta — Lucky Draw Frontend Handoff**.
 

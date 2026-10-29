@@ -88,10 +88,10 @@ export function canEditRouletteRewards(role: UserRole | undefined): boolean {
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
-/** Company/superadmin may edit lucky draw settings; managers may not. */
+/** Company, manager, and superadmin may edit lucky draw settings (handoff: manager read/write). */
 export function canEditLuckyDrawConfig(role: UserRole | undefined): boolean {
   if (!role) return false;
-  return ADMIN_ROLES.includes(role);
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
 /** Company/superadmin/manager may view live cycles, history, and run an eligible manual draw. */

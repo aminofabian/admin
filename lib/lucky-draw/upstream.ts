@@ -32,8 +32,6 @@ export async function proxyLuckyDraw(
       },
     });
 
-    if (response.status === 404) return null;
-
     const text = await response.text();
     let data: unknown = null;
     try {
@@ -41,9 +39,16 @@ export async function proxyLuckyDraw(
     } catch {
       data = { raw: text || null };
     }
-    return NextResponse.json(data, { status: response.status });
-  } catch {
-    return null;
+    return NextResponse.json(data ?? { status: 'error', message: 'Empty lucky draw response' }, {
+      status: response.status,
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    return jsonError(
+      timedOut ? 'Lucky draw API timed out' : 'Lucky draw API unreachable',
+      timedOut ? 'upstream_timeout' : 'upstream_unreachable',
+      timedOut ? 504 : 502,
+    );
   } finally {
     clearTimeout(timer);
   }

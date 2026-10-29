@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { canOperateLuckyDraw } from '@/lib/constants/roles';
+import { USER_ROLES, canOperateLuckyDraw } from '@/lib/constants/roles';
 import { useLuckyDrawStore } from '@/stores';
 import { Button, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
+import { LuckyDrawCompanyPicker } from '@/components/dashboard/settings/lucky-draw-company-picker';
+import { luckyDrawErrorMessage } from '@/lib/lucky-draw/normalize';
 import type { DrawHistoryEntry, DrawType } from '@/types/lucky-draw';
 
 export default function LuckyDrawHistoryPage() {
@@ -19,6 +21,8 @@ export default function LuckyDrawHistoryPage() {
     historyDetail,
     isLoading,
     error,
+    companyId,
+    setCompanyId,
     fetchHistory,
     fetchHistoryDetail,
     creditWinner,
@@ -26,6 +30,8 @@ export default function LuckyDrawHistoryPage() {
   const [drawType, setDrawType] = useState<DrawType | ''>('');
   const [creditingId, setCreditingId] = useState<number | null>(null);
   const canOperate = canOperateLuckyDraw(user?.role);
+  const isSuperadmin = user?.role === USER_ROLES.SUPERADMIN;
+  const needsCompany = isSuperadmin && companyId == null;
 
   useEffect(() => {
     if (!user?.role) return;
@@ -33,13 +39,12 @@ export default function LuckyDrawHistoryPage() {
   }, [user?.role, canOperate, router]);
 
   useEffect(() => {
-    if (canOperate) {
-      void fetchHistory({
-        drawType: drawType || undefined,
-        limit: 20,
-      });
-    }
-  }, [canOperate, fetchHistory, drawType]);
+    if (!canOperate || needsCompany) return;
+    void fetchHistory({
+      drawType: drawType || undefined,
+      limit: 20,
+    });
+  }, [canOperate, needsCompany, fetchHistory, drawType]);
 
   const openDetail = (entry: DrawHistoryEntry) => {
     void fetchHistoryDetail(entry.id);
@@ -54,18 +59,15 @@ export default function LuckyDrawHistoryPage() {
       addToast({
         type: 'error',
         title: 'Credit failed',
-        description: err instanceof Error ? err.message : 'Could not credit prize',
+        description: luckyDrawErrorMessage(err, 'Could not credit prize'),
       });
     } finally {
       setCreditingId(null);
     }
   };
 
-  if (isAuthLoading || isLoading) return <LoadingState />;
+  if (isAuthLoading) return <LoadingState />;
   if (!canOperate) return null;
-  if (error && history.length === 0) {
-    return <ErrorState message={error} onRetry={() => fetchHistory({ limit: 20 })} />;
-  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -97,6 +99,24 @@ export default function LuckyDrawHistoryPage() {
         </div>
       </header>
 
+      {isSuperadmin && (
+        <LuckyDrawCompanyPicker value={companyId} onChange={setCompanyId} />
+      )}
+
+      {needsCompany && (
+        <p className="text-sm text-gray-500">Select a company to view its draw history.</p>
+      )}
+
+      {!needsCompany && isLoading && history.length === 0 && <LoadingState />}
+
+      {!needsCompany && error && history.length === 0 && (
+        <ErrorState
+          message={error}
+          onRetry={() => fetchHistory({ drawType: drawType || undefined, limit: 20 })}
+        />
+      )}
+
+      {!needsCompany && (history.length > 0 || (!isLoading && !error)) && (
       <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
         <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
           <thead className="bg-gray-50 dark:bg-gray-900">
@@ -144,6 +164,7 @@ export default function LuckyDrawHistoryPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       {historyDetail && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40" role="dialog">
@@ -178,7 +199,7 @@ export default function LuckyDrawHistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {historyDetail.winners.map((w) => (
+                {(historyDetail.winners ?? []).map((w) => (
                   <tr
                     key={w.id}
                     className="border-t border-gray-100 dark:border-gray-900"

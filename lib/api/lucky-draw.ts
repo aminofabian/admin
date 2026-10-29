@@ -1,6 +1,6 @@
 import { apiClient } from './client';
+import { normalizeHistoryEntry, normalizeHistoryList } from '@/lib/lucky-draw/normalize';
 import type {
-  DrawHistoryEntry,
   DrawType,
   LuckyDrawCompanySettings,
   LuckyDrawGlobalSettings,
@@ -92,19 +92,26 @@ export const luckyDrawApi = {
     if (opts?.limit != null) params.set('limit', String(opts.limit));
     if (opts?.companyId != null) params.set('company_id', String(opts.companyId));
     const qs = params.toString();
-    return unwrap(
-      await apiClient.get<Envelope<DrawHistoryEntry[]>>(
+    const payload = unwrap(
+      await apiClient.get<Envelope<unknown>>(
         `api/admin/lucky-draw/history${qs ? `?${qs}` : ''}`,
       ),
     );
+    return normalizeHistoryList(payload);
   },
 
-  getHistoryDetail: async (cycleId: number, companyId?: number | null) =>
-    unwrap(
-      await apiClient.get<Envelope<DrawHistoryEntry>>(
+  getHistoryDetail: async (cycleId: number, companyId?: number | null) => {
+    const payload = unwrap(
+      await apiClient.get<Envelope<unknown>>(
         withCompanyQuery(`api/admin/lucky-draw/history/${cycleId}`, companyId),
       ),
-    ),
+    );
+    const entry = normalizeHistoryEntry(payload);
+    if (!entry) {
+      throw new Error('Invalid draw history response');
+    }
+    return entry;
+  },
 
   creditWinner: async (winnerId: number, companyId?: number | null) =>
     unwrap(

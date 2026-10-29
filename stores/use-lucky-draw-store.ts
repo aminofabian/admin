@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { luckyDrawApi } from '@/lib/api';
+import { luckyDrawErrorMessage } from '@/lib/lucky-draw/normalize';
 import type {
   DrawHistoryEntry,
   DrawType,
@@ -42,7 +43,15 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
   error: null,
   companyId: null,
 
-  setCompanyId: (id) => set({ companyId: id }),
+  setCompanyId: (id) =>
+    set({
+      companyId: id,
+      status: null,
+      settings: null,
+      history: [],
+      historyDetail: null,
+      error: null,
+    }),
 
   fetchStatus: async () => {
     set({ isLoading: true, error: null });
@@ -57,7 +66,7 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load lucky draw status',
+        error: luckyDrawErrorMessage(err, 'Failed to load lucky draw status'),
       });
     }
   },
@@ -70,7 +79,7 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load global settings',
+        error: luckyDrawErrorMessage(err, 'Failed to load global settings'),
       });
     }
   },
@@ -86,7 +95,7 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load history',
+        error: luckyDrawErrorMessage(err, 'Failed to load history'),
       });
     }
   },
@@ -97,7 +106,7 @@ export const useLuckyDrawStore = create<LuckyDrawState>((set, get) => ({
       set({ historyDetail });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : 'Failed to load draw detail',
+        error: luckyDrawErrorMessage(err, 'Failed to load draw detail'),
       });
     }
   },

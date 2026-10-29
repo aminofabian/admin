@@ -13,6 +13,8 @@ import { useLuckyDrawStore } from '@/stores';
 import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
+import { LuckyDrawCompanyPicker } from '@/components/dashboard/settings/lucky-draw-company-picker';
+import { luckyDrawErrorMessage } from '@/lib/lucky-draw/normalize';
 import type {
   DrawType,
   DrawTypeStatus,
@@ -342,6 +344,8 @@ export default function LuckyDrawSettingsPage() {
     status,
     isLoading,
     error,
+    companyId,
+    setCompanyId,
     fetchStatus,
     saveSettings,
     runDraw,
@@ -353,6 +357,8 @@ export default function LuckyDrawSettingsPage() {
 
   const canEdit = canEditLuckyDrawConfig(user?.role);
   const canOperate = canOperateLuckyDraw(user?.role);
+  const isSuperadmin = user?.role === USER_ROLES.SUPERADMIN;
+  const needsCompany = isSuperadmin && companyId == null;
 
   useEffect(() => {
     if (!user?.role) return;
@@ -362,11 +368,11 @@ export default function LuckyDrawSettingsPage() {
   }, [user?.role, canOperate, router]);
 
   useEffect(() => {
-    if (!canOperate) return;
+    if (!canOperate || needsCompany) return;
     void fetchStatus();
     const timer = setInterval(() => void fetchStatus(), STATUS_POLL_MS);
     return () => clearInterval(timer);
-  }, [canOperate, fetchStatus]);
+  }, [canOperate, needsCompany, fetchStatus]);
 
   useEffect(() => {
     if (settings) setDraft(settings);
@@ -404,7 +410,7 @@ export default function LuckyDrawSettingsPage() {
       addToast({
         type: 'error',
         title: 'Save failed',
-        description: err instanceof Error ? err.message : 'Could not save',
+        description: luckyDrawErrorMessage(err, 'Could not save'),
       });
     } finally {
       setSavingConfig(false);
@@ -424,7 +430,7 @@ export default function LuckyDrawSettingsPage() {
       addToast({
         type: 'error',
         title: 'Draw blocked',
-        description: err instanceof Error ? err.message : 'Could not run draw',
+        description: luckyDrawErrorMessage(err, 'Could not run draw'),
       });
       void fetchStatus();
     } finally {
@@ -432,11 +438,8 @@ export default function LuckyDrawSettingsPage() {
     }
   };
 
-  if (isAuthLoading || isLoading) return <LoadingState />;
+  if (isAuthLoading) return <LoadingState />;
   if (!canOperate) return null;
-  if (error && !status) {
-    return <ErrorState message={error} onRetry={fetchStatus} />;
-  }
 
   const earlyEnabled = status?.global.early_draw_enabled !== false;
 
@@ -460,6 +463,22 @@ export default function LuckyDrawSettingsPage() {
         </Link>
       </header>
 
+      {isSuperadmin && (
+        <LuckyDrawCompanyPicker value={companyId} onChange={setCompanyId} />
+      )}
+
+      {needsCompany && (
+        <p className="text-sm text-gray-500">Select a company to load its lucky draw.</p>
+      )}
+
+      {!needsCompany && isLoading && !status && <LoadingState />}
+
+      {!needsCompany && error && !status && (
+        <ErrorState message={error} onRetry={fetchStatus} />
+      )}
+
+      {!needsCompany && status && (
+      <>
       <section className="space-y-4">
         <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">Live status</h2>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -500,8 +519,8 @@ export default function LuckyDrawSettingsPage() {
 
       {!canEdit && (
         <p className="text-sm text-gray-500">
-          Managers can operate live draws and view history. Company admins configure prizes
-          and purchase thresholds.
+          You can view live draws and history. Prize and threshold settings are limited to
+          company admins and managers.
         </p>
       )}
 
@@ -513,6 +532,8 @@ export default function LuckyDrawSettingsPage() {
           </Link>
           .
         </p>
+      )}
+      </>
       )}
     </div>
   );
