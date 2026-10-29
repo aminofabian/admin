@@ -539,6 +539,46 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.users[1].lastMessage).toBe('fresh reply');
   });
 
+  it('does not paint another player when the chat id belongs to them', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow({
+          chat_id: 57,
+          user_id: 67,
+          username: 'alpha',
+          last_message: 'alpha message',
+          last_message_timestamp: '2026-10-25T10:32:00Z',
+        }),
+        onlineRow({
+          chat_id: 58,
+          user_id: 68,
+          username: 'beta',
+          last_message: 'beta message',
+          last_message_timestamp: '2026-10-25T10:21:00Z',
+        }),
+      ],
+    });
+
+    act(() => {
+      result.current.updateChatLastMessage(
+        68,
+        '57',
+        'from the other thread',
+        '2026-10-25T11:00:00Z',
+      );
+    });
+
+    const alpha = result.current.users.find((chat) => chat.user_id === 67);
+    const beta = result.current.users.find((chat) => chat.user_id === 68);
+    expect(alpha?.lastMessage).toBe('alpha message');
+    expect(alpha?.lastMessageTime).toBe('2026-10-25T10:32:00Z');
+    expect(beta?.lastMessage).toBe('from the other thread');
+    expect(beta?.lastMessageTime).toBe('2026-10-25T11:00:00Z');
+  });
+
   it('does not reorder when a read receipt arrives as update_chat', async () => {
     const { result } = await mount();
 

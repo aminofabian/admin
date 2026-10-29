@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  chatPreviewTargetsRow,
   clearUnreadChatRow,
   mergeChatRow,
   pickNewerPreview,
@@ -219,6 +220,23 @@ describe('chat-list-realtime', () => {
     it('does not allocate when the badge is already zero', () => {
       const list = [row({ unreadCount: 0 })];
       expect(clearUnreadChatRow(list, { chatId: 57 })).toBe(list);
+    });
+  });
+
+  describe('chatPreviewTargetsRow', () => {
+    it('updates only the player the preview names', () => {
+      const matty = row({ user_id: 3648, id: '3603' });
+      const jeffery = row({ user_id: 3694, id: '3648' });
+
+      expect(chatPreviewTargetsRow(matty, { userId: 3648, chatId: '3603' })).toBe(true);
+      expect(chatPreviewTargetsRow(jeffery, { userId: 3648, chatId: '3603' })).toBe(false);
+      expect(chatPreviewTargetsRow(jeffery, { userId: 3694, chatId: '3648' })).toBe(true);
+      expect(chatPreviewTargetsRow(matty, { userId: 3694, chatId: '3648' })).toBe(false);
+    });
+
+    it('does not use a chatroom id to select a different player', () => {
+      const other = row({ user_id: 67, id: '57' });
+      expect(chatPreviewTargetsRow(other, { userId: 68, chatId: '57' })).toBe(false);
     });
   });
 

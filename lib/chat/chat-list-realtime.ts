@@ -66,6 +66,25 @@ export function chatRowMatches(a: ChatUser, b: ChatUser): boolean {
   return a.id !== '' && a.id === b.id;
 }
 
+/**
+ * A sidebar preview update names one conversation.
+ *
+ * When a player id is present it is the only key. Also matching `chat.id`
+ * paints a second row: a chatroom id can equal another player's user id, and
+ * a live event can carry the sender id of one person plus the open chat id
+ * of another.
+ */
+export function chatPreviewTargetsRow(
+  chat: { user_id: number; id: string },
+  target: { userId: number; chatId?: string | null },
+): boolean {
+  if (target.userId > 0) {
+    return chat.user_id === target.userId;
+  }
+  const chatId = target.chatId ?? '';
+  return chatId.length > 0 && chat.id === chatId;
+}
+
 function withFlags(
   existing: ChatUser | undefined,
   row: ChatUser,

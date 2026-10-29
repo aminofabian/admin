@@ -12,6 +12,7 @@ import {
 } from "@/hooks/use-chat-websocket";
 import { conversationPreviewText } from "@/lib/chat/apply-chat-message-event";
 import { pickNewerPreview, sortChatsByRecency } from "@/lib/chat/chat-list-realtime";
+import { sidebarPreviewBelongsToSelection } from "@/lib/chat/sidebar-preview";
 import { useOnlinePlayers } from "@/hooks/use-online-players";
 import { storage } from "@/lib/utils/storage";
 import { API_ENDPOINTS, TOKEN_KEY } from "@/lib/constants/api";
@@ -531,6 +532,7 @@ export function ChatComponent() {
     hasMoreHistory,
     isHistoryLoading: isHistoryLoadingMessages,
     hasCompletedInitialHistory,
+    messagesRoomKey,
     updateMessagePinnedState,
     markAllAsRead,
     refreshMessages,
@@ -542,22 +544,26 @@ export function ChatComponent() {
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(
-      async (message: ChatMessage) => {
+      (
+        message: ChatMessage,
+        room: { userId: number; chatId: string },
+      ) => {
         // The chat-list socket's `re_arrange` event owns list membership and
         // ordering now, so the open conversation does not trigger a REST
         // refetch of /api/chat-all-players on every message.
-
-        // ⚡ Update the local state immediately for the specific player for instant UI feedback
-        if (message.userId) {
-          updateChatLastMessage(
-            message.userId,
-            selectedPlayer?.id || "",
-            conversationPreviewText(message),
-            message.timestamp,
-          );
-        }
+        //
+        // `room` is the conversation the socket was opened for. The message
+        // author is often the admin, and the selected row may already be a
+        // different player, so neither of those may choose the sidebar row.
+        if (!room.userId) return;
+        updateChatLastMessage(
+          room.userId,
+          room.chatId,
+          conversationPreviewText(message),
+          message.timestamp,
+        );
       },
-      [updateChatLastMessage, selectedPlayer?.id],
+      [updateChatLastMessage],
     ),
     onBalanceUpdated: useCallback(
       (data: {
@@ -670,25 +676,41 @@ export function ChatComponent() {
       [],
     ),
     onConversationPreviewChange: useCallback(
-      (preview: { text: string; timestamp: string }) => {
-        if (!selectedPlayer) return;
+      (preview: {
+        text: string;
+        timestamp: string;
+        userId: number;
+        chatId: string;
+      }) => {
+        if (!preview.userId) return;
         updateChatLastMessage(
-          selectedPlayer.user_id,
-          selectedPlayer.id,
+          preview.userId,
+          preview.chatId,
           preview.text,
           preview.timestamp || new Date().toISOString(),
         );
       },
-      [selectedPlayer, updateChatLastMessage],
+      [updateChatLastMessage],
     ),
   });
 
   // The directory row often still says "Apr 5" after history has a message
   // from today. Write the newest human line back onto every list that row
   // lives in. Older history must not win — updateChatLastMessage keeps the
-  // newer stamp.
+  // newer stamp. The loaded thread must belong to this conversation: selection
+  // changes one render before the previous room's messages are dropped, and
+  // copying them here is what briefly shows another chat's last line.
   useEffect(() => {
-    if (!selectedPlayer || !hasCompletedInitialHistory || wsMessages.length === 0) {
+    if (
+      !selectedPlayer ||
+      !sidebarPreviewBelongsToSelection({
+        selectedUserId: selectedPlayer.user_id,
+        selectedChatId: selectedPlayer.id,
+        messagesRoomKey,
+        hasCompletedInitialHistory,
+        messageCount: wsMessages.length,
+      })
+    ) {
       return;
     }
     let newest: ChatMessage | null = null;
@@ -710,6 +732,7 @@ export function ChatComponent() {
   }, [
     selectedPlayer,
     hasCompletedInitialHistory,
+    messagesRoomKey,
     wsMessages,
     updateChatLastMessage,
   ]);

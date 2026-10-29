@@ -23,6 +23,7 @@ import {
   clearUnreadChatRow,
   mergeChatRow,
   patchChatRow,
+  chatPreviewTargetsRow,
   pickNewerPreview,
   reconcileChatSnapshot,
   removeChatRow,
@@ -1472,7 +1473,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     const patchPreview = (list: ChatUser[]) => {
       let changed = false;
       const next = list.map((chat) => {
-        if (chat.user_id !== userId && chat.id !== chatId) return chat;
+        if (!chatPreviewTargetsRow(chat, { userId, chatId })) return chat;
         const picked = pickNewerPreview(chat, incoming);
         if (
           picked.lastMessage === chat.lastMessage &&
