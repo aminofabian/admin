@@ -18,8 +18,11 @@ function readMethod(value: unknown): DrawMethod {
   return value === 'manual' ? 'manual' : 'automatic';
 }
 
-function readPrizeStatus(value: unknown): PrizeStatus {
+function readPrizeStatus(row: Record<string, unknown>): PrizeStatus {
+  const value = row.prize_status;
   if (value === 'pending' || value === 'credited' || value === 'rejected') return value;
+  if (row.credited === false) return 'pending';
+  if (row.credited === true) return 'credited';
   return 'credited';
 }
 
@@ -45,7 +48,7 @@ function normalizeWinner(row: unknown, index: number): DrawWinner | null {
     player_username: username,
     ticket_id: typeof row.ticket_id === 'number' ? row.ticket_id : undefined,
     prize_amount: readString(row.prize_amount ?? row.amount ?? row.prize) || '0.00',
-    prize_status: readPrizeStatus(row.prize_status),
+    prize_status: readPrizeStatus(row),
   };
 }
 

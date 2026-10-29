@@ -145,7 +145,16 @@ export default function LuckyDrawHistoryPage() {
                   {new Date(entry.completed_at).toLocaleString()}
                 </td>
                 <td className="px-3 py-2 capitalize">{entry.draw_type}</td>
-                <td className="px-3 py-2 capitalize">{entry.draw_method}</td>
+                <td className="px-3 py-2 capitalize">
+                  {entry.draw_method}
+                  {entry.scheduled_draw_at &&
+                  Date.parse(entry.scheduled_draw_at) > Date.parse(entry.completed_at) ? (
+                    <span className="mt-0.5 block text-xs font-normal normal-case text-amber-700 dark:text-amber-300">
+                      Ran early. Was scheduled{' '}
+                      {new Date(entry.scheduled_draw_at).toLocaleString()}
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2">{entry.ticket_count}</td>
                 <td className="px-3 py-2">{entry.player_count}</td>
                 <td className="px-3 py-2">{entry.winners?.length ?? 0}</td>
@@ -174,9 +183,14 @@ export default function LuckyDrawHistoryPage() {
                 <h2 className="text-lg font-semibold capitalize text-gray-900 dark:text-gray-50">
                   {historyDetail.draw_type} draw #{historyDetail.id}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm capitalize text-gray-500">
                   {historyDetail.draw_method} ·{' '}
                   {new Date(historyDetail.completed_at).toLocaleString()}
+                  {historyDetail.scheduled_draw_at &&
+                  Date.parse(historyDetail.scheduled_draw_at) >
+                    Date.parse(historyDetail.completed_at)
+                    ? ` · ran early (scheduled ${new Date(historyDetail.scheduled_draw_at).toLocaleString()})`
+                    : ''}
                 </p>
               </div>
               <button

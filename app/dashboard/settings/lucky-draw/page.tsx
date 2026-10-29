@@ -35,10 +35,57 @@ function blockReasonCopy(code: string) {
   return MANUAL_DRAW_BLOCK_COPY[code] ?? code;
 }
 
+function reasonLine(
+  code: string,
+  manual: { ticket_count: number; player_count: number; min_tickets: number; min_players: number },
+) {
+  if (code === 'min_tickets_not_met') {
+    return `Need at least ${manual.min_tickets} tickets (have ${manual.ticket_count}).`;
+  }
+  if (code === 'min_players_not_met') {
+    return `Need at least ${manual.min_players} unique players (have ${manual.player_count}).`;
+  }
+  return blockReasonCopy(code);
+}
+
+function placeLabel(index: number) {
+  const n = index + 1;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+function prizeLine(settings: LuckyDrawCompanySettings, drawType: DrawType) {
+  const winners =
+    drawType === 'weekly' ? settings.weekly_winner_count : settings.monthly_winner_count;
+  const mode = drawType === 'weekly' ? settings.weekly_prize_mode : settings.monthly_prize_mode;
+  if (mode === 'equal') {
+    const total =
+      drawType === 'weekly' ? settings.weekly_prize_total : settings.monthly_prize_total;
+    return `${winners} winners split $${total || '0.00'}`;
+  }
+  const amounts =
+    drawType === 'weekly' ? settings.weekly_prize_amounts : settings.monthly_prize_amounts;
+  return amounts
+    .slice(0, winners)
+    .map((amount, index) => `${placeLabel(index)} $${amount || '0.00'}`)
+    .join(' · ');
+}
+
 function CycleCard({
   title,
   enabled,
   status,
+  prize,
   canRun,
   showRunButton,
   onRun,
@@ -47,6 +94,7 @@ function CycleCard({
   title: string;
   enabled: boolean;
   status: DrawTypeStatus | undefined;
+  prize?: string;
   canRun: boolean;
   showRunButton: boolean;
   onRun: () => void;
@@ -89,7 +137,7 @@ function CycleCard({
             Scheduled {formatWhen(cycle.scheduled_draw_at)}
           </p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
           {cycle.status}
         </span>
       </div>
@@ -103,6 +151,7 @@ function CycleCard({
           <dd className="font-semibold text-gray-900 dark:text-gray-50">{cycle.player_count}</dd>
         </div>
       </dl>
+      {prize ? <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{prize}</p> : null}
 
       {manual && showRunButton && (
         <div className="mt-4 space-y-2">
@@ -134,12 +183,13 @@ function CycleCard({
           </div>
           <Button
             type="button"
+            variant={manual.eligible ? 'primary' : 'secondary'}
             disabled={!canRun || !manual.eligible || running}
             onClick={onRun}
             className="w-full"
             title={
               !manual.eligible
-                ? manual.block_reasons.map(blockReasonCopy).join(' · ')
+                ? manual.block_reasons.map((reason) => reasonLine(reason, manual)).join(' ')
                 : 'Run draw now and start a new cycle'
             }
           >
@@ -148,7 +198,7 @@ function CycleCard({
           {!manual.eligible && (
             <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
               {manual.block_reasons.map((reason) => (
-                <li key={reason}>• {blockReasonCopy(reason)}</li>
+                <li key={reason}>• {reasonLine(reason, manual)}</li>
               ))}
             </ul>
           )}
@@ -257,17 +307,19 @@ function SettingsEditor({
                 Amount per winner position ({winnerCount} required)
               </p>
               {Array.from({ length: winnerCount }, (_, i) => (
-                <Input
-                  key={`${drawType}-amt-${i}`}
-                  disabled={disabled}
-                  value={amounts[i] ?? ''}
-                  placeholder={`Position ${i + 1}`}
-                  onChange={(e) => {
-                    const next = [...amounts];
-                    next[i] = e.target.value;
-                    update({ [amountsKey]: next });
-                  }}
-                />
+                <label key={`${drawType}-amt-${i}`} className="block text-sm">
+                  <span className="text-gray-500">{placeLabel(i)} place</span>
+                  <Input
+                    disabled={disabled}
+                    value={amounts[i] ?? ''}
+                    aria-label={`${placeLabel(i)} place prize`}
+                    onChange={(e) => {
+                      const next = [...amounts];
+                      next[i] = e.target.value;
+                      update({ [amountsKey]: next });
+                    }}
+                  />
+                </label>
               ))}
             </div>
           )}
@@ -486,6 +538,7 @@ export default function LuckyDrawSettingsPage() {
             title="Weekly Draw"
             enabled={status?.settings.weekly_enabled ?? true}
             status={status?.weekly}
+            prize={status?.settings ? prizeLine(status.settings, 'weekly') : undefined}
             canRun={canOperate}
             showRunButton={earlyEnabled}
             running={runningType === 'weekly'}
@@ -495,6 +548,7 @@ export default function LuckyDrawSettingsPage() {
             title="Monthly Draw"
             enabled={status?.settings.monthly_enabled ?? true}
             status={status?.monthly}
+            prize={status?.settings ? prizeLine(status.settings, 'monthly') : undefined}
             canRun={canOperate}
             showRunButton={earlyEnabled}
             running={runningType === 'monthly'}

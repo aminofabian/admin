@@ -94,7 +94,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   };
 
   return (
-    <div className="flex items-center justify-between px-3 sm:px-4 md:px-5 xl:px-6 py-3 sm:py-3.5 md:py-4 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm sticky top-0 z-20">
+    <div className="flex items-center justify-between px-3 sm:px-4 md:px-5 xl:px-6 py-3 sm:py-3.5 md:py-4 bg-card border-b border-border shadow-sm sticky top-0 z-20">
       {/* Left side - Mobile menu button and Time */}
       <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
         {/* Mobile menu button - Enhanced */}

@@ -40,6 +40,27 @@ describe('normalizeHistoryList', () => {
 });
 
 describe('normalizeHistoryEntry', () => {
+  it('treats credited:false as a pending prize', () => {
+    const entry = normalizeHistoryEntry({
+      id: 102,
+      draw_type: 'monthly',
+      method: 'manual',
+      completed_at: '2026-10-29T07:49:31.897Z',
+      scheduled_at: '2026-11-14T07:33:35.467Z',
+      winners: [
+        {
+          position: 1,
+          player_username: 'winner_1',
+          prize_amount: '500.00',
+          credited: false,
+        },
+      ],
+    });
+    expect(entry?.draw_method).toBe('manual');
+    expect(entry?.scheduled_draw_at).toBe('2026-11-14T07:33:35.467Z');
+    expect(entry?.winners[0]?.prize_status).toBe('pending');
+  });
+
   it('reads a detail payload with a nested cycle', () => {
     const entry = normalizeHistoryEntry({
       cycle,
