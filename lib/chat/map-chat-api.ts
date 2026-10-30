@@ -1,4 +1,5 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
+import { sidebarMessagePreview } from '@/lib/chat/apply-chat-message-event';
 import { pickChatroomIdFromRow, firstSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 import { isIdentityVerifiedFromRecord } from '@/lib/players/player-verification';
 import type { ChatUser } from '@/types';
@@ -104,6 +105,29 @@ export function readOptionalBoolean(
   if (s === '1' || s === 'true' || s === 'yes') return true;
   if (s === '0' || s === 'false' || s === 'no') return false;
   return undefined;
+}
+
+/**
+ * Sidebar line from a chat-list row.
+ *
+ * Image messages often have an empty `last_message` and carry the picture on
+ * `is_file` / `file`. Without that, the word Image appears only after the
+ * thread is opened.
+ */
+export function lastMessageFromListRow(row: Record<string, unknown>): string | undefined {
+  const text = typeof row.last_message === 'string' ? row.last_message : '';
+  const fileCandidate = row.file ?? row.file_url ?? row.last_message_file ?? row.last_file;
+  const fileUrl = typeof fileCandidate === 'string' ? fileCandidate.trim() : '';
+  const isFile =
+    readOptionalBoolean(row, 'is_file') === true ||
+    readOptionalBoolean(row, 'last_message_is_file') === true ||
+    readOptionalBoolean(row, 'last_is_file') === true;
+  const preview = sidebarMessagePreview({
+    text,
+    fileUrl: fileUrl || undefined,
+    isFile,
+  });
+  return preview || undefined;
 }
 
 function readLastHumanMessageSenderId(row: Record<string, unknown>): number | null | undefined {
@@ -513,7 +537,7 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
       email: player.email || '',
       avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
       isOnline,
-      lastMessage: chat.last_message || undefined,
+      lastMessage: lastMessageFromListRow(raw),
       lastMessageTime: validTimestamp,
       balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
       ...pickWinningBalanceFromBackend(ledgerRow),
@@ -577,7 +601,7 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
         (row.avatar as string | undefined) ||
         undefined,
       isOnline: coercedBooleanOnline(row.is_online) || coercedBooleanOnline(row.isOnline),
-      lastMessage: (row.last_message as string | undefined) || undefined,
+      lastMessage: lastMessageFromListRow(row),
       lastMessageTime: validTimestamp,
       playerLastSeenAt: validLastSeen,
       balance: row.balance !== undefined ? String(row.balance) : undefined,

@@ -9,6 +9,7 @@ import { websocketManager, createFreshAuthenticatedWebSocketUrl, type WebSocketL
 import type { ChatUser } from '@/types';
 import {
   extractChatListServerCounts,
+  lastMessageFromListRow,
   ledgerStringOrUndefined,
   pickWinningBalanceFromBackend,
 } from '@/lib/chat/map-chat-api';
@@ -65,7 +66,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
       email: String(data.player_email || ''),
       avatar: data.player_profile_pic ? String(data.player_profile_pic) : undefined,
       isOnline: true,
-      lastMessage: data.last_message ? String(data.last_message) : undefined,
+      lastMessage: lastMessageFromListRow(data as Record<string, unknown>),
       lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
       ...pickWinningBalanceFromBackend(data as Record<string, unknown>),
@@ -103,7 +104,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
     email: String(player.email || ''),
     avatar: (player.profile_pic || player.profile_image || player.avatar) ? String(player.profile_pic || player.profile_image || player.avatar) : undefined,
     isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true,
-    lastMessage: data.last_message ? String(data.last_message) : undefined,
+    lastMessage: lastMessageFromListRow(data as Record<string, unknown>),
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     ...pickWinningBalanceFromBackend(player as Record<string, unknown>),

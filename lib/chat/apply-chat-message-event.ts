@@ -100,11 +100,25 @@ export function conversationPreviewText(
   return plainPreviewText(message.text);
 }
 
+const wholeUrlPattern = () => /https?:\/\/[^\s<>"]+/gi;
+
+/** Chat uploads often keep a signature query, or live on R2 without a tidy extension. */
+function isChatImageUrl(url: string): boolean {
+  const value = url.toLowerCase();
+  return (
+    /\.(?:jpg|jpeg|png|gif|bmp|webp|svg)(?:$|[?#])/i.test(value) ||
+    value.includes("/media/csr/chats/") ||
+    value.includes("/image/upload/") ||
+    value.includes(".r2.dev/")
+  );
+}
+
 /**
  * One line for the player list.
  *
- * Image-only messages are an `<img>` or a bare file URL. Stripping tags first
- * drops the address, so the row looks empty. Transactions stay as their
+ * Image-only messages are an `<img>`, a file flag, or a media URL. A signed
+ * URL used to leave `?token=...` behind, so the row stayed blank until the
+ * opened thread's `is_file` flag rewrote it. Transactions stay as their
  * sentence (`$20.00 purchased via Crypto`, `3 spins added as daily bonus`).
  */
 export function sidebarMessagePreview(message: {
@@ -113,20 +127,22 @@ export function sidebarMessagePreview(message: {
   isFile?: boolean;
 }): string {
   const text = message.text ?? "";
-  const preview = conversationPreviewText({
-    id: "sidebar",
-    text,
-    timestamp: "",
-    fileUrl: message.fileUrl,
-    isFile: message.isFile || /<img\b/i.test(text),
-  });
-  if (!preview) return "";
-  if (preview === "📷 Image") return "Image";
-  return preview
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join(" ");
+  const fileUrl = message.fileUrl?.trim() ?? "";
+  const plain = plainPreviewText(text);
+  const urls = [
+    ...(plain.match(wholeUrlPattern()) ?? []),
+    ...(fileUrl ? [fileUrl] : []),
+  ];
+  const caption = plain.replace(wholeUrlPattern(), "").replace(/\s+/g, " ").trim();
+  const image =
+    Boolean(message.isFile) ||
+    /<img\b/i.test(text) ||
+    urls.some(isChatImageUrl);
+
+  if (image && !caption) return "Image";
+  if (caption) return caption;
+  if (image) return "Image";
+  return "";
 }
 
 /** Caption an admin can edit, with the image URLs that must survive the edit. */

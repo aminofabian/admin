@@ -127,8 +127,14 @@ describe("applyMessageEdited", () => {
     ).toBe("Image");
     expect(
       sidebarMessagePreview({
-        text: "https://serverhub.biz/media/csr/chats/shot.jpeg",
+        text: "https://serverhub.biz/media/csr/chats/shot.jpeg?X-Amz-Signature=abc",
+      }),
+    ).toBe("Image");
+    expect(
+      sidebarMessagePreview({
+        text: "",
         isFile: true,
+        fileUrl: "https://pub-example.r2.dev/chat/abc",
       }),
     ).toBe("Image");
     expect(

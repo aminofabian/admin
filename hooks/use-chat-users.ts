@@ -12,6 +12,7 @@ import {
   extractUnreadCount,
   extractChatListServerCounts,
   extractPlayerArrayFromAdminChatResponse,
+  lastMessageFromListRow,
   mapAdminSearchRowToChatUser,
   mergeWinningBalanceFromPartialPayload,
   payloadIncludesWinningBalanceFields,
@@ -419,10 +420,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const incomingTime =
           (updateData.last_message_time as string | undefined) ||
           (updateData.last_message_timestamp as string | undefined);
-        const incomingText =
-          typeof updateData.last_message === 'string' && updateData.last_message.length > 0
-            ? updateData.last_message
-            : null;
+        const incomingPreview = lastMessageFromListRow(updateData);
+        const incomingText = incomingPreview || null;
         const unreadIncreased =
           (newUnreadCount ?? 0) > (existingChat.unreadCount ?? 0);
         // Content and unread delta decide the order; a read receipt can reuse
@@ -436,7 +435,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         const updatedChat = {
           ...existingChat,
-          lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
+          lastMessage: incomingPreview || existingChat.lastMessage,
           lastMessageTime:
             moveToTop && isValidTimestamp(incomingTime)
               ? incomingTime

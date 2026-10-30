@@ -34,6 +34,19 @@ describe('map-chat-api', () => {
       expect(u.unreadCount).toBe(0);
     });
 
+    it('shows Image from a file flag before the thread is opened', () => {
+      const u = transformChatToUser({
+        id: 81,
+        player_id: 93,
+        player_username: 'bitslotbeta',
+        last_message: '',
+        is_file: true,
+        file: 'https://pub-example.r2.dev/chat/abc',
+        last_message_timestamp: '2026-04-01T16:55:25.690042+00:00',
+      });
+      expect(u.lastMessage).toBe('Image');
+    });
+
     it('should map flat cashout_limit / locked_balance on chat row (no nested player)', () => {
       const row: Record<string, unknown> = {
         id: 81,
