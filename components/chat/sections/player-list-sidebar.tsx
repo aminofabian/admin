@@ -6,8 +6,7 @@ import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 import { sidebarMessagePreview } from '@/lib/chat/apply-chat-message-event';
-import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
-import { automatedSidebarPreviewHtml } from '../utils/message-helpers';
+import { automatedSidebarPreviewClass } from '../utils/message-helpers';
 import { PlayerAvatar } from '../components/player-avatar';
 
 const MAX_UNREAD_BADGE_COUNT = 99;
@@ -31,23 +30,31 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 }
 
 /**
- * Automated rows keep the transaction amount colour (purchase green, cashout
- * red, recharge purple, redeem orange, prize wheel amber). Human lines stay
- * plain muted text.
+ * Automated rows use the transaction hue (purchase green, cashout red,
+ * recharge purple, redeem orange, prize wheel amber, verification emerald).
+ * The colour sits on the line itself. A muted parent would win the tie in
+ * the stylesheet and leave the preview gray.
  */
-function LastMessagePreview({ text, className }: { text: string; className: string }) {
-  const colored = automatedSidebarPreviewHtml(text);
-  if (colored) {
-    return (
-      <p
-        className={className}
-        dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(colored) }}
-      />
-    );
-  }
+function LastMessagePreview({
+  text,
+  isNewMessage,
+}: {
+  text: string;
+  isNewMessage: boolean;
+}) {
   const plainText = sidebarMessagePreview({ text });
   if (!plainText) return null;
-  return <p className={className}>{plainText}</p>;
+  const tone = automatedSidebarPreviewClass(text);
+  const color = tone
+    ? `font-medium ${tone}`
+    : isNewMessage
+      ? 'font-medium text-foreground'
+      : 'text-muted-foreground';
+  return (
+    <p className={`truncate text-[12px] leading-snug transition-colors duration-200 ${color}`}>
+      {plainText}
+    </p>
+  );
 }
 
 //  Memoized player item component to prevent unnecessary re-renders
@@ -109,10 +116,6 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
       }
     };
   }, [unreadCount]);
-
-  const previewClass = `truncate text-[12px] leading-snug transition-colors duration-200 ${
-    isNewMessage ? 'font-medium text-foreground' : 'text-muted-foreground'
-  }`;
 
   return (
     <button
@@ -184,7 +187,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
         <div className="mt-1 flex min-h-4 items-center gap-2">
           <div className="min-w-0 flex-1">
             {player.lastMessage && (
-              <LastMessagePreview text={player.lastMessage} className={previewClass} />
+              <LastMessagePreview text={player.lastMessage} isNewMessage={isNewMessage} />
             )}
           </div>
 

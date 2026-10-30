@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  automatedSidebarPreviewHtml,
+  automatedSidebarPreviewClass,
   getBinpayVerificationKind,
   getTransactionCardClass,
   getTransactionTextColorClass,
@@ -228,40 +228,51 @@ describe('parseTransactionMessage', () => {
   });
 });
 
-describe('automatedSidebarPreviewHtml', () => {
-  it('colours purchase, cashout, recharge, redeem, and prize-wheel amounts', () => {
+describe('automatedSidebarPreviewClass', () => {
+  it('colours a plain purchase, cashout, recharge, redeem, and prize-wheel line', () => {
     expect(
-      automatedSidebarPreviewHtml(
+      automatedSidebarPreviewClass('$50.00 purchased via Card (BinPay). Balance: $100.00'),
+    ).toContain('text-green-600');
+    expect(
+      automatedSidebarPreviewClass('$3.00 cashed out via Bitcoin. Balance: $10.00'),
+    ).toContain('text-red-600');
+    expect(
+      automatedSidebarPreviewClass('$1.00 recharged to Mr. All in One. Balance: $5.00'),
+    ).toContain('text-purple-600');
+    expect(
+      automatedSidebarPreviewClass('$15.00 redeemed from Cash. Balance: $0.00'),
+    ).toContain('text-orange-600');
+    expect(
+      automatedSidebarPreviewClass('3 spins added as daily bonus.'),
+    ).toContain('text-amber-600');
+    expect(
+      automatedSidebarPreviewClass('$2.00 added as Sign Up Bonus. Balance: $2.00'),
+    ).toContain('text-purple-600');
+  });
+
+  it('colours identity verification lines that no longer contain bold tags', () => {
+    expect(
+      automatedSidebarPreviewClass(
+        'Binpay Your identity verification has been approved. You can now continue.',
+      ),
+    ).toContain('text-emerald-600');
+  });
+
+  it('still colours html and escaped tags', () => {
+    expect(
+      automatedSidebarPreviewClass(
         '<b>$20.00</b> purchased via <b>Crypto</b>.<br>Balance: <b>$29.00</b>',
       ),
     ).toContain('text-green-600');
     expect(
-      automatedSidebarPreviewHtml('<b>$3.00</b> cashed out via <b>Bitcoin</b>'),
-    ).toContain('text-red-600');
-    expect(
-      automatedSidebarPreviewHtml('<b>$10.00</b> recharged to <b>Panda Master</b>'),
-    ).toContain('text-purple-600');
-    expect(
-      automatedSidebarPreviewHtml('<b>$15.00</b> redeemed from <b>Cash</b>'),
-    ).toContain('text-orange-600');
-    expect(
-      automatedSidebarPreviewHtml('<b>3 spins</b> added as daily bonus.'),
+      automatedSidebarPreviewClass('&lt;b&gt;3 spins&lt;/b&gt; added as daily bonus.'),
     ).toContain('text-amber-600');
   });
 
-  it('keeps a coloured amount when the tags were stored escaped', () => {
-    const html = automatedSidebarPreviewHtml(
-      '&lt;b&gt;3 spins&lt;/b&gt; added as daily bonus.',
-    );
-    expect(html).toContain('text-amber-600');
-    expect(html).toContain('3 spins');
-    expect(html).not.toContain('<br');
-  });
-
   it('leaves ordinary chat uncoloured', () => {
-    expect(automatedSidebarPreviewHtml('hey can you check this')).toBeNull();
+    expect(automatedSidebarPreviewClass('hey can you check this')).toBeNull();
     expect(
-      automatedSidebarPreviewHtml("Someone cashed out my winnings? I don't have litecoins"),
+      automatedSidebarPreviewClass("Someone cashed out my winnings? I don't have litecoins"),
     ).toBeNull();
   });
 });

@@ -1008,27 +1008,38 @@ function decodeChatEntities(text: string): string {
 }
 
 /**
- * Sidebar line for an automated transaction, with the amount colours the
- * thread card uses (green purchase, red cashout, purple recharge, orange
- * redeem, amber prize wheel). Ordinary chat returns null so the list can
- * keep a plain preview.
+ * Colour for an automated chat-list line.
+ *
+ * The list stores a plain sentence (`$50.00 purchased via Card`), with the
+ * `<b>` tags already removed, so colouring those tags never showed up.
+ * The whole preview uses the same hue as the thread card. Ordinary chat
+ * returns null and stays gray.
  */
-export function automatedSidebarPreviewHtml(text: string): string | null {
+export function automatedSidebarPreviewClass(text: string): string | null {
   if (!text) return null;
   const decoded = decodeChatEntities(text);
   const message = { text: decoded };
+
   if (
-    !isAutoMessage(message) &&
-    !isPurchaseNotification(message) &&
-    !isPrizeWheelMessage(message)
+    isAutoMessage(message) ||
+    isPurchaseNotification(message) ||
+    isPrizeWheelMessage(message)
   ) {
-    return null;
+    const details = parseTransactionMessage(decoded);
+    return getTransactionTextColorClass(
+      transactionTypeToVisualKind(details.type),
+    );
   }
 
-  const oneLine = formatTransactionMessage(message)
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/\n+/g, " ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  return oneLine || null;
+  switch (getBinpayVerificationKind(message)) {
+    case "approved":
+      return "text-emerald-600 dark:text-emerald-400";
+    case "rejected":
+      return "text-red-600 dark:text-red-400";
+    case "pending":
+    case "prompt":
+      return "text-amber-600 dark:text-amber-400";
+    default:
+      return null;
+  }
 }
