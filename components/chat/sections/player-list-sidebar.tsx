@@ -6,6 +6,8 @@ import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 import { sidebarMessagePreview } from '@/lib/chat/apply-chat-message-event';
+import { sanitizeChatHtml } from '@/lib/chat/sanitize-chat-html';
+import { automatedSidebarPreviewHtml } from '../utils/message-helpers';
 import { PlayerAvatar } from '../components/player-avatar';
 
 const MAX_UNREAD_BADGE_COUNT = 99;
@@ -26,6 +28,26 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
       {text.slice(index + query.length)}
     </>
   );
+}
+
+/**
+ * Automated rows keep the transaction amount colour (purchase green, cashout
+ * red, recharge purple, redeem orange, prize wheel amber). Human lines stay
+ * plain muted text.
+ */
+function LastMessagePreview({ text, className }: { text: string; className: string }) {
+  const colored = automatedSidebarPreviewHtml(text);
+  if (colored) {
+    return (
+      <p
+        className={className}
+        dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(colored) }}
+      />
+    );
+  }
+  const plainText = sidebarMessagePreview({ text });
+  if (!plainText) return null;
+  return <p className={className}>{plainText}</p>;
 }
 
 //  Memoized player item component to prevent unnecessary re-renders
@@ -161,11 +183,9 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
 
         <div className="mt-1 flex min-h-4 items-center gap-2">
           <div className="min-w-0 flex-1">
-            {player.lastMessage && (() => {
-              const plainText = sidebarMessagePreview({ text: player.lastMessage });
-              if (!plainText) return null;
-              return <p className={previewClass}>{plainText}</p>;
-            })()}
+            {player.lastMessage && (
+              <LastMessagePreview text={player.lastMessage} className={previewClass} />
+            )}
           </div>
 
           {unreadCount > 0 && (

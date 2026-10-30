@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  automatedSidebarPreviewHtml,
   getBinpayVerificationKind,
   getTransactionCardClass,
   getTransactionTextColorClass,
@@ -224,6 +225,44 @@ describe('parseTransactionMessage', () => {
     );
     expect(viaMethod.type).toBe('cashout');
     expect(viaMethod.paymentMethod).toBe('Bitcoin Lightning');
+  });
+});
+
+describe('automatedSidebarPreviewHtml', () => {
+  it('colours purchase, cashout, recharge, redeem, and prize-wheel amounts', () => {
+    expect(
+      automatedSidebarPreviewHtml(
+        '<b>$20.00</b> purchased via <b>Crypto</b>.<br>Balance: <b>$29.00</b>',
+      ),
+    ).toContain('text-green-600');
+    expect(
+      automatedSidebarPreviewHtml('<b>$3.00</b> cashed out via <b>Bitcoin</b>'),
+    ).toContain('text-red-600');
+    expect(
+      automatedSidebarPreviewHtml('<b>$10.00</b> recharged to <b>Panda Master</b>'),
+    ).toContain('text-purple-600');
+    expect(
+      automatedSidebarPreviewHtml('<b>$15.00</b> redeemed from <b>Cash</b>'),
+    ).toContain('text-orange-600');
+    expect(
+      automatedSidebarPreviewHtml('<b>3 spins</b> added as daily bonus.'),
+    ).toContain('text-amber-600');
+  });
+
+  it('keeps a coloured amount when the tags were stored escaped', () => {
+    const html = automatedSidebarPreviewHtml(
+      '&lt;b&gt;3 spins&lt;/b&gt; added as daily bonus.',
+    );
+    expect(html).toContain('text-amber-600');
+    expect(html).toContain('3 spins');
+    expect(html).not.toContain('<br');
+  });
+
+  it('leaves ordinary chat uncoloured', () => {
+    expect(automatedSidebarPreviewHtml('hey can you check this')).toBeNull();
+    expect(
+      automatedSidebarPreviewHtml("Someone cashed out my winnings? I don't have litecoins"),
+    ).toBeNull();
   });
 });
 

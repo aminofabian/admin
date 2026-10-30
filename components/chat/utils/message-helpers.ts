@@ -995,3 +995,40 @@ export const formatTransactionMessage = (
     `<b class="${boldClass}">$1</b>`,
   );
 };
+
+/** One decode pass so a stored `&lt;b&gt;$20&lt;/b&gt;` can still be coloured. */
+function decodeChatEntities(text: string): string {
+  if (!/&(?:lt|gt|amp|quot|#39);/i.test(text)) return text;
+  return text
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+}
+
+/**
+ * Sidebar line for an automated transaction, with the amount colours the
+ * thread card uses (green purchase, red cashout, purple recharge, orange
+ * redeem, amber prize wheel). Ordinary chat returns null so the list can
+ * keep a plain preview.
+ */
+export function automatedSidebarPreviewHtml(text: string): string | null {
+  if (!text) return null;
+  const decoded = decodeChatEntities(text);
+  const message = { text: decoded };
+  if (
+    !isAutoMessage(message) &&
+    !isPurchaseNotification(message) &&
+    !isPrizeWheelMessage(message)
+  ) {
+    return null;
+  }
+
+  const oneLine = formatTransactionMessage(message)
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/\n+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return oneLine || null;
+}
