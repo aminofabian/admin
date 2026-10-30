@@ -7,10 +7,6 @@ import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 import { conversationPreviewText } from '@/lib/chat/apply-chat-message-event';
 import {
-  isAutoMessage,
-  isPurchaseNotification,
-  isPrizeWheelMessage,
-  isKycVerificationMessage,
   prepareChatMessageHtmlForDisplay,
   stripHtml as stripHtmlForPreview,
 } from '../utils/message-helpers';
@@ -175,24 +171,12 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
         <div className="mt-1 flex min-h-4 items-center gap-2">
           <div className="min-w-0 flex-1">
             {player.lastMessage && (() => {
-              const mockMessage = { text: player.lastMessage };
-              const isAuto = isAutoMessage(mockMessage);
-              const isPurchase = isPurchaseNotification(mockMessage);
-              const isPrizeWheel = isPrizeWheelMessage(mockMessage);
-              const isKyc = isKycVerificationMessage(mockMessage);
-
-              // Welcome, bonus, purchase, recharge, cashout, and identity
-              // lines are not a conversation. The name and time stay; the
-              // preview stays blank until a person has written.
-              if (isKyc || isAuto || isPurchase || isPrizeWheel) {
-                return null;
-              }
-
               const plainText = conversationPreviewText({
                 id: player.id,
                 text: stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage)),
                 timestamp: player.lastMessageTime || '',
               });
+              if (!plainText) return null;
               return <p className={previewClass}>{plainText}</p>;
             })()}
           </div>
