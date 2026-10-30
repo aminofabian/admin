@@ -159,6 +159,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
       setIsChangingGame(false);
     }
   }, [gameToChange, addToast]);
+
+  const displayName = (selectedPlayer.fullName || selectedPlayer.username || 'Player').trim();
+  const handle = selectedPlayer.username?.trim() ?? '';
+  const showHandle = handle.length > 0 && handle.toLowerCase() !== displayName.toLowerCase();
+
   return (
     <div
       className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/50 bg-muted/[0.12] md:w-72 md:bg-gradient-to-b md:from-card md:to-card/60 lg:w-80`}
@@ -178,53 +183,45 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           <span className="text-sm font-medium">Back to chat</span>
         </button>
 
-        <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-3">
-          <div className="flex gap-3 md:gap-2">
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={onNavigateToPlayer}
-                className="relative flex h-14 w-14 items-center justify-center md:h-10 md:w-10"
-                title="Open full profile"
-              >
-                <PlayerAvatar
-                  avatarUrl={selectedPlayer.avatar}
-                  username={selectedPlayer.username}
-                  size={56}
-                  wrapperClassName="h-14 w-14 rounded-2xl ring-2 ring-white/30 md:h-11 md:w-11 md:rounded-xl dark:ring-white/10"
-                  className="text-lg md:text-xs"
-                />
-              </button>
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-card shadow-sm md:h-2 md:w-2 md:border-2 ${selectedPlayer.isOnline ? 'bg-primary' : 'bg-muted-foreground/60'}`}
-              />
-            </div>
+        <button
+          type="button"
+          onClick={onNavigateToPlayer}
+          title="Open full profile"
+          className="flex w-full items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-3 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
+          <span className="relative h-12 w-12 shrink-0">
+            <PlayerAvatar
+              avatarUrl={selectedPlayer.avatar}
+              username={selectedPlayer.username}
+              size={48}
+              wrapperClassName="rounded-2xl"
+              className="text-[15px]"
+            />
+            <span
+              className={`pointer-events-none absolute -bottom-px -right-px h-3 w-3 rounded-full border-2 border-card ${selectedPlayer.isOnline ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+              title={selectedPlayer.isOnline ? 'Online' : 'Offline'}
+            />
+          </span>
 
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <button
-                type="button"
-                onClick={onNavigateToPlayer}
-                className="flex w-full min-w-0 flex-col items-stretch gap-0.5 text-left"
-                title="Open full profile"
-              >
-                <span className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-[13px]">
-                    {selectedPlayer.fullName || selectedPlayer.username}
-                  </span>
-                  {selectedPlayer.isIdentityVerified ? (
-                    <IdentityVerifiedTick size="md" />
-                  ) : null}
-                </span>
-                <span className="truncate text-sm font-normal leading-tight tracking-normal text-muted-foreground md:text-xs">
-                  @{selectedPlayer.username}
-                </span>
-              </button>
-              <p className="truncate text-xs leading-tight text-muted-foreground md:text-[11px]">
-                {selectedPlayer.email || 'No email on file'}
-              </p>
-            </div>
-          </div>
-        </div>
+          <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-sm font-semibold capitalize leading-5 tracking-tight text-foreground">
+                {displayName}
+              </span>
+              {selectedPlayer.isIdentityVerified ? (
+                <IdentityVerifiedTick />
+              ) : null}
+            </span>
+            {showHandle ? (
+              <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-muted-foreground">
+                @{handle}
+              </span>
+            ) : null}
+            <span className={`block truncate text-[11px] leading-4 ${showHandle ? 'mt-1.5' : 'mt-0.5'} ${selectedPlayer.email ? 'text-muted-foreground/80' : 'text-muted-foreground/50'}`}>
+              {selectedPlayer.email || 'No email on file'}
+            </span>
+          </span>
+        </button>
       </div>
 
       <div className="scrollbar-smooth min-h-0 flex-1 touch-pan-y space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] md:space-y-2.5 md:p-3 md:pb-3">
