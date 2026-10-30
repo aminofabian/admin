@@ -7,6 +7,7 @@ import {
   composeEditedMessageText,
   markMessageDissipating,
   messageEventId,
+  sidebarMessagePreview,
   splitEditableMessageText,
 } from "../apply-chat-message-event";
 import type { ChatEventMessage } from "../apply-chat-message-event";
@@ -116,6 +117,30 @@ describe("applyMessageEdited", () => {
     const result = applyMessageEdited(messages, "999", "nope");
     expect(result.messages).toBe(messages);
     expect(result.preview).toBeNull();
+  });
+
+  it("labels an image-only last message and keeps a transaction sentence", () => {
+    expect(
+      sidebarMessagePreview({
+        text: '<img src="https://serverhub.biz/media/csr/chats/shot.jpeg">',
+      }),
+    ).toBe("Image");
+    expect(
+      sidebarMessagePreview({
+        text: "https://serverhub.biz/media/csr/chats/shot.jpeg",
+        isFile: true,
+      }),
+    ).toBe("Image");
+    expect(
+      sidebarMessagePreview({
+        text: "<b>$20.00</b> purchased via <b>Crypto (Bitcoin)</b>.<br>Balance: <b>$29.00</b>",
+      }),
+    ).toBe("$20.00 purchased via Crypto (Bitcoin). Balance: $29.00");
+    expect(
+      sidebarMessagePreview({
+        text: "<b>3 spins</b> added as daily bonus.",
+      }),
+    ).toBe("3 spins added as daily bonus.");
   });
 
   it("uses the caption, not the image url, as the preview", () => {

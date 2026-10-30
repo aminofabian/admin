@@ -92,11 +92,41 @@ export function conversationPreviewText(
   if (
     message.fileUrl ||
     message.isFile ||
+    /<img\b/i.test(message.text || "") ||
     imageUrlPattern().test(message.text || "")
   ) {
     return "📷 Image";
   }
   return plainPreviewText(message.text);
+}
+
+/**
+ * One line for the player list.
+ *
+ * Image-only messages are an `<img>` or a bare file URL. Stripping tags first
+ * drops the address, so the row looks empty. Transactions stay as their
+ * sentence (`$20.00 purchased via Crypto`, `3 spins added as daily bonus`).
+ */
+export function sidebarMessagePreview(message: {
+  text?: string;
+  fileUrl?: string;
+  isFile?: boolean;
+}): string {
+  const text = message.text ?? "";
+  const preview = conversationPreviewText({
+    id: "sidebar",
+    text,
+    timestamp: "",
+    fileUrl: message.fileUrl,
+    isFile: message.isFile || /<img\b/i.test(text),
+  });
+  if (!preview) return "";
+  if (preview === "📷 Image") return "Image";
+  return preview
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ");
 }
 
 /** Caption an admin can edit, with the image URLs that must survive the edit. */

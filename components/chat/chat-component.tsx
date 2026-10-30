@@ -10,7 +10,10 @@ import {
   useChatWebSocket,
   type MessageActionResult,
 } from "@/hooks/use-chat-websocket";
-import { conversationPreviewText } from "@/lib/chat/apply-chat-message-event";
+import {
+  conversationPreviewText,
+  sidebarMessagePreview,
+} from "@/lib/chat/apply-chat-message-event";
 import { pickNewerPreview, sortChatsByRecency } from "@/lib/chat/chat-list-realtime";
 import { sidebarPreviewBelongsToSelection } from "@/lib/chat/sidebar-preview";
 import { useOnlinePlayers } from "@/hooks/use-online-players";
@@ -695,8 +698,8 @@ export function ChatComponent() {
   });
 
   // The directory row often still says "Apr 5" after history has a message
-  // from today. Write the newest human line back onto every list that row
-  // lives in. Older history must not win — updateChatLastMessage keeps the
+  // from today. Write the newest line, including an image or a transaction,
+  // back onto every list that row lives in. Older history must not win — updateChatLastMessage keeps the
   // newer stamp. The loaded thread must belong to this conversation: selection
   // changes one render before the previous room's messages are dropped, and
   // copying them here is what briefly shows another chat's last line.
@@ -716,17 +719,18 @@ export function ChatComponent() {
     let newest: ChatMessage | null = null;
     let newestMs = 0;
     for (const message of wsMessages) {
-      if (classifyMessage(message).isSystemMessage) continue;
       const ms = Date.parse(message.timestamp);
       if (!Number.isFinite(ms) || ms < newestMs) continue;
       newest = message;
       newestMs = ms;
     }
     if (!newest) return;
+    const preview = sidebarMessagePreview(newest);
+    if (!preview) return;
     updateChatLastMessage(
       selectedPlayer.user_id,
       selectedPlayer.id,
-      conversationPreviewText(newest),
+      preview,
       newest.timestamp,
     );
   }, [

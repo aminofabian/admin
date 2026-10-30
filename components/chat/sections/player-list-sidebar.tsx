@@ -5,17 +5,8 @@ import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
-import { conversationPreviewText } from '@/lib/chat/apply-chat-message-event';
-import {
-  prepareChatMessageHtmlForDisplay,
-  stripHtml as stripHtmlForPreview,
-} from '../utils/message-helpers';
+import { sidebarMessagePreview } from '@/lib/chat/apply-chat-message-event';
 import { PlayerAvatar } from '../components/player-avatar';
-
-// Strip HTML for preview text. Shared implementation lives in
-// `../utils/message-helpers` — see the note there on why it uses DOMParser
-// rather than assigning `innerHTML`.
-const stripHtml = stripHtmlForPreview;
 
 const MAX_UNREAD_BADGE_COUNT = 99;
 
@@ -171,11 +162,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, searchQuery, i
         <div className="mt-1 flex min-h-4 items-center gap-2">
           <div className="min-w-0 flex-1">
             {player.lastMessage && (() => {
-              const plainText = conversationPreviewText({
-                id: player.id,
-                text: stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage)),
-                timestamp: player.lastMessageTime || '',
-              });
+              const plainText = sidebarMessagePreview({ text: player.lastMessage });
               if (!plainText) return null;
               return <p className={previewClass}>{plainText}</p>;
             })()}
