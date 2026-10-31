@@ -468,11 +468,9 @@ export function ChatComponent() {
     playersWithChatsTotalCount,
     chatListOnlinePlayersCount,
     chatListAllPlayersCount,
-    chatListUnrepliedPlayersCount,
     unrepliedListLive,
     socketOfflineUserIds,
     acknowledgeStaffReply,
-    noteUnrepliedServerCount,
     seedUnrepliedFromRest,
     invalidatePlayersCache,
     updateChatLastMessage,
@@ -484,7 +482,6 @@ export function ChatComponent() {
     onlinePlayers: apiOnlinePlayers,
     onlinePlayersTotalCount: onlinePlayersApiTotalCount,
     allPlayersTotalCount: allPlayersApiTotalCount,
-    unrepliedPlayersTotalCount: unrepliedPlayersApiTotalCount,
     isLoading: isLoadingApiOnlinePlayers,
     error: onlinePlayersError,
     refetch: refetchOnlinePlayers,
@@ -499,28 +496,17 @@ export function ChatComponent() {
     [onlinePlayersApiTotalCount, chatListOnlinePlayersCount],
   );
 
-  // REST total until the socket sends an unreplied census. One partial row
-  // must not replace that total.
+  // Socket census only. The HTTP `unreplied_players_count` is identical on
+  // every chat request and was flashing that stale total until the socket
+  // connected and replaced it.
   const displayUnrepliedPlayersTotal = useMemo(
     () =>
       resolveUnrepliedBadgeCount({
         unrepliedChatsLength: unrepliedChats.length,
         listLive: unrepliedListLive,
-        restCount: chatListUnrepliedPlayersCount,
-        apiCount: unrepliedPlayersApiTotalCount,
       }),
-    [
-      unrepliedChats.length,
-      unrepliedListLive,
-      chatListUnrepliedPlayersCount,
-      unrepliedPlayersApiTotalCount,
-    ],
+    [unrepliedChats.length, unrepliedListLive],
   );
-
-  useEffect(() => {
-    if (unrepliedPlayersApiTotalCount == null) return;
-    noteUnrepliedServerCount(unrepliedPlayersApiTotalCount);
-  }, [unrepliedPlayersApiTotalCount, noteUnrepliedServerCount]);
 
   // WebSocket connection for real-time chat
   const {

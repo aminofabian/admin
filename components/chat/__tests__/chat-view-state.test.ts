@@ -87,46 +87,29 @@ describe('ensureSelectedPlayerVisible', () => {
 });
 
 describe('resolveUnrepliedBadgeCount', () => {
-  it('follows list length once the list is live', () => {
+  it('follows list length once the socket census is live', () => {
     expect(
       resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 5,
+        unrepliedChatsLength: 368,
         listLive: true,
-        restCount: 10,
-        apiCount: 10,
       }),
-    ).toBe(5);
+    ).toBe(368);
   });
 
-  it('keeps the REST total when the socket list is only a partial row', () => {
+  it('does not show the HTTP unreplied total before the socket census', () => {
+    expect(
+      resolveUnrepliedBadgeCount({
+        unrepliedChatsLength: 0,
+        listLive: false,
+      }),
+    ).toBeNull();
+  });
+
+  it('does not treat one partial socket row as the badge', () => {
     expect(
       resolveUnrepliedBadgeCount({
         unrepliedChatsLength: 1,
         listLive: false,
-        restCount: null,
-        apiCount: 9,
-      }),
-    ).toBe(9);
-  });
-
-  it('uses REST/API provisional count only while the list is empty and not live', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 0,
-        listLive: false,
-        restCount: 10,
-        apiCount: 7,
-      }),
-    ).toBe(10);
-  });
-
-  it('stays blank until a count or a live list exists', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 0,
-        listLive: false,
-        restCount: null,
-        apiCount: null,
       }),
     ).toBeNull();
   });
@@ -136,8 +119,6 @@ describe('resolveUnrepliedBadgeCount', () => {
       resolveUnrepliedBadgeCount({
         unrepliedChatsLength: 0,
         listLive: true,
-        restCount: 10,
-        apiCount: 10,
       }),
     ).toBe(0);
   });

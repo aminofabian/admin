@@ -93,27 +93,18 @@ export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
 /**
  * Unreplied badge.
  *
- * A full socket census (`listLive`) owns the number, including 0 after the
- * last reply. Until that census arrives, the REST `unreplied_players_count`
- * stays put. The connect payload is often a recent-chat window with no
- * `is_unreplied` flag, so one partial row must not replace a count of 9
- * with 1, and an empty window must not replace it with 0.
+ * `counts.unreplied_players_count` is the same number on every chat HTTP
+ * response, and it is not the live total. Painting it made the badge show
+ * that stale figure (300) until `/ws/chatlist/` connected and replaced it.
+ *
+ * The badge stays blank until `add_new_chats.unreplied` delivers a census.
+ * From then on it is that list's length, including 0 after the last reply.
+ * A recent-chat window with no census must not become the number.
  */
 export function resolveUnrepliedBadgeCount(options: {
   unrepliedChatsLength: number;
   listLive: boolean;
-  restCount: number | null;
-  apiCount: number | null;
 }): number | null {
-  const { unrepliedChatsLength, listLive, restCount, apiCount } = options;
-  if (listLive) {
-    return unrepliedChatsLength;
-  }
-  const provisional = restCount ?? apiCount;
-  if (provisional != null) {
-    return provisional;
-  }
-  // No census and no REST total yet. A length of 0 here is "still loading",
-  // not "nobody is waiting".
-  return null;
+  if (!options.listLive) return null;
+  return options.unrepliedChatsLength;
 }
