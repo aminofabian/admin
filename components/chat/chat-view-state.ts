@@ -93,13 +93,13 @@ export function ensureSelectedPlayerVisible<T extends { user_id: number }>(
 /**
  * Unreplied badge.
  *
- * `counts.unreplied_players_count` is the same number on every chat HTTP
- * response, and it is not the live total. Painting it made the badge show
- * that stale figure (300) until `/ws/chatlist/` connected and replaced it.
+ * The number is the chat-list socket's unreplied list. HTTP
+ * `unreplied_players_count` is the same on every request and is not shown.
  *
- * The badge stays blank until `add_new_chats.unreplied` delivers a census.
- * From then on it is that list's length, including 0 after the last reply.
- * A recent-chat window with no census must not become the number.
+ * The badge stays blank until that socket list exists: a non-empty
+ * `add_new_chats.unreplied` census, or a `re_arrange` that carries
+ * `is_unreplied`. From then on the badge is the list length, including 0
+ * after the last reply. A recent-chat window with no flag is not the list.
  */
 export function resolveUnrepliedBadgeCount(options: {
   unrepliedChatsLength: number;

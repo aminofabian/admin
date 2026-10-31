@@ -496,9 +496,8 @@ export function ChatComponent() {
     [onlinePlayersApiTotalCount, chatListOnlinePlayersCount],
   );
 
-  // Socket census only. The HTTP `unreplied_players_count` is identical on
-  // every chat request and was flashing that stale total until the socket
-  // connected and replaced it.
+  // Socket unreplied list only. HTTP unreplied_players_count is the same on
+  // every chat request, so it is not the badge.
   const displayUnrepliedPlayersTotal = useMemo(
     () =>
       resolveUnrepliedBadgeCount({

@@ -938,33 +938,20 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isUnreplied === true) {
-          // Per-player membership. A player who was not part of the REST
-          // total bumps the badge by one. Someone already inside that total
-          // is only added to the list.
-          const arrivingId = row.user_id;
-          if (
-            arrivingId > 0 &&
-            unrepliedMembershipKnownRef.current &&
-            !unrepliedSocketSeededRef.current &&
-            !unrepliedIdsRef.current.has(arrivingId) &&
-            !unrepliedAccountedIdsRef.current.has(arrivingId)
-          ) {
-            unrepliedAccountedIdsRef.current.add(arrivingId);
-            unrepliedDeltaRef.current += 1;
-            publishUnrepliedBaseline();
-          }
-          setUnrepliedChats((prev) => {
-            const next = upsertChatRowByLatestMessage(prev, row, flags);
-            return unrepliedSocketSeededRef.current
-              ? commitUnrepliedList(next)
-              : next;
-          });
+          // The badge is this list's length. Do not add the row on top of
+          // the HTTP unreplied_players_count — that turned 300 into 368.
+          markUnrepliedListLive();
+          setUnrepliedChats((prev) =>
+            commitUnrepliedList(upsertChatRowByLatestMessage(prev, row, flags)),
+          );
         } else if (isUnreplied === false) {
           setUnrepliedChats((prev) => {
             const next = removeChatRow(prev, row);
-            return unrepliedSocketSeededRef.current
-              ? commitUnrepliedList(next)
-              : next;
+            if (next.length === prev.length && !unrepliedSocketSeededRef.current) {
+              return prev;
+            }
+            markUnrepliedListLive();
+            return commitUnrepliedList(next);
           });
         } else {
           setUnrepliedChats((prev) => patchChatRow(prev, row, flags));
@@ -1010,7 +997,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence, publishUnrepliedBaseline]);
+  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {

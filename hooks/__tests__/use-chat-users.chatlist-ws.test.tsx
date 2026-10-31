@@ -90,8 +90,8 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.chatListUnrepliedPlayersCount).toBeNull();
     expect(result.current.onlineChats).toHaveLength(0);
 
-    // A later per-player event still updates that player, without turning
-    // the badge into the length of the partial list.
+    // An explicit is_unreplied event owns the badge from here. The number is
+    // the socket list, not the HTTP unreplied_players_count.
     send({
       type: 're_arrange',
       ...onlineRow(),
@@ -99,9 +99,9 @@ describe('useChatUsers — chat-list socket contract', () => {
       is_online: true,
     });
 
-    expect(result.current.unrepliedListLive).toBe(false);
+    expect(result.current.unrepliedListLive).toBe(true);
     expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
-    expect(result.current.chatListUnrepliedPlayersCount).toBeNull();
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
     expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
   });
 
@@ -404,7 +404,7 @@ describe('useChatUsers — chat-list socket contract', () => {
 
     expect(result.current.unrepliedChats.map((c) => c.user_id)).toContain(69);
     expect(result.current.chatListUnrepliedPlayersCount).toBe(3);
-    expect(result.current.unrepliedListLive).toBe(false);
+    expect(result.current.unrepliedListLive).toBe(true);
 
     vi.unstubAllGlobals();
   });
