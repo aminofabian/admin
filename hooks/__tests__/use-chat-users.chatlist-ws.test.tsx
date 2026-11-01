@@ -133,6 +133,34 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.onlineChats).toHaveLength(0);
   });
 
+  it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
+    const { result } = await mount();
+
+    send({
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 4,
+      },
+      online_players_count: 1,
+      all_players_count: 74,
+      unreplied_players_count: 4,
+      message: {
+        type: 're_arrange',
+        chat_id: 57,
+        user_id: 67,
+        username: 'testme7',
+        is_online: true,
+      },
+    });
+
+    expect(result.current.socketChatCounts).toEqual({
+      onlinePlayersCount: 1,
+      allPlayersCount: 74,
+      unrepliedPlayersCount: 4,
+    });
+  });
+
   it('does not let a recent-chat window replace the unreplied total', async () => {
     const { result } = await mount();
 

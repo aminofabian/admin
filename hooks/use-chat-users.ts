@@ -774,7 +774,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       // Handle "add_new_chats" — the connect snapshot for Online + Unreplied.
       if (addNewChatsPayload) {
-        noteSocketChatCounts(addNewChatsPayload as Record<string, unknown>);
+        // Counts sit on the same object as `type`. When the row is wrapped in
+        // `message`, they can also sit on the outer frame. Read both.
+        noteSocketChatCounts(data);
+        if (addNewChatsPayload !== data) {
+          noteSocketChatCounts(addNewChatsPayload as Record<string, unknown>);
+        }
         const asRows = (value: unknown): Record<string, unknown>[] =>
           Array.isArray(value)
             ? value.filter(
@@ -961,7 +966,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // it on their own), so membership in the Unreplied tab is decided from
       // that field alone, not from the last message sender.
       if (reArrangePayload) {
-        noteSocketChatCounts(reArrangePayload as Record<string, unknown>);
+        noteSocketChatCounts(data);
+        if (reArrangePayload !== data) {
+          noteSocketChatCounts(reArrangePayload as Record<string, unknown>);
+        }
         const row = transformChatToUser(reArrangePayload);
         const nestedPlayer =
           reArrangePayload.player && typeof reArrangePayload.player === 'object'
