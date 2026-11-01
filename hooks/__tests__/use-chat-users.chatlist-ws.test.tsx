@@ -133,6 +133,29 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.onlineChats).toHaveLength(0);
   });
 
+  it('adds a player who comes online when the chat has no new message', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 're_arrange',
+      chat_id: 57,
+      user_id: 67,
+      username: 'came-online',
+      is_online: true,
+      unread_messages_count: 0,
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+
+    expect(result.current.socketChatCounts.onlinePlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.onlineChats[0].isOnline).toBe(true);
+    expect(result.current.users).toEqual([]);
+  });
+
   it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
     const { result } = await mount();
 

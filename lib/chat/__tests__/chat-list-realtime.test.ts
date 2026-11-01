@@ -10,6 +10,7 @@ import {
   removeChatRowByRef,
   sortChatsByRecency,
   upsertChatRowByLatestMessage,
+  insertOnlinePresenceRow,
 } from '../chat-list-realtime';
 import type { ChatUser } from '@/types';
 
@@ -115,6 +116,39 @@ describe('chat-list-realtime', () => {
     it('ignores unusable rows', () => {
       const list = [row()];
       expect(upsertChatRowByLatestMessage(list, row({ id: '', user_id: 0 }))).toBe(list);
+    });
+
+    it('does not insert a presence-only row that has no unread messages', () => {
+      const list = [row({ user_id: 1, id: '1' })];
+      const next = upsertChatRowByLatestMessage(
+        list,
+        row({ unreadCount: 0, isUnreplied: false, isOnline: true }),
+      );
+      expect(next).toBe(list);
+    });
+  });
+
+  describe('insertOnlinePresenceRow', () => {
+    it('adds a player who came online with no new message', () => {
+      const next = insertOnlinePresenceRow(
+        [],
+        row({ unreadCount: 0, isUnreplied: false, isOnline: true }),
+        { isOnline: true },
+      );
+
+      expect(next.map((chat) => chat.user_id)).toEqual([67]);
+      expect(next[0].isOnline).toBe(true);
+    });
+
+    it('does not duplicate a player already on the online list', () => {
+      const next = insertOnlinePresenceRow(
+        [row({ unreadCount: 0, isOnline: true, lastMessage: 'kept' })],
+        row({ unreadCount: 0, isOnline: true, lastMessage: '' }),
+        { isOnline: true },
+      );
+
+      expect(next).toHaveLength(1);
+      expect(next[0].lastMessage).toBe('kept');
     });
   });
 

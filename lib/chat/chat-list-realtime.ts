@@ -201,6 +201,27 @@ export function upsertChatRowByLatestMessage(
 }
 
 /**
+ * A player coming online is not a new message. The activity upsert refuses to
+ * insert that row, which left the Online badge at 1 and the list empty until
+ * a reload fetched them from REST.
+ */
+export function insertOnlinePresenceRow(
+  list: ChatUser[],
+  row: ChatUser,
+  flags: RealtimeChatFlags = {},
+): ChatUser[] {
+  if (!isChatRowUsable(row)) return list;
+  const present = withFlags(undefined, row, { ...flags, isOnline: true });
+  const index = list.findIndex((chat) => chatRowMatches(chat, present));
+  if (index === -1) {
+    return [present, ...list];
+  }
+  const next = [...list];
+  next[index] = { ...mergeChatRow(next[index], withFlags(next[index], row, flags)), isOnline: true };
+  return next;
+}
+
+/**
  * Apply a full snapshot without letting the server's ordering move rows the
  * agent is already looking at.
  *

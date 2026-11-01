@@ -31,6 +31,7 @@ import {
   removeChatRow,
   removeChatRowByRef,
   upsertChatRowByLatestMessage,
+  insertOnlinePresenceRow,
 } from '@/lib/chat/chat-list-realtime';
 import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
 
@@ -1015,7 +1016,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         if (isOnline === true) {
           noteSocketPresence(row.user_id, true);
-          setOnlineChats((prev) => upsertChatRowByLatestMessage(prev, row, flags));
+          setOnlineChats((prev) => insertOnlinePresenceRow(prev, row, flags));
         } else if (isOnline === false) {
           noteSocketPresence(row.user_id, false);
           setOnlineChats((prev) => removeChatRow(prev, row));
