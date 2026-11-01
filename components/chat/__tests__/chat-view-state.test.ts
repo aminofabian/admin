@@ -3,6 +3,7 @@ import {
   ensureSelectedPlayerVisible,
   readLastChatView,
   resolveInitialChatTab,
+  resolveOnlineBadgeCount,
   resolveUnrepliedBadgeCount,
   writeLastChatView,
 } from '../chat-view-state';
@@ -97,5 +98,47 @@ describe('resolveUnrepliedBadgeCount', () => {
 
   it('shows 0 when the socket says nobody is unreplied', () => {
     expect(resolveUnrepliedBadgeCount({ socketCount: 0 })).toBe(0);
+  });
+});
+
+describe('resolveOnlineBadgeCount', () => {
+  it('keeps the visible number while a chat is still on screen', () => {
+    expect(
+      resolveOnlineBadgeCount({
+        socketCount: 2,
+        visibleCount: 3,
+        fallbackCount: 2,
+      }),
+    ).toBe(3);
+  });
+
+  it('shows the socket count once the extra chat is gone', () => {
+    expect(
+      resolveOnlineBadgeCount({
+        socketCount: 2,
+        visibleCount: 2,
+        fallbackCount: 9,
+      }),
+    ).toBe(2);
+  });
+
+  it('shows a rising count before the new chat is painted', () => {
+    expect(
+      resolveOnlineBadgeCount({
+        socketCount: 3,
+        visibleCount: 2,
+        fallbackCount: 2,
+      }),
+    ).toBe(3);
+  });
+
+  it('uses the earlier total until the socket sends a count', () => {
+    expect(
+      resolveOnlineBadgeCount({
+        socketCount: null,
+        visibleCount: 0,
+        fallbackCount: 4,
+      }),
+    ).toBe(4);
   });
 });

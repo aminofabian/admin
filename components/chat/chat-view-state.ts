@@ -103,3 +103,22 @@ export function resolveUnrepliedBadgeCount(options: {
 }): number | null {
   return options.socketCount;
 }
+
+/**
+ * Online badge.
+ *
+ * The socket count drops the moment someone leaves. The chat row can follow
+ * a second later, once the list knows who it was. While those extra rows are
+ * still on screen, the badge stays on the visible list so the number and the
+ * chats move together. A count that is ahead of the list (someone just joined)
+ * is shown as-is.
+ */
+export function resolveOnlineBadgeCount(options: {
+  socketCount: number | null;
+  visibleCount: number;
+  fallbackCount: number | null;
+}): number | null {
+  if (options.socketCount == null) return options.fallbackCount;
+  if (options.visibleCount > options.socketCount) return options.visibleCount;
+  return options.socketCount;
+}

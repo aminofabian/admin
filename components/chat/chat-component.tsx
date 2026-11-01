@@ -71,6 +71,7 @@ import {
   ensureSelectedPlayerVisible,
   readLastChatView,
   resolveInitialChatTab,
+  resolveOnlineBadgeCount,
   resolveUnrepliedBadgeCount,
   writeLastChatView,
   type ChatTab,
@@ -495,14 +496,30 @@ export function ChatComponent() {
     enabled: hasValidAdminUser, // Keep always enabled to preserve data and timestamps
   });
 
+  const onlineSocketCount = socketChatCounts.onlinePlayersCount;
+  const onlineRowCount = useMemo(
+    () =>
+      mergeOnlinePlayerRows({
+        socketRows: wsOnlineChats,
+        restRows: apiOnlinePlayers,
+        chatListRows: [],
+        excludeUserIds: new Set(socketOfflineUserIds),
+      }).length,
+    [wsOnlineChats, apiOnlinePlayers, socketOfflineUserIds],
+  );
+
+  // While a chat is still on screen after the census dropped, keep the badge
+  // on the visible rows so the number and the list move together.
   const displayOnlinePlayersTotal = useMemo(
     () =>
-      socketChatCounts.onlinePlayersCount ??
-      onlinePlayersApiTotalCount ??
-      chatListOnlinePlayersCount ??
-      null,
+      resolveOnlineBadgeCount({
+        socketCount: onlineSocketCount,
+        visibleCount: onlineRowCount,
+        fallbackCount: onlinePlayersApiTotalCount ?? chatListOnlinePlayersCount,
+      }),
     [
-      socketChatCounts.onlinePlayersCount,
+      onlineSocketCount,
+      onlineRowCount,
       onlinePlayersApiTotalCount,
       chatListOnlinePlayersCount,
     ],
@@ -516,18 +533,6 @@ export function ChatComponent() {
         socketCount: socketChatCounts.unrepliedPlayersCount,
       }),
     [socketChatCounts.unrepliedPlayersCount],
-  );
-
-  const onlineSocketCount = socketChatCounts.onlinePlayersCount;
-  const onlineRowCount = useMemo(
-    () =>
-      mergeOnlinePlayerRows({
-        socketRows: wsOnlineChats,
-        restRows: apiOnlinePlayers,
-        chatListRows: [],
-        excludeUserIds: new Set(socketOfflineUserIds),
-      }).length,
-    [wsOnlineChats, apiOnlinePlayers, socketOfflineUserIds],
   );
 
   // The badge is the socket census. The rows are a union, so a player who
