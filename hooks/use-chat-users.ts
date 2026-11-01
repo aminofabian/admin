@@ -615,6 +615,27 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
+      // Going offline often arrives as `live_status` rather than `re_arrange`.
+      // The badge still moves, because a later event carries the new
+      // `online_players_count`, but this list is what the Online tab renders.
+      if (messageType === 'live_status') {
+        const wrapper =
+          messageWrapper && typeof messageWrapper === 'object' && !Array.isArray(messageWrapper)
+            ? messageWrapper
+            : undefined;
+        const playerId = Number(data.player_id ?? wrapper?.player_id);
+        if (!Number.isFinite(playerId) || playerId <= 0) return;
+        const isActive =
+          readOptionalBoolean(data, 'is_active') ??
+          readOptionalBoolean(wrapper, 'is_active');
+        if (isActive === undefined) return;
+        noteSocketPresence(playerId, isActive);
+        if (!isActive) {
+          setOnlineChats((prev) => prev.filter((chat) => chat.user_id !== playerId));
+        }
+        return;
+      }
+
       // Handle "message" type from chat list WebSocket.
       // Some "message"-typed events also embed ledger updates under a nested `payload`
       // (e.g. game_redeem, game_recharge). We fall through to the ledger branch in that case.

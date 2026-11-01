@@ -180,6 +180,41 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.onlineChats[0].isOnline).toBe(true);
   });
 
+  it('removes an online chat when live_status says the player went offline', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+      counts: {
+        online_players_count: 2,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+
+    send({
+      type: 're_arrange',
+      chat_id: 57,
+      user_id: 67,
+      username: 'testme7',
+      is_online: true,
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+    send({ type: 'live_status', player_id: 68, is_active: false });
+
+    expect(result.current.socketChatCounts.onlinePlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.socketOfflineUserIds).toContain(68);
+  });
+
   it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
     const { result } = await mount();
 

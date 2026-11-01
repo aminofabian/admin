@@ -12,6 +12,7 @@ import {
   lastMessageFromListRow,
   ledgerStringOrUndefined,
   pickWinningBalanceFromBackend,
+  readOptionalBoolean,
 } from '@/lib/chat/map-chat-api';
 import { pickChatroomIdFromRow, resolveSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 
@@ -419,8 +420,17 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
             //  PERFORMANCE: Only process live_status messages for online players
             if (messageType === 'live_status') {
-              const playerId = Number(messageData.player_id || messageWrapper?.player_id);
-              const isActive = Boolean(messageData.is_active ?? messageWrapper?.is_active);
+              const wrapper =
+                messageWrapper && typeof messageWrapper === 'object' && !Array.isArray(messageWrapper)
+                  ? messageWrapper
+                  : undefined;
+              const playerId = Number(messageData.player_id ?? wrapper?.player_id);
+              const isActive =
+                readOptionalBoolean(messageData, 'is_active') ??
+                readOptionalBoolean(wrapper, 'is_active');
+              if (!Number.isFinite(playerId) || playerId <= 0 || isActive === undefined) {
+                return;
+              }
 
               !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
