@@ -623,11 +623,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           messageWrapper && typeof messageWrapper === 'object' && !Array.isArray(messageWrapper)
             ? messageWrapper
             : undefined;
-        const playerId = Number(data.player_id ?? wrapper?.player_id);
+        const playerId = Number(
+          data.player_id ?? data.user_id ?? wrapper?.player_id ?? wrapper?.user_id,
+        );
         if (!Number.isFinite(playerId) || playerId <= 0) return;
         const isActive =
           readOptionalBoolean(data, 'is_active') ??
-          readOptionalBoolean(wrapper, 'is_active');
+          readOptionalBoolean(data, 'is_online') ??
+          readOptionalBoolean(wrapper, 'is_active') ??
+          readOptionalBoolean(wrapper, 'is_online');
         if (isActive === undefined) return;
         noteSocketPresence(playerId, isActive);
         if (!isActive) {

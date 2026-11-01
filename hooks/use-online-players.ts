@@ -424,10 +424,14 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
                 messageWrapper && typeof messageWrapper === 'object' && !Array.isArray(messageWrapper)
                   ? messageWrapper
                   : undefined;
-              const playerId = Number(messageData.player_id ?? wrapper?.player_id);
+              const playerId = Number(
+                messageData.player_id ?? messageData.user_id ?? wrapper?.player_id ?? wrapper?.user_id,
+              );
               const isActive =
                 readOptionalBoolean(messageData, 'is_active') ??
-                readOptionalBoolean(wrapper, 'is_active');
+                readOptionalBoolean(messageData, 'is_online') ??
+                readOptionalBoolean(wrapper, 'is_active') ??
+                readOptionalBoolean(wrapper, 'is_online');
               if (!Number.isFinite(playerId) || playerId <= 0 || isActive === undefined) {
                 return;
               }

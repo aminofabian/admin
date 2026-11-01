@@ -215,6 +215,23 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.socketOfflineUserIds).toContain(68);
   });
 
+  it('removes an online chat when live_status uses user_id and is_online', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+    });
+
+    send({ type: 'live_status', user_id: 68, is_online: false });
+
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.socketOfflineUserIds).toContain(68);
+  });
+
   it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
     const { result } = await mount();
 

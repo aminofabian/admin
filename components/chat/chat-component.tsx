@@ -516,6 +516,46 @@ export function ChatComponent() {
     [socketChatCounts.unrepliedPlayersCount],
   );
 
+  const onlineSocketCount = socketChatCounts.onlinePlayersCount;
+  const onlineRowCount = useMemo(
+    () =>
+      mergeOnlinePlayerRows({
+        socketRows: wsOnlineChats,
+        restRows: apiOnlinePlayers,
+        chatListRows: [],
+        excludeUserIds: new Set(socketOfflineUserIds),
+      }).length,
+    [wsOnlineChats, apiOnlinePlayers, socketOfflineUserIds],
+  );
+
+  // The badge is the socket census. The rows are a union, so a player who
+  // left can stay on screen (a September welcome, for example) after the
+  // count has already dropped. When they disagree, refetch the online
+  // endpoint — the same list a reload uses — and drop socket rows it omits.
+  // Skip the replace when the snapshot is shorter than the count: that
+  // response has not caught up with someone who just came online.
+  useEffect(() => {
+    if (!hasValidAdminUser || onlineSocketCount == null) return;
+    if (onlineRowCount === onlineSocketCount) return;
+
+    const requested = onlineSocketCount;
+    const timer = setTimeout(() => {
+      void (async () => {
+        const players = await refetchOnlinePlayers();
+        if (!players || players.length !== requested) return;
+        retainOnlineChats(players.map((player) => player.user_id));
+      })();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [
+    hasValidAdminUser,
+    onlineSocketCount,
+    onlineRowCount,
+    refetchOnlinePlayers,
+    retainOnlineChats,
+  ]);
+
   // WebSocket connection for real-time chat
   const {
     messages: wsMessages,
