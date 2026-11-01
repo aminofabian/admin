@@ -971,16 +971,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         if (reArrangePayload !== data) {
           noteSocketChatCounts(reArrangePayload as Record<string, unknown>);
         }
-        const row = transformChatToUser(reArrangePayload);
+        // The row may be wrapped in `message` while user_id, username, and
+        // is_online sit on the outer frame next to `counts`. Inner fields win.
+        const rowSource: Record<string, unknown> =
+          reArrangePayload === data
+            ? (reArrangePayload as Record<string, unknown>)
+            : {
+                ...(data as Record<string, unknown>),
+                ...(reArrangePayload as Record<string, unknown>),
+              };
+        const row = transformChatToUser(rowSource);
         const nestedPlayer =
-          reArrangePayload.player && typeof reArrangePayload.player === 'object'
-            ? (reArrangePayload.player as Record<string, unknown>)
+          rowSource.player && typeof rowSource.player === 'object'
+            ? (rowSource.player as Record<string, unknown>)
             : undefined;
         const isUnreplied =
-          readOptionalBoolean(reArrangePayload, 'is_unreplied') ??
+          readOptionalBoolean(rowSource, 'is_unreplied') ??
           readOptionalBoolean(nestedPlayer, 'is_unreplied');
         const isOnline =
-          readOptionalBoolean(reArrangePayload, 'is_online') ??
+          readOptionalBoolean(rowSource, 'is_online') ??
           readOptionalBoolean(nestedPlayer, 'is_online') ??
           readOptionalBoolean(nestedPlayer, 'isOnline');
         const flags = { isOnline, isUnreplied };

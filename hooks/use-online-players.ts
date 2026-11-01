@@ -368,9 +368,14 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     if (onlineRefreshTimerRef.current) return;
     onlineRefreshTimerRef.current = setTimeout(() => {
       onlineRefreshTimerRef.current = null;
-      void fetchFromApi(true).catch((err) => {
-        console.error('❌ [Online Players] Background refresh failed:', err);
-      });
+      void fetchFromApi(true)
+        .then((players) => {
+          if (!isMountedRef.current) return;
+          setOnlinePlayers(players);
+        })
+        .catch((err) => {
+          console.error('❌ [Online Players] Background refresh failed:', err);
+        });
     }, ONLINE_REFRESH_DELAY);
   }, [fetchFromApi]);
 
