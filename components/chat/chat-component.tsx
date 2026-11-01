@@ -43,7 +43,7 @@ import {
 import { firstSafeChatroomId, pickChatroomIdFromRow, resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import { resolveChatUserForPlayerIdDeepLink } from "@/lib/chat/resolve-chat-user-for-deep-link";
 import { mergeWinningBalanceFromDirectoryRow } from "@/lib/chat/merge-player-ledger-display";
-import { mergeOnlinePlayerRows } from "@/lib/chat/online-player-rows";
+import { mergeOnlinePlayerRows, trustedOnlineSnapshotIds } from "@/lib/chat/online-player-rows";
 import {
   PlayerListSidebar,
   ChatHeader,
@@ -471,6 +471,7 @@ export function ChatComponent() {
     unrepliedListLive,
     socketOfflineUserIds,
     retainOnlineChats,
+    protectedOnlineUserIds,
     socketChatCounts,
     acknowledgeStaffReply,
     seedUnrepliedFromRest,
@@ -487,6 +488,7 @@ export function ChatComponent() {
     isLoading: isLoadingApiOnlinePlayers,
     error: onlinePlayersError,
     refetch: refetchOnlinePlayers,
+    applyOnlinePlayers,
     isConnected: isOnlinePlayersWSConnected,
   } = useOnlinePlayers({
     adminId: adminUserId,
@@ -529,31 +531,60 @@ export function ChatComponent() {
   );
 
   // The badge is the socket census. The rows are a union, so a player who
-  // left can stay on screen (a September welcome, for example) after the
-  // count has already dropped. When they disagree, refetch the online
-  // endpoint — the same list a reload uses — and drop socket rows it omits.
-  // Skip the replace when the snapshot is shorter than the count: that
-  // response has not caught up with someone who just came online.
+  // left can stay on screen after the count has already dropped. When they
+  // disagree, fetch the online endpoint but publish it only when that
+  // snapshot's own count matches and it still includes anyone who just came
+  // online. An older response is ignored. One later fetch covers a slow list.
+  const onlineReconcileGeneration = useRef(0);
   useEffect(() => {
     if (!hasValidAdminUser || onlineSocketCount == null) return;
     if (onlineRowCount === onlineSocketCount) return;
 
+    const generation = ++onlineReconcileGeneration.current;
     const requested = onlineSocketCount;
-    const timer = setTimeout(() => {
-      void (async () => {
-        const players = await refetchOnlinePlayers();
-        if (!players || players.length !== requested) return;
-        retainOnlineChats(players.map((player) => player.user_id));
-      })();
-    }, 400);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
 
-    return () => clearTimeout(timer);
+    const attempt = (delay: number, retriesLeft: number) => {
+      timer = setTimeout(() => {
+        void (async () => {
+          const snapshot = await refetchOnlinePlayers({ commit: false });
+          if (cancelled || generation !== onlineReconcileGeneration.current || !snapshot) {
+            if (!cancelled && generation === onlineReconcileGeneration.current && retriesLeft > 0) {
+              attempt(2000, retriesLeft - 1);
+            }
+            return;
+          }
+          const keep = trustedOnlineSnapshotIds({
+            snapshotIds: snapshot.players.map((player) => player.user_id),
+            snapshotCount: snapshot.onlinePlayersCount,
+            socketCount: requested,
+            protectedIds: protectedOnlineUserIds(),
+          });
+          if (!keep) {
+            if (retriesLeft > 0) attempt(2000, retriesLeft - 1);
+            return;
+          }
+          applyOnlinePlayers(snapshot.players);
+          retainOnlineChats(keep);
+        })();
+      }, delay);
+    };
+
+    attempt(400, 1);
+    return () => {
+      cancelled = true;
+      onlineReconcileGeneration.current += 1;
+      if (timer) clearTimeout(timer);
+    };
   }, [
     hasValidAdminUser,
     onlineSocketCount,
     onlineRowCount,
     refetchOnlinePlayers,
     retainOnlineChats,
+    protectedOnlineUserIds,
+    applyOnlinePlayers,
   ]);
 
   // WebSocket connection for real-time chat
@@ -2049,9 +2080,9 @@ export function ChatComponent() {
     // The tab unions socket rows with this REST snapshot. Replace socket
     // membership with the snapshot so a player who went offline is removed
     // instead of stacking on the new list.
-    const players = await refetchOnlinePlayers();
-    if (players) {
-      retainOnlineChats(players.map((player) => player.user_id));
+    const snapshot = await refetchOnlinePlayers();
+    if (snapshot) {
+      retainOnlineChats(snapshot.players.map((player) => player.user_id));
     }
   }, [
     activeTab,

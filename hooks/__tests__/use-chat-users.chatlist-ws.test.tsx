@@ -232,6 +232,32 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.socketOfflineUserIds).toContain(68);
   });
 
+  it('adds a chat when live_status names the player who came online', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'live_status',
+      user_id: 68,
+      username: 'came-online',
+      chat_id: 58,
+      is_online: true,
+    });
+
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([68]);
+    expect(result.current.onlineChats[0].username).toBe('came-online');
+    expect(result.current.onlineChats[0].isOnline).toBe(true);
+    expect(result.current.protectedOnlineUserIds()).toContain(68);
+  });
+
+  it('remembers a player who came online with only an id, without a blank chat', async () => {
+    const { result } = await mount();
+
+    send({ type: 'live_status', player_id: 68, is_active: true });
+
+    expect(result.current.onlineChats).toEqual([]);
+    expect(result.current.protectedOnlineUserIds()).toContain(68);
+  });
+
   it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
     const { result } = await mount();
 

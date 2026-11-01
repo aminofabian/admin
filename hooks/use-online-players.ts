@@ -29,6 +29,12 @@ interface UseOnlinePlayersParams {
   enabled?: boolean;
 }
 
+export interface OnlinePlayersSnapshot {
+  players: ChatUser[];
+  /** `counts.online_players_count` from this response. Null when the payload omitted it. */
+  onlinePlayersCount: number | null;
+}
+
 interface UseOnlinePlayersReturn {
   onlinePlayers: ChatUser[];
   /** From `/api/chat-online-players` `counts.online_players_count` when the backend sends it. */
@@ -39,8 +45,13 @@ interface UseOnlinePlayersReturn {
   unrepliedPlayersTotalCount: number | null;
   isLoading: boolean;
   error: string | null;
-  /** Resolves with the fresh online snapshot, or undefined when the fetch fails. */
-  refetch: () => Promise<ChatUser[] | undefined>;
+  /**
+   * Fresh online snapshot. `commit: false` returns it without replacing the
+   * list, so a lagging response can be discarded.
+   */
+  refetch: (options?: { commit?: boolean }) => Promise<OnlinePlayersSnapshot | undefined>;
+  /** Replace the REST online list. Used once a silent refetch has been trusted. */
+  applyOnlinePlayers: (players: ChatUser[]) => void;
   isConnected: boolean; // WebSocket connection status
 }
 
@@ -176,11 +187,18 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   /** Debounce handle for the "a player came online" background refetch. */
   const onlineRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const commitOnlinePlayers = useCallback((players: ChatUser[]) => {
+    setOnlinePlayers(players);
+    onlinePlayerIdsRef.current = new Set(
+      players.map((player) => player.user_id).filter((id) => Number.isFinite(id) && id > 0),
+    );
+  }, []);
+
   /**
    * Fetch online players from REST API
    *  PERFORMANCE: Cached for 2 minutes
    */
-  const fetchFromApi = useCallback(async (forceRefresh = false): Promise<ChatUser[]> => {
+  const fetchFromApi = useCallback(async (forceRefresh = false, writeCache = true): Promise<OnlinePlayersSnapshot> => {
     const now = Date.now();
 
     // Check cache first (unless force refresh)
@@ -195,7 +213,10 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       if (cacheRef.current.unrepliedPlayersTotalCount != null) {
         setUnrepliedPlayersTotalCount(cacheRef.current.unrepliedPlayersTotalCount);
       }
-      return cacheRef.current.data;
+      return {
+        players: cacheRef.current.data,
+        onlinePlayersCount: cacheRef.current.onlinePlayersTotalCount,
+      };
     }
 
     try {
@@ -337,20 +358,21 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         }
       }
 
-      // Update cache
-      cacheRef.current = {
-        data: transformedPlayers,
-        timestamp: now,
-        onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
-        allPlayersTotalCount: serverCounts.allPlayersCount,
-        unrepliedPlayersTotalCount: serverCounts.unrepliedPlayersCount,
-      };
-      onlinePlayerIdsRef.current = new Set(
-        transformedPlayers.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
-      );
+      if (writeCache) {
+        cacheRef.current = {
+          data: transformedPlayers,
+          timestamp: now,
+          onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
+          allPlayersTotalCount: serverCounts.allPlayersCount,
+          unrepliedPlayersTotalCount: serverCounts.unrepliedPlayersCount,
+        };
+      }
 
       !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
-      return transformedPlayers;
+      return {
+        players: transformedPlayers,
+        onlinePlayersCount: serverCounts.onlinePlayersCount,
+      };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
       console.error('❌ [Online Players] API error:', errorMessage);
@@ -370,15 +392,15 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     onlineRefreshTimerRef.current = setTimeout(() => {
       onlineRefreshTimerRef.current = null;
       void fetchFromApi(true)
-        .then((players) => {
+        .then((snapshot) => {
           if (!isMountedRef.current) return;
-          setOnlinePlayers(players);
+          commitOnlinePlayers(snapshot.players);
         })
         .catch((err) => {
           console.error('❌ [Online Players] Background refresh failed:', err);
         });
     }, ONLINE_REFRESH_DELAY);
-  }, [fetchFromApi]);
+  }, [fetchFromApi, commitOnlinePlayers]);
 
   useEffect(() => {
     return () => {
@@ -574,33 +596,34 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   /**
    * Fetch/refresh online players
    */
-  const refetch = useCallback(async (): Promise<ChatUser[] | undefined> => {
+  const refetch = useCallback(async (options?: { commit?: boolean }): Promise<OnlinePlayersSnapshot | undefined> => {
     if (!effectiveEnabled) return undefined;
 
-    setIsLoading(true);
-    setError(null);
+    const commit = options?.commit !== false;
+    if (commit) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
-      const players = await fetchFromApi(true); // Force refresh
-      if (isMountedRef.current) {
-        setOnlinePlayers(players);
-        onlinePlayerIdsRef.current = new Set(
-          players.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
-        );
+      // A silent refetch must not cache or publish a snapshot the caller may discard.
+      const snapshot = await fetchFromApi(true, commit);
+      if (commit && isMountedRef.current) {
+        commitOnlinePlayers(snapshot.players);
       }
-      return players;
+      return snapshot;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
-      if (isMountedRef.current) {
+      if (commit && isMountedRef.current) {
         setError(errorMessage);
       }
       return undefined;
     } finally {
-      if (isMountedRef.current) {
+      if (commit && isMountedRef.current) {
         setIsLoading(false);
       }
     }
-  }, [effectiveEnabled, fetchFromApi]);
+  }, [effectiveEnabled, fetchFromApi, commitOnlinePlayers]);
 
   /**
    * Initial load and periodic refresh
@@ -612,9 +635,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     (async () => {
       setIsLoading(true);
       try {
-        const players = await fetchFromApi(false);
+        const snapshot = await fetchFromApi(false);
         if (isMountedRef.current) {
-          setOnlinePlayers(players);
+          commitOnlinePlayers(snapshot.players);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
@@ -634,7 +657,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     return () => {
       disconnectWebSocket();
     };
-  }, [enabled, adminId, fetchFromApi]);
+  }, [enabled, adminId, fetchFromApi, commitOnlinePlayers]);
 
   /**
    * WebSocket connection management
@@ -669,6 +692,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     isLoading,
     error,
     refetch,
+    applyOnlinePlayers: commitOnlinePlayers,
     isConnected,
   };
 }

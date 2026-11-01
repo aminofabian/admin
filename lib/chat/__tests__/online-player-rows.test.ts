@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeOnlinePlayerRows } from '../online-player-rows';
+import { mergeOnlinePlayerRows, trustedOnlineSnapshotIds } from '../online-player-rows';
 import type { ChatUser } from '@/types';
 
 const row = (overrides: Partial<ChatUser> = {}): ChatUser => ({
@@ -125,5 +125,51 @@ describe('mergeOnlinePlayerRows', () => {
     });
 
     expect(merged.map((player) => player.user_id)).toEqual([68]);
+  });
+});
+
+describe('trustedOnlineSnapshotIds', () => {
+  it('keeps the snapshot when its count matches and recent players are present', () => {
+    expect(
+      trustedOnlineSnapshotIds({
+        snapshotIds: [67, 68],
+        snapshotCount: 2,
+        socketCount: 2,
+        protectedIds: [68],
+      }),
+    ).toEqual([67, 68]);
+  });
+
+  it('refuses a same-length snapshot that is missing someone who just came online', () => {
+    expect(
+      trustedOnlineSnapshotIds({
+        snapshotIds: [67, 69],
+        snapshotCount: 2,
+        socketCount: 2,
+        protectedIds: [68],
+      }),
+    ).toBeNull();
+  });
+
+  it('refuses a snapshot whose own count disagrees with the socket', () => {
+    expect(
+      trustedOnlineSnapshotIds({
+        snapshotIds: [67, 68],
+        snapshotCount: 3,
+        socketCount: 2,
+        protectedIds: [],
+      }),
+    ).toBeNull();
+  });
+
+  it('refuses a page that is shorter than the count', () => {
+    expect(
+      trustedOnlineSnapshotIds({
+        snapshotIds: [67],
+        snapshotCount: 2,
+        socketCount: 2,
+        protectedIds: [],
+      }),
+    ).toBeNull();
   });
 });

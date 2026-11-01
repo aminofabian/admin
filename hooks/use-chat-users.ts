@@ -34,6 +34,7 @@ import {
   insertOnlinePresenceRow,
 } from '@/lib/chat/chat-list-realtime';
 import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
+import { ONLINE_PRESENCE_PROTECT_MS, recentOnlineUserIds } from '@/lib/chat/online-player-rows';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -129,6 +130,8 @@ interface UseChatUsersReturn {
    * no longer includes, and clear the offline mark for anyone it still lists.
    */
   retainOnlineChats: (userIds: number[]) => void;
+  /** Players marked online by a live event within the last few seconds. */
+  protectedOnlineUserIds: () => number[];
   /** Drop a player from Unreplied the moment this agent sends a reply, before `re_arrange` arrives. */
   acknowledgeStaffReply: (userId: number) => void;
   /**
@@ -271,15 +274,31 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, [unrepliedChats, unrepliedListLive, publishUnrepliedBaseline]);
 
   const [socketOfflineUserIds, setSocketOfflineUserIds] = useState<number[]>([]);
+  /** user id → when a live event (not the connect seed) last marked them online. */
+  const recentOnlineAtRef = useRef<Map<number, number>>(new Map());
 
-  const noteSocketPresence = useCallback((userId: number, isOnline: boolean) => {
+  const noteSocketPresence = useCallback((userId: number, isOnline: boolean, options?: { protect?: boolean }) => {
     if (!Number.isFinite(userId) || userId <= 0) return;
+    if (isOnline && options?.protect) {
+      recentOnlineAtRef.current.set(userId, Date.now());
+    } else if (!isOnline) {
+      recentOnlineAtRef.current.delete(userId);
+    }
     setSocketOfflineUserIds((prev) => {
       const has = prev.includes(userId);
       if (!isOnline && !has) return [...prev, userId];
       if (isOnline && has) return prev.filter((id) => id !== userId);
       return prev;
     });
+  }, []);
+
+  const protectedOnlineUserIds = useCallback((): number[] => {
+    const now = Date.now();
+    const ids = recentOnlineUserIds(recentOnlineAtRef.current, now);
+    for (const [id, at] of recentOnlineAtRef.current) {
+      if (now - at > ONLINE_PRESENCE_PROTECT_MS) recentOnlineAtRef.current.delete(id);
+    }
+    return ids;
   }, []);
 
   /**
@@ -633,8 +652,32 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           readOptionalBoolean(wrapper, 'is_active') ??
           readOptionalBoolean(wrapper, 'is_online');
         if (isActive === undefined) return;
-        noteSocketPresence(playerId, isActive);
-        if (!isActive) {
+        noteSocketPresence(playerId, isActive, { protect: isActive });
+        if (isActive) {
+          const frame: Record<string, unknown> = {
+            ...(wrapper ?? {}),
+            ...data,
+            user_id: playerId,
+            is_online: true,
+          };
+          const nested =
+            frame.player && typeof frame.player === 'object' && !Array.isArray(frame.player)
+              ? (frame.player as Record<string, unknown>)
+              : undefined;
+          const username =
+            (typeof frame.username === 'string' && frame.username) ||
+            (typeof frame.player_username === 'string' && frame.player_username) ||
+            (typeof nested?.username === 'string' && nested.username) ||
+            '';
+          const chatId = frame.chat_id ?? frame.chatroom_id ?? nested?.chat_id;
+          const hasChatId = chatId != null && String(chatId).length > 0 && String(chatId) !== '0';
+          if (username || hasChatId) {
+            const row = transformChatToUser(frame);
+            setOnlineChats((prev) =>
+              insertOnlinePresenceRow(prev, { ...row, user_id: playerId, isOnline: true }, { isOnline: true }),
+            );
+          }
+        } else {
           setOnlineChats((prev) => prev.filter((chat) => chat.user_id !== playerId));
         }
         return;
@@ -1049,7 +1092,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         if (isOnline === true) {
-          noteSocketPresence(row.user_id, true);
+          noteSocketPresence(row.user_id, true, { protect: true });
           setOnlineChats((prev) => insertOnlinePresenceRow(prev, row, flags));
         } else if (isOnline === false) {
           noteSocketPresence(row.user_id, false);
@@ -1663,6 +1706,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     unrepliedListLive,
     socketOfflineUserIds,
     retainOnlineChats,
+    protectedOnlineUserIds,
     socketChatCounts,
     acknowledgeStaffReply,
     seedUnrepliedFromRest: seedUnrepliedFromRestApi,

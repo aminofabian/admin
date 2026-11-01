@@ -83,3 +83,50 @@ export function mergeOnlinePlayerRows({
 
   return order.map((userId) => seen.get(userId)!);
 }
+
+/** How long a "just came online" mark blocks a lagging snapshot from dropping that player. */
+export const ONLINE_PRESENCE_PROTECT_MS = 8000;
+
+/** Player ids marked online within the protection window. */
+export function recentOnlineUserIds(
+  markedAt: Iterable<[number, number]>,
+  now: number,
+  protectMs = ONLINE_PRESENCE_PROTECT_MS,
+): number[] {
+  const ids: number[] = [];
+  for (const [id, at] of markedAt) {
+    if (Number.isFinite(id) && id > 0 && now - at <= protectMs) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * Ids to keep after a REST online snapshot.
+ *
+ * Null means the snapshot is not the census yet: its own
+ * `online_players_count` disagrees with the socket, the ids do not cover
+ * that count, or a player who just came online is missing. Applying it
+ * would drop that player and put back whoever left.
+ */
+export function trustedOnlineSnapshotIds({
+  snapshotIds,
+  snapshotCount,
+  socketCount,
+  protectedIds,
+}: {
+  snapshotIds: readonly number[];
+  snapshotCount: number | null;
+  socketCount: number;
+  protectedIds: readonly number[];
+}): number[] | null {
+  if (snapshotCount == null || snapshotCount !== socketCount) return null;
+  const keep = new Set<number>();
+  for (const id of snapshotIds) {
+    if (Number.isFinite(id) && id > 0) keep.add(id);
+  }
+  if (keep.size !== socketCount) return null;
+  for (const id of protectedIds) {
+    if (Number.isFinite(id) && id > 0 && !keep.has(id)) return null;
+  }
+  return [...keep];
+}

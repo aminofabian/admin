@@ -32,6 +32,8 @@ interface ChatUsersContextType {
   socketOfflineUserIds: number[];
   /** Drop socket online rows absent from a fresh REST online snapshot. */
   retainOnlineChats: (userIds: number[]) => void;
+  /** Players a live event marked online in the last few seconds. */
+  protectedOnlineUserIds: () => number[];
   /** Totals from the chat-list socket. Null until `add_new_chats` or `re_arrange` sends them. */
   socketChatCounts: {
     allPlayersCount: number | null;
