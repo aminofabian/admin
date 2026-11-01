@@ -38,7 +38,8 @@ interface UseOnlinePlayersReturn {
   unrepliedPlayersTotalCount: number | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  /** Resolves with the fresh online snapshot, or undefined when the fetch fails. */
+  refetch: () => Promise<ChatUser[] | undefined>;
   isConnected: boolean; // WebSocket connection status
 }
 
@@ -554,8 +555,8 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   /**
    * Fetch/refresh online players
    */
-  const refetch = useCallback(async () => {
-    if (!effectiveEnabled) return;
+  const refetch = useCallback(async (): Promise<ChatUser[] | undefined> => {
+    if (!effectiveEnabled) return undefined;
 
     setIsLoading(true);
     setError(null);
@@ -568,11 +569,13 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           players.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
         );
       }
+      return players;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
       if (isMountedRef.current) {
         setError(errorMessage);
       }
+      return undefined;
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);

@@ -30,6 +30,8 @@ interface ChatUsersContextType {
   chatListUnrepliedPlayersCount: number | null;
   unrepliedListLive: boolean;
   socketOfflineUserIds: number[];
+  /** Drop socket online rows absent from a fresh REST online snapshot. */
+  retainOnlineChats: (userIds: number[]) => void;
   acknowledgeStaffReply: (userId: number) => void;
   noteUnrepliedServerCount: (count: number) => void;
   /** One-shot REST fill for Unreplied when the socket has not seeded the list. */

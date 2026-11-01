@@ -71,6 +71,24 @@ describe('useChatUsers — chat-list socket contract', () => {
     expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
   });
 
+  it('drops socket online rows a manual refresh snapshot no longer includes', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+    });
+
+    act(() => {
+      result.current.retainOnlineChats([67]);
+    });
+
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
   it('does not let a recent-chat window replace the unreplied total', async () => {
     const { result } = await mount();
 

@@ -122,6 +122,11 @@ interface UseChatUsersReturn {
   unrepliedListLive: boolean;
   /** Players the chat-list socket has marked offline. Online must not resurrect them from a stale REST cache. */
   socketOfflineUserIds: number[];
+  /**
+   * Manual online refresh just returned a full snapshot. Drop socket rows it
+   * no longer includes, and clear the offline mark for anyone it still lists.
+   */
+  retainOnlineChats: (userIds: number[]) => void;
   /** Drop a player from Unreplied the moment this agent sends a reply, before `re_arrange` arrives. */
   acknowledgeStaffReply: (userId: number) => void;
   /**
@@ -268,6 +273,18 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (isOnline && has) return prev.filter((id) => id !== userId);
       return prev;
     });
+  }, []);
+
+  /**
+   * The Online tab unions socket rows with the REST list. A refresh replaces
+   * only the REST side, so a player who left and never got `is_online: false`
+   * stays on screen and stacks with the new rows. The fresh snapshot is the
+   * census: keep socket rows it still lists, drop the rest.
+   */
+  const retainOnlineChats = useCallback((userIds: number[]) => {
+    const keep = new Set(userIds.filter((id) => Number.isFinite(id) && id > 0));
+    setOnlineChats((prev) => prev.filter((chat) => keep.has(chat.user_id)));
+    setSocketOfflineUserIds((prev) => prev.filter((id) => !keep.has(id)));
   }, []);
 
   /**
@@ -1571,6 +1588,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     chatListUnrepliedPlayersCount,
     unrepliedListLive,
     socketOfflineUserIds,
+    retainOnlineChats,
     acknowledgeStaffReply,
     seedUnrepliedFromRest: seedUnrepliedFromRestApi,
     noteUnrepliedServerCount,

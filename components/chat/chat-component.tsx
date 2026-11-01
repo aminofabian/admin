@@ -470,6 +470,7 @@ export function ChatComponent() {
     chatListAllPlayersCount,
     unrepliedListLive,
     socketOfflineUserIds,
+    retainOnlineChats,
     acknowledgeStaffReply,
     seedUnrepliedFromRest,
     invalidatePlayersCache,
@@ -1997,8 +1998,20 @@ export function ChatComponent() {
       return;
     }
 
-    await refetchOnlinePlayers();
-  }, [activeTab, fetchAllPlayers, hasValidAdminUser, refetchOnlinePlayers]);
+    // The tab unions socket rows with this REST snapshot. Replace socket
+    // membership with the snapshot so a player who went offline is removed
+    // instead of stacking on the new list.
+    const players = await refetchOnlinePlayers();
+    if (players) {
+      retainOnlineChats(players.map((player) => player.user_id));
+    }
+  }, [
+    activeTab,
+    fetchAllPlayers,
+    hasValidAdminUser,
+    refetchOnlinePlayers,
+    retainOnlineChats,
+  ]);
 
   const reportMessageActionFailure = useCallback(
     (action: "edit" | "delete", result: MessageActionResult) => {
