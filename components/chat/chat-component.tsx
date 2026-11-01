@@ -471,6 +471,7 @@ export function ChatComponent() {
     unrepliedListLive,
     socketOfflineUserIds,
     retainOnlineChats,
+    socketChatCounts,
     acknowledgeStaffReply,
     seedUnrepliedFromRest,
     invalidatePlayersCache,
@@ -493,19 +494,26 @@ export function ChatComponent() {
   });
 
   const displayOnlinePlayersTotal = useMemo(
-    () => onlinePlayersApiTotalCount ?? chatListOnlinePlayersCount ?? null,
-    [onlinePlayersApiTotalCount, chatListOnlinePlayersCount],
+    () =>
+      socketChatCounts.onlinePlayersCount ??
+      onlinePlayersApiTotalCount ??
+      chatListOnlinePlayersCount ??
+      null,
+    [
+      socketChatCounts.onlinePlayersCount,
+      onlinePlayersApiTotalCount,
+      chatListOnlinePlayersCount,
+    ],
   );
 
-  // Socket unreplied list only. HTTP unreplied_players_count is the same on
-  // every chat request, so it is not the badge.
+  // `unreplied_players_count` on the chat-list socket. The HTTP field is the
+  // same on every request, and the loaded rows are only a window.
   const displayUnrepliedPlayersTotal = useMemo(
     () =>
       resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: unrepliedChats.length,
-        listLive: unrepliedListLive,
+        socketCount: socketChatCounts.unrepliedPlayersCount,
       }),
-    [unrepliedChats.length, unrepliedListLive],
+    [socketChatCounts.unrepliedPlayersCount],
   );
 
   // WebSocket connection for real-time chat
@@ -3679,7 +3687,9 @@ export function ChatComponent() {
         directoryAllPlayersCount={
           allPlayersApiTotalCount ?? chatListAllPlayersCount
         }
-        playersWithChatsTotalCount={playersWithChatsTotalCount}
+        playersWithChatsTotalCount={
+          socketChatCounts.allPlayersCount ?? playersWithChatsTotalCount
+        }
         isCurrentTabLoading={isCurrentTabLoading}
         isPlayerSearchLoading={isPlayerSearchLoading}
         isPlayerSearchStale={isPlayerSearchStale}

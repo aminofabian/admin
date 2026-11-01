@@ -87,39 +87,15 @@ describe('ensureSelectedPlayerVisible', () => {
 });
 
 describe('resolveUnrepliedBadgeCount', () => {
-  it('follows list length once the socket census is live', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 368,
-        listLive: true,
-      }),
-    ).toBe(368);
+  it('shows the count the chat-list socket sent', () => {
+    expect(resolveUnrepliedBadgeCount({ socketCount: 3 })).toBe(3);
   });
 
-  it('does not show the HTTP unreplied total before the socket census', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 0,
-        listLive: false,
-      }),
-    ).toBeNull();
+  it('stays blank until the socket sends a count', () => {
+    expect(resolveUnrepliedBadgeCount({ socketCount: null })).toBeNull();
   });
 
-  it('does not treat one partial socket row as the badge', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 1,
-        listLive: false,
-      }),
-    ).toBeNull();
-  });
-
-  it('shows 0 when the live list is empty after replies', () => {
-    expect(
-      resolveUnrepliedBadgeCount({
-        unrepliedChatsLength: 0,
-        listLive: true,
-      }),
-    ).toBe(0);
+  it('shows 0 when the socket says nobody is unreplied', () => {
+    expect(resolveUnrepliedBadgeCount({ socketCount: 0 })).toBe(0);
   });
 });

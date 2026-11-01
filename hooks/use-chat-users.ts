@@ -11,6 +11,7 @@ import type { ChatUser } from '@/types';
 import {
   extractUnreadCount,
   extractChatListServerCounts,
+  type ChatListServerCounts,
   extractPlayerArrayFromAdminChatResponse,
   lastMessageFromListRow,
   mapAdminSearchRowToChatUser,
@@ -136,6 +137,11 @@ interface UseChatUsersReturn {
   noteUnrepliedServerCount: (count: number) => void;
   /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
   seedUnrepliedFromRest: () => Promise<void>;
+  /**
+   * Totals from `add_new_chats` and `re_arrange`. Null until the first event
+   * that includes them. These are the badge numbers, not the row counts.
+   */
+  socketChatCounts: ChatListServerCounts;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;
@@ -285,6 +291,29 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     const keep = new Set(userIds.filter((id) => Number.isFinite(id) && id > 0));
     setOnlineChats((prev) => prev.filter((chat) => keep.has(chat.user_id)));
     setSocketOfflineUserIds((prev) => prev.filter((id) => !keep.has(id)));
+  }, []);
+
+  const [socketChatCounts, setSocketChatCounts] = useState<ChatListServerCounts>({
+    allPlayersCount: null,
+    onlinePlayersCount: null,
+    unrepliedPlayersCount: null,
+  });
+
+  /** Keep each badge on the last socket total. A later event may omit one field. */
+  const noteSocketChatCounts = useCallback((payload: Record<string, unknown>) => {
+    const next = extractChatListServerCounts(payload);
+    if (
+      next.allPlayersCount == null &&
+      next.onlinePlayersCount == null &&
+      next.unrepliedPlayersCount == null
+    ) {
+      return;
+    }
+    setSocketChatCounts((prev) => ({
+      allPlayersCount: next.allPlayersCount ?? prev.allPlayersCount,
+      onlinePlayersCount: next.onlinePlayersCount ?? prev.onlinePlayersCount,
+      unrepliedPlayersCount: next.unrepliedPlayersCount ?? prev.unrepliedPlayersCount,
+    }));
   }, []);
 
   /**
@@ -745,6 +774,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       // Handle "add_new_chats" — the connect snapshot for Online + Unreplied.
       if (addNewChatsPayload) {
+        noteSocketChatCounts(addNewChatsPayload as Record<string, unknown>);
         const asRows = (value: unknown): Record<string, unknown>[] =>
           Array.isArray(value)
             ? value.filter(
@@ -931,6 +961,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // it on their own), so membership in the Unreplied tab is decided from
       // that field alone, not from the last message sender.
       if (reArrangePayload) {
+        noteSocketChatCounts(reArrangePayload as Record<string, unknown>);
         const row = transformChatToUser(reArrangePayload);
         const nestedPlayer =
           reArrangePayload.player && typeof reArrangePayload.player === 'object'
@@ -1014,7 +1045,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     } catch (error) {
       console.error('❌ [Chat Users] Failed to parse message:', error);
     }
-  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence]);
+  }, [invalidatePlayersCache, commitUnrepliedList, markUnrepliedListLive, noteSocketPresence, noteSocketChatCounts]);
 
   const disconnect = useCallback(() => {
     if (wsUrlRef.current) {
@@ -1589,6 +1620,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     unrepliedListLive,
     socketOfflineUserIds,
     retainOnlineChats,
+    socketChatCounts,
     acknowledgeStaffReply,
     seedUnrepliedFromRest: seedUnrepliedFromRestApi,
     noteUnrepliedServerCount,

@@ -248,6 +248,21 @@ describe('map-chat-api', () => {
         unrepliedPlayersCount: null,
       });
     });
+
+    it('reads the top-level counts the chat-list socket also sends', () => {
+      expect(
+        extractChatListServerCounts({
+          type: 're_arrange',
+          online_players_count: 0,
+          all_players_count: 74,
+          unreplied_players_count: 3,
+        }),
+      ).toEqual({
+        allPlayersCount: 74,
+        onlinePlayersCount: 0,
+        unrepliedPlayersCount: 3,
+      });
+    });
   });
 
   describe('extractPlayerArrayFromAdminChatResponse', () => {

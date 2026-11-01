@@ -40,18 +40,19 @@ function readNonNegativeInt(value: unknown): number | null {
  */
 export function extractChatListServerCounts(data: Record<string, unknown>): ChatListServerCounts {
   const raw = data.counts;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return {
-      allPlayersCount: null,
-      onlinePlayersCount: null,
-      unrepliedPlayersCount: null,
-    };
-  }
-  const c = raw as Record<string, unknown>;
+  const nested =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
+  // Chat-list socket events send the same three fields under `counts` and
+  // again at the top level. Prefer `counts` (the REST shape) and fall back
+  // to the top-level copy when that object is missing.
+  const pick = (key: string) =>
+    (nested ? readNonNegativeInt(nested[key]) : null) ?? readNonNegativeInt(data[key]);
   return {
-    allPlayersCount: readNonNegativeInt(c.all_players_count),
-    onlinePlayersCount: readNonNegativeInt(c.online_players_count),
-    unrepliedPlayersCount: readNonNegativeInt(c.unreplied_players_count),
+    allPlayersCount: pick('all_players_count'),
+    onlinePlayersCount: pick('online_players_count'),
+    unrepliedPlayersCount: pick('unreplied_players_count'),
   };
 }
 

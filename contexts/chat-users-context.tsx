@@ -32,6 +32,12 @@ interface ChatUsersContextType {
   socketOfflineUserIds: number[];
   /** Drop socket online rows absent from a fresh REST online snapshot. */
   retainOnlineChats: (userIds: number[]) => void;
+  /** Totals from the chat-list socket. Null until `add_new_chats` or `re_arrange` sends them. */
+  socketChatCounts: {
+    allPlayersCount: number | null;
+    onlinePlayersCount: number | null;
+    unrepliedPlayersCount: number | null;
+  };
   acknowledgeStaffReply: (userId: number) => void;
   noteUnrepliedServerCount: (count: number) => void;
   /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
