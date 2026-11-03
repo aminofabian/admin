@@ -8,6 +8,10 @@ import type { ChatUser } from '@/types';
 
 interface ChatUsersContextType {
   users: ChatUser[];
+  /** Online chats seeded/updated by the chat-list socket. */
+  onlineChats: ChatUser[];
+  /** Chats the server flags `is_unreplied` — the Unreplied tab. */
+  unrepliedChats: ChatUser[];
   allPlayers: ChatUser[];
   onlineUsers: ChatUser[];
   isLoading: boolean;
@@ -16,12 +20,30 @@ interface ChatUsersContextType {
   error: string | null;
   isConnected: boolean;
   refetch: () => Promise<void>;
-  fetchAllPlayers: () => Promise<void>;
+  /** `force` bypasses the 5-minute directory cache (manual refresh). */
+  fetchAllPlayers: (options?: { force?: boolean }) => Promise<void>;
   loadMorePlayers: () => Promise<void>;
   hasMorePlayers: boolean;
   playersWithChatsTotalCount: number | null;
   chatListOnlinePlayersCount: number | null;
   chatListAllPlayersCount: number | null;
+  chatListUnrepliedPlayersCount: number | null;
+  unrepliedListLive: boolean;
+  socketOfflineUserIds: number[];
+  /** Drop socket online rows absent from a fresh REST online snapshot. */
+  retainOnlineChats: (userIds: number[]) => void;
+  /** Players a live event marked online in the last few seconds. */
+  protectedOnlineUserIds: () => number[];
+  /** Totals from the chat-list socket. Null until `add_new_chats` or `re_arrange` sends them. */
+  socketChatCounts: {
+    allPlayersCount: number | null;
+    onlinePlayersCount: number | null;
+    unrepliedPlayersCount: number | null;
+  };
+  acknowledgeStaffReply: (userId: number) => void;
+  noteUnrepliedServerCount: (count: number) => void;
+  /** One-shot REST fill for Unreplied when the socket has not seeded the list. */
+  seedUnrepliedFromRest: () => Promise<void>;
   refreshActiveChats: () => Promise<void>;
   /** Drop the cached all-players snapshot; call after any mutation. */
   invalidatePlayersCache: () => void;

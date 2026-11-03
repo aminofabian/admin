@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from '@/lib/constants/api';
 import {
   extractPlayerArrayFromAdminChatResponse,
   mapAdminSearchRowToChatUser,
+  lastMessageFromListRow,
   pickWinningBalanceFromBackend,
 } from '@/lib/chat/map-chat-api';
 import { isIdentityVerifiedFromRecord } from '@/lib/players/player-verification';
@@ -67,9 +68,7 @@ function mapPlayerDetailsToChatUser(
         ? String(player.profile_pic || player.profile_image || player.avatar)
         : undefined,
     isOnline: Boolean(player.is_online),
-    lastMessage: player.last_message
-      ? String(player.last_message)
-      : undefined,
+    lastMessage: lastMessageFromListRow(player),
     lastMessageTime: player.last_message_timestamp
       ? String(player.last_message_timestamp)
       : undefined,

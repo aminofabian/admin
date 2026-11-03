@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { resolveSafeChatroomId } from "@/lib/chat/safe-chatroom-id";
 import {
+  conversationRoomKey,
+  previewRoomForSocket,
+} from "@/lib/chat/sidebar-preview";
+import {
   API_BASE_URL,
   WEBSOCKET_BASE_URL,
   TOKEN_KEY,
@@ -205,7 +209,10 @@ interface UseChatWebSocketParams {
   chatId: string | null; // The chatroom ID for fetching message history
   adminId: number;
   enabled: boolean;
-  onMessageReceived?: (message: ChatMessage) => void; // Callback to update chat list
+  onMessageReceived?: (
+    message: ChatMessage,
+    room: { userId: number; chatId: string },
+  ) => void;
   /**
    * `winningBalance` only present when the WS payload included a winnings field (omit when single-balance).
    * `cashoutLimit` / `lockedBalance` when the room WS includes ledger fields (same as chat-list WS).
@@ -221,6 +228,8 @@ interface UseChatWebSocketParams {
   onConversationPreviewChange?: (preview: {
     text: string;
     timestamp: string;
+    userId: number;
+    chatId: string;
   }) => void;
 }
 
@@ -252,6 +261,12 @@ interface UseChatWebSocketReturn {
   isHistoryLoading: boolean;
   /** True until first history fetch finishes for the current safe chatroom (avoids empty-state flash). */
   hasCompletedInitialHistory: boolean;
+  /**
+   * Conversation the current `messages` were loaded for.
+   * Null while switching rooms, so a sidebar sync cannot apply the previous
+   * thread to the conversation that was just opened.
+   */
+  messagesRoomKey: string | null;
   updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
   refreshMessages: () => Promise<void>;
   updateMessagesBalance: (balance: string, winningBalance: string) => void;
@@ -283,6 +298,9 @@ export function useChatWebSocket({
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasCompletedInitialHistory, setHasCompletedInitialHistory] =
     useState(false);
+  const [messagesRoomKey, setMessagesRoomKey] = useState<string | null>(null);
+  const roomKey = conversationRoomKey(userId, chatId);
+  const [activeRoomKey, setActiveRoomKey] = useState(roomKey);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({
     page: 0,
@@ -297,6 +315,7 @@ export function useChatWebSocket({
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
   const historyAbortRef = useRef<AbortController | null>(null);
+  const initialHistoryKeyRef = useRef<string | null>(null);
   const purchaseAbortRef = useRef<AbortController | null>(null);
   const sendAbortRef = useRef<AbortController | null>(null);
   const activeConnectionKeyRef = useRef("");
@@ -306,11 +325,35 @@ export function useChatWebSocket({
   const hasEstablishedConnectionRef = useRef(false);
   const chatIdRef = useRef(chatId);
   const userIdRef = useRef(userId);
+  // Assigned during render so a socket callback in this commit cannot read the
+  // previous conversation. An effect would update the refs too late.
+  chatIdRef.current = chatId;
+  userIdRef.current = userId;
+  const invalidatedRoomKeyRef = useRef(roomKey);
 
-  useEffect(() => {
-    chatIdRef.current = chatId;
-    userIdRef.current = userId;
-  }, [chatId, userId]);
+  // Drop the previous room's thread before paint. An effect runs too late:
+  // this component's sidebar effect would still see the old messages together
+  // with the conversation that was just selected, and copy that other chat's
+  // last line onto its row until the new history returned.
+  if (activeRoomKey !== roomKey) {
+    setActiveRoomKey(roomKey);
+    setMessages([]);
+    setMessagesRoomKey(null);
+    setHasCompletedInitialHistory(false);
+    setIsHistoryLoading(Boolean(userId));
+    setPurchaseHistory([]);
+    setNotes("");
+    setPlayerLastSeenAt(null);
+    setIsTyping(false);
+    setIsUserOnline(false);
+    setHasMoreHistory(false);
+    setHistoryPagination({ page: 0, totalPages: 0 });
+    if (invalidatedRoomKeyRef.current !== roomKey) {
+      invalidatedRoomKeyRef.current = roomKey;
+      historyRequestRef.current += 1;
+      initialHistoryKeyRef.current = null;
+    }
+  }
 
   // Connection state for message sending decisions
   const connectionStateRef = useRef<
@@ -414,8 +457,12 @@ export function useChatWebSocket({
     }
     messageQueueRef.current = [];
 
+    // In-flight history for the room we just left must not land here.
+    historyRequestRef.current += 1;
     setMessages([]);
+    setMessagesRoomKey(null);
     setPurchaseHistory([]);
+    initialHistoryKeyRef.current = null;
     setIsTyping(false);
     setNotes("");
     setPlayerLastSeenAt(null);
@@ -571,8 +618,10 @@ export function useChatWebSocket({
 
       const requestId = historyRequestRef.current + 1;
       historyRequestRef.current = requestId;
+      const requestRoomKey = conversationRoomKey(userId, chatId);
       setIsHistoryLoading(true);
       setHasCompletedInitialHistory(false);
+      setMessagesRoomKey(null);
 
       try {
         const payload = await requestHistory(page);
@@ -594,6 +643,7 @@ export function useChatWebSocket({
           added = merged.length - prev.length;
           return merged;
         });
+        setMessagesRoomKey(requestRoomKey);
 
         setHistoryPagination({
           page: payload.page,
@@ -770,9 +820,19 @@ export function useChatWebSocket({
     }
   }, [chatId, userId]); // Include userId in dependency array
 
-  // Fetch history as soon as a real chatroom_id is available — do not wait for WS onOpen.
-  // Deep-links often select the player before chatroom_id is known; when it arrives we
-  // must load history without tearing down the WebSocket.
+  // Fetch history once per chatroom. The socket onOpen used to fetch again
+  // the moment it connected, so every open conversation hit chat-messages twice.
+  // Purchase cards for the sidebar come from usePlayerPurchases; this hook's
+  // purchase fetch was a second identical call whose result was unused.
+  const loadInitialHistory = useCallback(() => {
+    const safeChatId = resolveSafeChatroomId(chatIdRef.current, userId);
+    if (!effectiveEnabled || !userId || !safeChatId) return;
+    const key = `${userId}:${safeChatId}`;
+    if (initialHistoryKeyRef.current === key) return;
+    initialHistoryKeyRef.current = key;
+    void fetchMessageHistory(1, "replace");
+  }, [effectiveEnabled, userId, fetchMessageHistory]);
+
   useEffect(() => {
     if (!effectiveEnabled || !userId) return;
     const safeChatId = resolveSafeChatroomId(chatId, userId);
@@ -782,14 +842,12 @@ export function useChatWebSocket({
       return;
     }
 
-    void fetchMessageHistory(1, "replace");
-    void fetchPurchaseHistory();
+    loadInitialHistory();
   }, [
     effectiveEnabled,
     userId,
     chatId,
-    fetchMessageHistory,
-    fetchPurchaseHistory,
+    loadInitialHistory,
   ]);
 
   // FIX #8: Centralized balance update handler (single source of truth)
@@ -978,14 +1036,9 @@ export function useChatWebSocket({
             });
           }
 
-          // History is fetched by the chatroom-ready effect; refresh if we already have a room.
-          if (resolveSafeChatroomId(chatIdRef.current, userId)) {
-            !IS_PROD &&
-              console.log(
-                "📜 [Chat WS] Refreshing message history after connection...",
-              );
-            void fetchMessageHistory(1, "replace");
-          }
+          // History is fetched once per chatroom by loadInitialHistory. onOpen
+          // only fills it if that effect has not already started the request.
+          loadInitialHistory();
         },
 
         onMessage: (data) => {
@@ -1030,6 +1083,24 @@ export function useChatWebSocket({
               String(rawData.player_id) === String(userId);
 
             if (editedId && roomMatches && playerMatches && isMountedRef.current) {
+              const previewRoom = previewRoomForSocket({
+                socketUserId: userId,
+                currentUserId: userIdRef.current,
+                currentChatId: chatIdRef.current,
+              });
+              const publishPreview = (preview: {
+                text: string;
+                timestamp: string;
+              }) => {
+                queueMicrotask(() => {
+                  onConversationPreviewChangeRef.current?.({
+                    text: preview.text,
+                    timestamp: preview.timestamp,
+                    userId: previewRoom.userId,
+                    chatId: previewRoom.chatId,
+                  });
+                });
+              };
               if (messageType === "message_edited") {
                 setMessages((prev) => {
                   const result = applyMessageEdited(
@@ -1038,10 +1109,7 @@ export function useChatWebSocket({
                     String(rawData.message ?? ""),
                   );
                   if (result.preview && result.messages !== prev) {
-                    const nextPreview = result.preview;
-                    queueMicrotask(() => {
-                      onConversationPreviewChangeRef.current?.(nextPreview);
-                    });
+                    publishPreview(result.preview);
                   }
                   return result.messages;
                 });
@@ -1049,10 +1117,7 @@ export function useChatWebSocket({
                 setMessages((prev) => {
                   const result = markMessageDissipating(prev, editedId);
                   if (result.preview) {
-                    const nextPreview = result.preview;
-                    queueMicrotask(() => {
-                      onConversationPreviewChangeRef.current?.(nextPreview);
-                    });
+                    publishPreview(result.preview);
                   }
                   return result.messages;
                 });
@@ -1195,7 +1260,14 @@ export function useChatWebSocket({
 
               if (onMessageReceivedRef.current) {
                 try {
-                  onMessageReceivedRef.current(newMessage);
+                  onMessageReceivedRef.current(
+                    newMessage,
+                    previewRoomForSocket({
+                      socketUserId: userId,
+                      currentUserId: userIdRef.current,
+                      currentChatId: chatIdRef.current,
+                    }),
+                  );
                 } catch (error) {
                   console.error(
                     "❌ [Chat WS] Error in onMessageReceived callback:",
@@ -1352,7 +1424,7 @@ export function useChatWebSocket({
     userId,
     adminId,
     effectiveEnabled,
-    fetchMessageHistory,
+    loadInitialHistory,
     handleBalanceUpdate,
   ]);
 
@@ -1467,7 +1539,10 @@ export function useChatWebSocket({
           setMessages((prev) => [...prev, newMessage]);
 
           if (onMessageReceivedRef.current) {
-            onMessageReceivedRef.current(newMessage);
+            onMessageReceivedRef.current(newMessage, {
+              userId: requestUserId ?? 0,
+              chatId: requestChatId ? String(requestChatId) : "",
+            });
           }
         }
 
@@ -1824,6 +1899,7 @@ export function useChatWebSocket({
     hasMoreHistory,
     isHistoryLoading,
     hasCompletedInitialHistory,
+    messagesRoomKey,
     updateMessagePinnedState,
     refreshMessages,
     updateMessagesBalance,

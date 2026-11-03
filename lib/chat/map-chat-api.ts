@@ -1,5 +1,6 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
-import { pickChatroomIdFromRow } from '@/lib/chat/safe-chatroom-id';
+import { sidebarMessagePreview } from '@/lib/chat/apply-chat-message-event';
+import { pickChatroomIdFromRow, firstSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 import { isIdentityVerifiedFromRecord } from '@/lib/players/player-verification';
 import type { ChatUser } from '@/types';
 
@@ -17,6 +18,7 @@ function withIdentityVerified(
 export type ChatListServerCounts = {
   allPlayersCount: number | null;
   onlinePlayersCount: number | null;
+  unrepliedPlayersCount: number | null;
 };
 
 function readNonNegativeInt(value: unknown): number | null {
@@ -33,17 +35,24 @@ function readNonNegativeInt(value: unknown): number | null {
 }
 
 /**
- * Read `counts.all_players_count` / `counts.online_players_count` when the backend sends them.
+ * Read `counts.all_players_count` / `counts.online_players_count` /
+ * `counts.unreplied_players_count` when the backend sends them.
  */
 export function extractChatListServerCounts(data: Record<string, unknown>): ChatListServerCounts {
   const raw = data.counts;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { allPlayersCount: null, onlinePlayersCount: null };
-  }
-  const c = raw as Record<string, unknown>;
+  const nested =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
+  // Chat-list socket events send the same three fields under `counts` and
+  // again at the top level. Prefer `counts` (the REST shape) and fall back
+  // to the top-level copy when that object is missing.
+  const pick = (key: string) =>
+    (nested ? readNonNegativeInt(nested[key]) : null) ?? readNonNegativeInt(data[key]);
   return {
-    allPlayersCount: readNonNegativeInt(c.all_players_count),
-    onlinePlayersCount: readNonNegativeInt(c.online_players_count),
+    allPlayersCount: pick('all_players_count'),
+    onlinePlayersCount: pick('online_players_count'),
+    unrepliedPlayersCount: pick('unreplied_players_count'),
   };
 }
 
@@ -71,6 +80,62 @@ function coercedBooleanOnline(value: unknown): boolean {
     return s === '1' || s === 'true' || s === 'yes';
   }
   return false;
+}
+
+/**
+ * Boolean flags on chat payloads may be missing, 0/1, or "true"/"false".
+ * Returns `undefined` when the payload did not carry the field, so a partial
+ * realtime update can keep the value already held in state.
+ */
+export function readOptionalBoolean(
+  source: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
+  if (!source || !Object.prototype.hasOwnProperty.call(source, key)) {
+    return undefined;
+  }
+  const value = source[key];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  const s = String(value).trim().toLowerCase();
+  if (s === '') return undefined;
+  if (s === '1' || s === 'true' || s === 'yes') return true;
+  if (s === '0' || s === 'false' || s === 'no') return false;
+  return undefined;
+}
+
+/**
+ * Sidebar line from a chat-list row.
+ *
+ * Image messages often have an empty `last_message` and carry the picture on
+ * `is_file` / `file`. Without that, the word Image appears only after the
+ * thread is opened.
+ */
+export function lastMessageFromListRow(row: Record<string, unknown>): string | undefined {
+  const text = typeof row.last_message === 'string' ? row.last_message : '';
+  const fileCandidate = row.file ?? row.file_url ?? row.last_message_file ?? row.last_file;
+  const fileUrl = typeof fileCandidate === 'string' ? fileCandidate.trim() : '';
+  const isFile =
+    readOptionalBoolean(row, 'is_file') === true ||
+    readOptionalBoolean(row, 'last_message_is_file') === true ||
+    readOptionalBoolean(row, 'last_is_file') === true;
+  const preview = sidebarMessagePreview({
+    text,
+    fileUrl: fileUrl || undefined,
+    isFile,
+  });
+  return preview || undefined;
+}
+
+function readLastHumanMessageSenderId(row: Record<string, unknown>): number | null | undefined {
+  const raw = row.last_human_message_sender_id ?? row.lastHumanMessageSenderId;
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 /**
@@ -418,6 +483,10 @@ type BackendChatPayload = {
   last_message_time?: string;
   /** ISO timestamp from REST `chats[]` / `player[]` */
   last_message_timestamp?: string;
+  last_message_sender_id?: number | string;
+  last_human_message_sender_id?: number | string;
+  is_unreplied?: boolean | number | string;
+  is_online?: boolean | number | string;
   cashout_limit?: number | string;
   player_cashout_limit?: number | string;
   locked_balance?: number | string;
@@ -437,7 +506,11 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const ledgerRow = { ...raw, ...(player as Record<string, unknown>) };
 
   const userId = Number(chat.user_id ?? chat.player_id ?? player.id ?? 0);
-  const directoryId = pickChatroomIdFromRow(raw, userId);
+  // Flat `chats[]` rows carry the chatroom id in `id`; nested WS payloads use
+  // `chat_id` / `chatroom_id`. `firstSafeChatroomId` still rejects an `id` that
+  // is really the player id.
+  const directoryId =
+    pickChatroomIdFromRow(raw, userId) || firstSafeChatroomId(userId, chat.id) || '';
   const username =
     chat.username ||
     chat.player_username ||
@@ -448,6 +521,14 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const rawTimestamp = chat.last_message_time || chat.last_message_timestamp;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
+  const isOnline =
+    readOptionalBoolean(raw, 'is_online') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'is_online') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'isOnline') ??
+    false;
+  const isUnreplied = readOptionalBoolean(raw, 'is_unreplied') ??
+    readOptionalBoolean(player as Record<string, unknown>, 'is_unreplied');
+
   return withIdentityVerified(
     {
       id: directoryId,
@@ -456,8 +537,8 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
       fullName: player.full_name || player.name || undefined,
       email: player.email || '',
       avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-      isOnline: player.is_online || player.isOnline || false,
-      lastMessage: chat.last_message || undefined,
+      isOnline,
+      lastMessage: lastMessageFromListRow(raw),
       lastMessageTime: validTimestamp,
       balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
       ...pickWinningBalanceFromBackend(ledgerRow),
@@ -476,6 +557,8 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
       phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
       unreadCount: extractUnreadCount(raw) || chat.unreadCount || 0,
       notes: player.notes || undefined,
+      isUnreplied,
+      lastHumanMessageSenderId: readLastHumanMessageSenderId(raw),
     },
     ledgerRow,
   );
@@ -504,6 +587,8 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
     row.chatroomId ??
     '';
 
+  const isUnreplied = readOptionalBoolean(row, 'is_unreplied');
+
   return withIdentityVerified(
     {
       id: String(directoryId !== '' && directoryId !== undefined && directoryId !== null ? directoryId : ''),
@@ -517,7 +602,7 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
         (row.avatar as string | undefined) ||
         undefined,
       isOnline: coercedBooleanOnline(row.is_online) || coercedBooleanOnline(row.isOnline),
-      lastMessage: (row.last_message as string | undefined) || undefined,
+      lastMessage: lastMessageFromListRow(row),
       lastMessageTime: validTimestamp,
       playerLastSeenAt: validLastSeen,
       balance: row.balance !== undefined ? String(row.balance) : undefined,
@@ -535,6 +620,8 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
       phone: (row.phone_number as string | undefined) || (row.mobile_number as string | undefined) || undefined,
       unreadCount: extractUnreadCount(row) || 0,
       notes: (row.notes as string | undefined) || undefined,
+      isUnreplied,
+      lastHumanMessageSenderId: readLastHumanMessageSenderId(row),
     },
     row,
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { IdentityVerifiedTick } from '@/components/chat/components/identity-verified-tick';
 import { Button, ConfirmModal, useToast } from '@/components/ui';
@@ -45,7 +45,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 }: PlayerInfoSidebarProps) {
   const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [loadedSections, setLoadedSections] = useState<Record<string, boolean>>({});
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setExpandedSection(null);
+    setLoadedSections({});
+  }, [selectedPlayer.user_id]);
 
   // Games section is hidden - removed usePlayerGames hook to prevent unnecessary API calls
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
@@ -60,19 +66,21 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
   // Pass player info for real-time websocket matching
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(
-    selectedPlayer.id || null,
+    loadedSections.purchases ? selectedPlayer.id || null : null,
     selectedPlayer.username,
     selectedPlayer.email,
     selectedPlayer.user_id
   );
   const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(
-    selectedPlayer.id || null,
+    loadedSections.cashouts ? selectedPlayer.id || null : null,
     selectedPlayer.username,
     selectedPlayer.email,
     selectedPlayer.user_id
   );
   // Use user_id for game activities
-  const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
+  const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(
+    loadedSections.activities ? selectedPlayer.user_id || null : null,
+  );
 
   // Filter cashouts and activities to only show data for the selected player
   const cashouts = allCashouts.filter(cashout =>
@@ -84,7 +92,16 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   );
 
   const toggleSection = (sectionName: string) => {
-    setExpandedSection(expandedSection === sectionName ? null : sectionName);
+    setLoadedSections((prev) =>
+      prev[sectionName] ? prev : { ...prev, [sectionName]: true },
+    );
+    setExpandedSection((current) => (current === sectionName ? null : sectionName));
+  };
+
+  const sectionSummary = (sectionName: string, loading: boolean, count: number) => {
+    if (!loadedSections[sectionName]) return 'View';
+    if (loading) return 'Loading…';
+    return `${count} ${count === 1 ? 'item' : 'items'}`;
   };
 
   const handleDeleteGame = useCallback(async () => {
@@ -142,12 +159,17 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
       setIsChangingGame(false);
     }
   }, [gameToChange, addToast]);
+
+  const displayName = (selectedPlayer.fullName || selectedPlayer.username || 'Player').trim();
+  const handle = selectedPlayer.username?.trim() ?? '';
+  const showHandle = handle.length > 0 && handle.toLowerCase() !== displayName.toLowerCase();
+
   return (
     <div
-      className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/40 bg-muted/20 md:w-64 md:bg-gradient-to-b md:from-card md:to-card/50 lg:w-72`}
+      className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/50 bg-muted/[0.12] md:w-72 md:bg-gradient-to-b md:from-card md:to-card/60 lg:w-80`}
     >
       {/* Header — profile */}
-      <div className="shrink-0 border-b border-border/40 bg-card/90 px-3 pb-3 pt-2 backdrop-blur-sm md:px-2 md:pb-2 md:pt-2">
+      <div className="shrink-0 border-b border-border/50 bg-card/90 px-3 pb-3 pt-3 backdrop-blur-sm md:px-3 md:pb-3">
         <button
           type="button"
           onClick={() => setMobileView('chat')}
@@ -161,66 +183,58 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           <span className="text-sm font-medium">Back to chat</span>
         </button>
 
-        <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-2.5">
-          <div className="flex gap-3 md:gap-2">
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={onNavigateToPlayer}
-                className="relative flex h-14 w-14 items-center justify-center md:h-10 md:w-10"
-                title="Open full profile"
-              >
-                <PlayerAvatar
-                  avatarUrl={selectedPlayer.avatar}
-                  username={selectedPlayer.username}
-                  size={56}
-                  wrapperClassName="h-14 w-14 rounded-2xl ring-2 ring-white/30 md:h-10 md:w-10 md:rounded-lg dark:ring-white/10"
-                  className="text-lg md:text-xs"
-                />
-              </button>
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-card shadow-sm md:h-2 md:w-2 md:border-2 ${selectedPlayer.isOnline ? 'bg-primary' : 'bg-muted-foreground/60'}`}
-              />
-            </div>
+        <button
+          type="button"
+          onClick={onNavigateToPlayer}
+          title="Open full profile"
+          className="flex w-full items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-3 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
+          <span className="relative h-12 w-12 shrink-0">
+            <PlayerAvatar
+              avatarUrl={selectedPlayer.avatar}
+              username={selectedPlayer.username}
+              size={48}
+              wrapperClassName="rounded-2xl"
+              className="text-[15px]"
+            />
+            <span
+              className={`pointer-events-none absolute -bottom-px -right-px h-3 w-3 rounded-full border-2 border-card ${selectedPlayer.isOnline ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+              title={selectedPlayer.isOnline ? 'Online' : 'Offline'}
+            />
+          </span>
 
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <button
-                type="button"
-                onClick={onNavigateToPlayer}
-                className="flex w-full min-w-0 flex-col items-stretch gap-0.5 text-left"
-                title="Open full profile"
-              >
-                <span className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-sm font-semibold capitalize leading-tight text-foreground md:text-xs">
-                    {selectedPlayer.fullName || selectedPlayer.username}
-                  </span>
-                  {selectedPlayer.isIdentityVerified ? (
-                    <IdentityVerifiedTick size="md" />
-                  ) : null}
-                </span>
-                <span className="truncate text-sm font-normal leading-tight tracking-normal text-muted-foreground md:text-xs">
-                  @{selectedPlayer.username}
-                </span>
-              </button>
-              <p className="truncate text-xs leading-tight text-muted-foreground md:text-[10px]">
-                {selectedPlayer.email || 'No email on file'}
-              </p>
-            </div>
-          </div>
-        </div>
+          <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-sm font-semibold capitalize leading-5 tracking-tight text-foreground">
+                {displayName}
+              </span>
+              {selectedPlayer.isIdentityVerified ? (
+                <IdentityVerifiedTick />
+              ) : null}
+            </span>
+            {showHandle ? (
+              <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-muted-foreground">
+                @{handle}
+              </span>
+            ) : null}
+            <span className={`block truncate text-[11px] leading-4 ${showHandle ? 'mt-1.5' : 'mt-0.5'} ${selectedPlayer.email ? 'text-muted-foreground/80' : 'text-muted-foreground/50'}`}>
+              {selectedPlayer.email || 'No email on file'}
+            </span>
+          </span>
+        </button>
       </div>
 
-      <div className="min-h-0 flex-1 touch-pan-y space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] md:space-y-2 md:p-2 md:pb-2">
+      <div className="scrollbar-smooth min-h-0 flex-1 touch-pan-y space-y-3 overflow-y-auto overscroll-y-contain px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] md:space-y-2.5 md:p-3 md:pb-3">
         {/* Wallet */}
-        <section className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-lg md:p-2">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground md:mb-2">
+        <section className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm md:rounded-xl md:p-3">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground md:mb-2.5">
             Wallet
           </p>
           <div
             className={`grid gap-3 ${hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? 'grid-cols-2' : 'grid-cols-1'}`}
           >
             <div className="rounded-xl bg-blue-500/[0.07] p-3 ring-1 ring-blue-500/15 md:rounded-md md:p-1.5">
-              <div className="mb-1.5 flex items-center gap-1.5">
+              <div className="mb-2 flex items-center gap-1.5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15 md:h-5 md:w-5 md:rounded">
                   <svg className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -228,14 +242,14 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 </span>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Balance</span>
               </div>
-              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 md:text-sm">
+              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 md:text-[15px]">
                 {formatCurrency(selectedPlayer.balance || '0')}
               </p>
             </div>
 
             {hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? (
               <div className="rounded-xl bg-amber-500/[0.07] p-3 ring-1 ring-amber-500/15 md:rounded-md md:p-1.5">
-                <div className="mb-1.5 flex items-center gap-1.5">
+                <div className="mb-2 flex items-center gap-1.5">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 md:h-5 md:w-5 md:rounded">
                     <svg className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 md:h-3 md:w-3" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -243,31 +257,33 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   </span>
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Winnings</span>
                 </div>
-                <p className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-400 md:text-sm">
+                <p className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-400 md:text-[15px]">
                   {formatCurrency(selectedPlayer.winningBalance || '0')}
                 </p>
               </div>
             ) : null}
           </div>
           {selectedPlayer.cashoutLimit !== undefined && selectedPlayer.cashoutLimit !== '' ? (
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 md:mt-2 md:rounded-md md:px-2 md:py-1.5">
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 md:mt-3 md:rounded-lg md:px-2.5 md:py-2">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cashout limit</span>
               <p className="text-sm font-bold tabular-nums text-foreground md:text-xs">
                 {formatCurrency(selectedPlayer.cashoutLimit)}
               </p>
             </div>
           ) : null}
-          <PlayerRouletteSpinBalanceDisplay
-            playerId={selectedPlayer.user_id}
-            variant="inline"
-            refreshKey={spinBalanceRefreshKey}
-          />
+          {spinBalanceRefreshKey != null && spinBalanceRefreshKey > 0 ? (
+            <PlayerRouletteSpinBalanceDisplay
+              playerId={selectedPlayer.user_id}
+              variant="inline"
+              refreshKey={spinBalanceRefreshKey}
+            />
+          ) : null}
         </section>
 
         <div className="flex w-full flex-col gap-2">
           <Button
             variant="primary"
-            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-9 md:rounded-lg md:text-xs md:shadow-sm"
             onClick={onOpenEditBalance}
           >
             <svg className="mr-2 h-4 w-4 md:mr-1 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +293,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           </Button>
           <Button
             variant="primary"
-            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-9 md:rounded-lg md:text-xs md:shadow-sm"
             onClick={onOpenEditSpins}
           >
             <svg className="mr-2 h-4 w-4 md:mr-1 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -290,15 +306,15 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         </div>
 
         {/* Activity */}
-        <section className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm md:rounded-lg">
-          <div className="flex items-center gap-2.5 border-b border-border/40 bg-muted/30 px-4 py-3 md:px-3 md:py-2">
+        <section className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm md:rounded-xl">
+          <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/30 px-4 py-3 md:px-3 md:py-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 md:h-6 md:w-6 md:rounded-md">
               <svg className="h-5 w-5 text-violet-600 dark:text-violet-400 md:h-3.5 md:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
             <div>
-              <h4 className="text-sm font-semibold text-foreground md:text-xs">Activity</h4>
+              <h4 className="text-sm font-semibold text-foreground md:text-[13px]">Activity</h4>
               <p className="text-[11px] text-muted-foreground md:hidden">Purchases, cashouts &amp; games</p>
             </div>
           </div>
@@ -308,7 +324,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('purchases')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">
@@ -319,7 +335,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Purchases</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingPurchases ? 'Loading…' : `${purchases.length} ${purchases.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('purchases', isLoadingPurchases, purchases.length)}
                   </p>
                 </div>
               </div>
@@ -407,7 +423,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('cashouts')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">
@@ -418,7 +434,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Cashouts</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingCashouts ? 'Loading…' : `${cashouts.length} ${cashouts.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('cashouts', isLoadingCashouts, cashouts.length)}
                   </p>
                 </div>
               </div>
@@ -496,7 +512,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             <button
               type="button"
               onClick={() => toggleSection('activities')}
-              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-md md:p-2 md:hover:bg-muted/50"
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 md:min-h-0 md:rounded-lg md:p-2 md:hover:bg-muted/50"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted md:h-6 md:w-6 md:rounded-md">
@@ -507,7 +523,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <div className="min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground md:text-xs">Game activities</p>
                   <p className="text-xs text-muted-foreground md:text-[10px]">
-                    {isLoadingActivities ? 'Loading…' : `${activities.length} ${activities.length === 1 ? 'item' : 'items'}`}
+                    {sectionSummary('activities', isLoadingActivities, activities.length)}
                   </p>
                 </div>
               </div>

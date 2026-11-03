@@ -144,7 +144,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return requiresEntriesOnCompleteFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
 
-  const isRiversweepAddUser = useMemo(() => {
+  /** Riversweeps has no game password — skip password on add-user and reset complete. */
+  const isRiversweepGame = useMemo(() => {
     if (!queue) return false;
     return isRiversweepGameFromQueue(queue, matchedGame);
   }, [queue, matchedGame]);
@@ -324,12 +325,15 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         if (isAddUserType) {
           if (username?.trim()) data.game_username = username.trim();
           // Riversweep complete is username-only — omit game_password
-          if (!isRiversweepAddUser && password?.trim()) {
+          if (!isRiversweepGame && password?.trim()) {
             data.game_password = password.trim();
           }
         } else {
           if (username?.trim()) data.new_username = username.trim();
-          if (password?.trim()) data.new_password = password.trim();
+          // Riversweeps has no password — omit new_password on reset complete
+          if (!isRiversweepGame && password?.trim()) {
+            data.new_password = password.trim();
+          }
         }
         
         if (balance?.trim()) {
@@ -379,13 +383,18 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       return {
         balance: false,
         entries: false,
-        password: !isRiversweepAddUser,
+        password: !isRiversweepGame,
         username: true,
       };
     }
-    // For future types like change_password_game
+    // Password reset / change_password — Riversweeps has no password to collect
     if ((queue.type as string).includes('password')) {
-      return { balance: false, entries: false, password: true, username: false };
+      return {
+        balance: false,
+        entries: false,
+        password: !isRiversweepGame,
+        username: false,
+      };
     }
     return { balance: false, entries: false, password: false, username: false };
   };
@@ -644,9 +653,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 : queue.type === 'redeem_game'
                 ? 'Redeem Operation - Required Field'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? isRiversweepAddUser
+                ? isRiversweepGame
                   ? 'Create Game Account - Required Field'
                   : 'Create Game Account - Required Fields'
+                : isResetPassword && isRiversweepGame
+                ? 'Complete Operation'
                 : 'Complete Operation - Required Fields'}
             </h4>
             <p className="text-[10px] text-muted-foreground">
@@ -655,9 +666,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   ? 'Enter the new game balance and entries after manually completing the operation.'
                   : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
-                ? isRiversweepAddUser
+                ? isRiversweepGame
                   ? 'Enter the game username that was created.'
                   : 'Enter the game username and password that were created.'
+                : isResetPassword && isRiversweepGame
+                ? 'Riversweeps has no game password. You can complete this reset without entering one.'
                 : 'Enter the required information to complete this operation.'}
             </p>
           </div>

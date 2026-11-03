@@ -8,6 +8,11 @@ export interface ChatUser {
   isOnline: boolean;
   lastMessage?: string;
   lastMessageTime?: string;
+  /**
+   * Sidebar sort key. The visible clock can change when a thread is opened
+   * without this moving, so the selection highlight stays on the clicked row.
+   */
+  listOrderTime?: string;
   playerLastSeenAt?: string; // Timestamp of when player was last seen online
   balance?: string;
   /** Separate winnings bucket; omitted by admin chat list API (only balance / locked / cashout limit). */
@@ -22,6 +27,14 @@ export interface ChatUser {
   notes?: string;
   /** Identity / KYC verified — Meta-style blue tick in chat header when true. */
   isIdentityVerified?: boolean;
+  /**
+   * Server-computed: the chat's last human message is from the player and has
+   * not been answered by staff yet. Always trust this field — do not derive it
+   * from `lastMessageSenderId`, because system/auto messages would break it.
+   */
+  isUnreplied?: boolean;
+  /** Sender id of the last human (non-system) message, when the backend sends it. */
+  lastHumanMessageSenderId?: number | null;
 }
 
 export interface ChatMessageSender {

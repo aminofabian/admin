@@ -9,8 +9,10 @@ import { websocketManager, createFreshAuthenticatedWebSocketUrl, type WebSocketL
 import type { ChatUser } from '@/types';
 import {
   extractChatListServerCounts,
+  lastMessageFromListRow,
   ledgerStringOrUndefined,
   pickWinningBalanceFromBackend,
+  readOptionalBoolean,
 } from '@/lib/chat/map-chat-api';
 import { pickChatroomIdFromRow, resolveSafeChatroomId } from '@/lib/chat/safe-chatroom-id';
 
@@ -27,15 +29,29 @@ interface UseOnlinePlayersParams {
   enabled?: boolean;
 }
 
+export interface OnlinePlayersSnapshot {
+  players: ChatUser[];
+  /** `counts.online_players_count` from this response. Null when the payload omitted it. */
+  onlinePlayersCount: number | null;
+}
+
 interface UseOnlinePlayersReturn {
   onlinePlayers: ChatUser[];
   /** From `/api/chat-online-players` `counts.online_players_count` when the backend sends it. */
   onlinePlayersTotalCount: number | null;
   /** From `/api/chat-online-players` `counts.all_players_count` when the backend sends it. */
   allPlayersTotalCount: number | null;
+  /** From `/api/chat-online-players` `counts.unreplied_players_count` when the backend sends it. */
+  unrepliedPlayersTotalCount: number | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  /**
+   * Fresh online snapshot. `commit: false` returns it without replacing the
+   * list, so a lagging response can be discarded.
+   */
+  refetch: (options?: { commit?: boolean }) => Promise<OnlinePlayersSnapshot | undefined>;
+  /** Replace the REST online list. Used once a silent refetch has been trusted. */
+  applyOnlinePlayers: (players: ChatUser[]) => void;
   isConnected: boolean; // WebSocket connection status
 }
 
@@ -63,7 +79,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
       email: String(data.player_email || ''),
       avatar: data.player_profile_pic ? String(data.player_profile_pic) : undefined,
       isOnline: true,
-      lastMessage: data.last_message ? String(data.last_message) : undefined,
+      lastMessage: lastMessageFromListRow(data as Record<string, unknown>),
       lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
       ...pickWinningBalanceFromBackend(data as Record<string, unknown>),
@@ -101,7 +117,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
     email: String(player.email || ''),
     avatar: (player.profile_pic || player.profile_image || player.avatar) ? String(player.profile_pic || player.profile_image || player.avatar) : undefined,
     isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true,
-    lastMessage: data.last_message ? String(data.last_message) : undefined,
+    lastMessage: lastMessageFromListRow(data as Record<string, unknown>),
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
@@ -138,6 +154,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   const [onlinePlayers, setOnlinePlayers] = useState<ChatUser[]>([]);
   const [onlinePlayersTotalCount, setOnlinePlayersTotalCount] = useState<number | null>(null);
   const [allPlayersTotalCount, setAllPlayersTotalCount] = useState<number | null>(null);
+  const [unrepliedPlayersTotalCount, setUnrepliedPlayersTotalCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -153,6 +170,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     timestamp: number;
     onlinePlayersTotalCount: number | null;
     allPlayersTotalCount: number | null;
+    unrepliedPlayersTotalCount: number | null;
   } | null>(null);
   const isMountedRef = useRef(true);
 
@@ -169,11 +187,18 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   /** Debounce handle for the "a player came online" background refetch. */
   const onlineRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const commitOnlinePlayers = useCallback((players: ChatUser[]) => {
+    setOnlinePlayers(players);
+    onlinePlayerIdsRef.current = new Set(
+      players.map((player) => player.user_id).filter((id) => Number.isFinite(id) && id > 0),
+    );
+  }, []);
+
   /**
    * Fetch online players from REST API
    *  PERFORMANCE: Cached for 2 minutes
    */
-  const fetchFromApi = useCallback(async (forceRefresh = false): Promise<ChatUser[]> => {
+  const fetchFromApi = useCallback(async (forceRefresh = false, writeCache = true): Promise<OnlinePlayersSnapshot> => {
     const now = Date.now();
 
     // Check cache first (unless force refresh)
@@ -185,7 +210,13 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       if (cacheRef.current.allPlayersTotalCount != null) {
         setAllPlayersTotalCount(cacheRef.current.allPlayersTotalCount);
       }
-      return cacheRef.current.data;
+      if (cacheRef.current.unrepliedPlayersTotalCount != null) {
+        setUnrepliedPlayersTotalCount(cacheRef.current.unrepliedPlayersTotalCount);
+      }
+      return {
+        players: cacheRef.current.data,
+        onlinePlayersCount: cacheRef.current.onlinePlayersTotalCount,
+      };
     }
 
     try {
@@ -210,6 +241,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
       if (serverCounts.allPlayersCount != null) {
         setAllPlayersTotalCount(serverCounts.allPlayersCount);
+      }
+      if (serverCounts.unrepliedPlayersCount != null) {
+        setUnrepliedPlayersTotalCount(serverCounts.unrepliedPlayersCount);
       }
       !IS_PROD && console.log('📊 [Online Players] API response structure:', {
         hasChats: !!data.chats,
@@ -324,19 +358,21 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         }
       }
 
-      // Update cache
-      cacheRef.current = {
-        data: transformedPlayers,
-        timestamp: now,
-        onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
-        allPlayersTotalCount: serverCounts.allPlayersCount,
-      };
-      onlinePlayerIdsRef.current = new Set(
-        transformedPlayers.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
-      );
+      if (writeCache) {
+        cacheRef.current = {
+          data: transformedPlayers,
+          timestamp: now,
+          onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
+          allPlayersTotalCount: serverCounts.allPlayersCount,
+          unrepliedPlayersTotalCount: serverCounts.unrepliedPlayersCount,
+        };
+      }
 
       !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
-      return transformedPlayers;
+      return {
+        players: transformedPlayers,
+        onlinePlayersCount: serverCounts.onlinePlayersCount,
+      };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
       console.error('❌ [Online Players] API error:', errorMessage);
@@ -355,11 +391,16 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     if (onlineRefreshTimerRef.current) return;
     onlineRefreshTimerRef.current = setTimeout(() => {
       onlineRefreshTimerRef.current = null;
-      void fetchFromApi(true).catch((err) => {
-        console.error('❌ [Online Players] Background refresh failed:', err);
-      });
+      void fetchFromApi(true)
+        .then((snapshot) => {
+          if (!isMountedRef.current) return;
+          commitOnlinePlayers(snapshot.players);
+        })
+        .catch((err) => {
+          console.error('❌ [Online Players] Background refresh failed:', err);
+        });
     }, ONLINE_REFRESH_DELAY);
-  }, [fetchFromApi]);
+  }, [fetchFromApi, commitOnlinePlayers]);
 
   useEffect(() => {
     return () => {
@@ -401,8 +442,21 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
             //  PERFORMANCE: Only process live_status messages for online players
             if (messageType === 'live_status') {
-              const playerId = Number(messageData.player_id || messageWrapper?.player_id);
-              const isActive = Boolean(messageData.is_active ?? messageWrapper?.is_active);
+              const wrapper =
+                messageWrapper && typeof messageWrapper === 'object' && !Array.isArray(messageWrapper)
+                  ? messageWrapper
+                  : undefined;
+              const playerId = Number(
+                messageData.player_id ?? messageData.user_id ?? wrapper?.player_id ?? wrapper?.user_id,
+              );
+              const isActive =
+                readOptionalBoolean(messageData, 'is_active') ??
+                readOptionalBoolean(messageData, 'is_online') ??
+                readOptionalBoolean(wrapper, 'is_active') ??
+                readOptionalBoolean(wrapper, 'is_online');
+              if (!Number.isFinite(playerId) || playerId <= 0 || isActive === undefined) {
+                return;
+              }
 
               !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
@@ -542,31 +596,34 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   /**
    * Fetch/refresh online players
    */
-  const refetch = useCallback(async () => {
-    if (!effectiveEnabled) return;
+  const refetch = useCallback(async (options?: { commit?: boolean }): Promise<OnlinePlayersSnapshot | undefined> => {
+    if (!effectiveEnabled) return undefined;
 
-    setIsLoading(true);
-    setError(null);
+    const commit = options?.commit !== false;
+    if (commit) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
-      const players = await fetchFromApi(true); // Force refresh
-      if (isMountedRef.current) {
-        setOnlinePlayers(players);
-        onlinePlayerIdsRef.current = new Set(
-          players.map((p) => p.user_id).filter((id) => Number.isFinite(id)),
-        );
+      // A silent refetch must not cache or publish a snapshot the caller may discard.
+      const snapshot = await fetchFromApi(true, commit);
+      if (commit && isMountedRef.current) {
+        commitOnlinePlayers(snapshot.players);
       }
+      return snapshot;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
-      if (isMountedRef.current) {
+      if (commit && isMountedRef.current) {
         setError(errorMessage);
       }
+      return undefined;
     } finally {
-      if (isMountedRef.current) {
+      if (commit && isMountedRef.current) {
         setIsLoading(false);
       }
     }
-  }, [effectiveEnabled, fetchFromApi]);
+  }, [effectiveEnabled, fetchFromApi, commitOnlinePlayers]);
 
   /**
    * Initial load and periodic refresh
@@ -578,9 +635,9 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     (async () => {
       setIsLoading(true);
       try {
-        const players = await fetchFromApi(false);
+        const snapshot = await fetchFromApi(false);
         if (isMountedRef.current) {
-          setOnlinePlayers(players);
+          commitOnlinePlayers(snapshot.players);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
@@ -600,7 +657,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     return () => {
       disconnectWebSocket();
     };
-  }, [enabled, adminId, fetchFromApi]);
+  }, [enabled, adminId, fetchFromApi, commitOnlinePlayers]);
 
   /**
    * WebSocket connection management
@@ -631,9 +688,11 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     onlinePlayers,
     onlinePlayersTotalCount,
     allPlayersTotalCount,
+    unrepliedPlayersTotalCount,
     isLoading,
     error,
     refetch,
+    applyOnlinePlayers: commitOnlinePlayers,
     isConnected,
   };
 }

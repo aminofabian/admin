@@ -1,0 +1,918 @@
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { vi, describe, expect, it, beforeEach, afterEach } from 'vitest';
+
+/**
+ * Behavioural coverage for the chat-list WebSocket contract.
+ *
+ * These are the "done when" cases from the Unreplied handoff. The pure list
+ * helpers are covered separately; this file exercises the event dispatch in
+ * `useChatUsers`, where an early return or a mis-ordered branch can silently
+ * drop the server's `is_unreplied` flag. The last case covers the manual
+ * refresh contract: the directory cache must only be bypassed on demand.
+ */
+
+const { captured } = vi.hoisted(() => ({
+  captured: [] as Array<{ listeners: { onMessage: (payload: unknown) => void } }>,
+}));
+
+vi.mock('@/lib/websocket-manager', () => ({
+  websocketManager: {
+    connect: (_opts: unknown, listeners: unknown) => {
+      captured.push({
+        listeners: listeners as { onMessage: (payload: unknown) => void },
+      });
+    },
+    disconnect: vi.fn(),
+  },
+  createFreshAuthenticatedWebSocketUrl: async () => 'wss://test/ws/chatlist/',
+}));
+
+vi.mock('@/providers/auth-provider', () => ({
+  useAuth: () => ({ user: { role: 'admin' } }),
+}));
+
+import { useChatUsers } from '../use-chat-users';
+
+function send(payload: Record<string, unknown>) {
+  act(() => {
+    captured[captured.length - 1].listeners.onMessage(payload);
+  });
+}
+
+async function mount() {
+  const rendered = renderHook(() => useChatUsers({ adminId: 1 }));
+  await waitFor(() => expect(captured.length).toBeGreaterThan(0));
+  return rendered;
+}
+
+const onlineRow = (overrides: Record<string, unknown> = {}) => ({
+  chat_id: 57,
+  user_id: 67,
+  username: 'testme7',
+  is_online: true,
+  ...overrides,
+});
+
+describe('useChatUsers — chat-list socket contract', () => {
+  beforeEach(() => {
+    captured.length = 0;
+  });
+
+  it('seeds Online and Unreplied from add_new_chats', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow()],
+      unreplied: [onlineRow({ is_unreplied: true })],
+    });
+
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('drops socket online rows a manual refresh snapshot no longer includes', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+    });
+
+    act(() => {
+      result.current.retainOnlineChats([67]);
+    });
+
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('keeps the badges on the counts add_new_chats and re_arrange send', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow()],
+      counts: {
+        online_players_count: 2,
+        all_players_count: 74,
+        unreplied_players_count: 3,
+      },
+    });
+
+    expect(result.current.socketChatCounts).toEqual({
+      onlinePlayersCount: 2,
+      allPlayersCount: 74,
+      unrepliedPlayersCount: 3,
+    });
+    expect(result.current.onlineChats).toHaveLength(1);
+
+    send({
+      type: 're_arrange',
+      chat_id: 57,
+      user_id: 67,
+      username: 'testme7',
+      is_online: false,
+      counts: {
+        online_players_count: 0,
+        all_players_count: 74,
+        unreplied_players_count: 3,
+      },
+      online_players_count: 0,
+      all_players_count: 74,
+      unreplied_players_count: 3,
+    });
+
+    expect(result.current.socketChatCounts).toEqual({
+      onlinePlayersCount: 0,
+      allPlayersCount: 74,
+      unrepliedPlayersCount: 3,
+    });
+    expect(result.current.onlineChats).toHaveLength(0);
+  });
+
+  it('adds a player who comes online when the chat has no new message', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 're_arrange',
+      chat_id: 57,
+      user_id: 67,
+      username: 'came-online',
+      is_online: true,
+      unread_messages_count: 0,
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+
+    expect(result.current.socketChatCounts.onlinePlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.onlineChats[0].isOnline).toBe(true);
+    expect(result.current.users).toEqual([]);
+  });
+
+  it('adds a player when is_online and user_id sit beside a wrapped re_arrange', async () => {
+    const { result } = await mount();
+
+    send({
+      user_id: 67,
+      username: 'came-online',
+      is_online: true,
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+      message: {
+        type: 're_arrange',
+        chat_id: 57,
+      },
+    });
+
+    expect(result.current.socketChatCounts.onlinePlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.onlineChats[0].username).toBe('came-online');
+    expect(result.current.onlineChats[0].isOnline).toBe(true);
+  });
+
+  it('removes an online chat when live_status says the player went offline', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+      counts: {
+        online_players_count: 2,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+
+    send({
+      type: 're_arrange',
+      chat_id: 57,
+      user_id: 67,
+      username: 'testme7',
+      is_online: true,
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 0,
+      },
+    });
+    send({ type: 'live_status', player_id: 68, is_active: false });
+
+    expect(result.current.socketChatCounts.onlinePlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.socketOfflineUserIds).toContain(68);
+  });
+
+  it('removes an online chat when live_status uses user_id and is_online', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow(),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'left' }),
+      ],
+    });
+
+    send({ type: 'live_status', user_id: 68, is_online: false });
+
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([67]);
+    expect(result.current.socketOfflineUserIds).toContain(68);
+  });
+
+  it('adds a chat when live_status names the player who came online', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'live_status',
+      user_id: 68,
+      username: 'came-online',
+      chat_id: 58,
+      is_online: true,
+    });
+
+    expect(result.current.onlineChats.map((chat) => chat.user_id)).toEqual([68]);
+    expect(result.current.onlineChats[0].username).toBe('came-online');
+    expect(result.current.onlineChats[0].isOnline).toBe(true);
+    expect(result.current.protectedOnlineUserIds()).toContain(68);
+  });
+
+  it('remembers a player who came online with only an id, without a blank chat', async () => {
+    const { result } = await mount();
+
+    send({ type: 'live_status', player_id: 68, is_active: true });
+
+    expect(result.current.onlineChats).toEqual([]);
+    expect(result.current.protectedOnlineUserIds()).toContain(68);
+  });
+
+  it('reads counts from the outer frame when re_arrange is wrapped in message', async () => {
+    const { result } = await mount();
+
+    send({
+      counts: {
+        online_players_count: 1,
+        all_players_count: 74,
+        unreplied_players_count: 4,
+      },
+      online_players_count: 1,
+      all_players_count: 74,
+      unreplied_players_count: 4,
+      message: {
+        type: 're_arrange',
+        chat_id: 57,
+        user_id: 67,
+        username: 'testme7',
+        is_online: true,
+      },
+    });
+
+    expect(result.current.socketChatCounts).toEqual({
+      onlinePlayersCount: 1,
+      allPlayersCount: 74,
+      unrepliedPlayersCount: 4,
+    });
+  });
+
+  it('does not let a recent-chat window replace the unreplied total', async () => {
+    const { result } = await mount();
+
+    // Live `/ws/chatlist/` connect payload: 50 recent chats, no is_unreplied.
+    send({
+      message: {
+        type: 'add_new_chats',
+        chats: [
+          onlineRow({ is_online: false }),
+          onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_online: false }),
+        ],
+      },
+    });
+
+    expect(result.current.unrepliedListLive).toBe(false);
+    expect(result.current.unrepliedChats).toHaveLength(0);
+    expect(result.current.chatListUnrepliedPlayersCount).toBeNull();
+    expect(result.current.onlineChats).toHaveLength(0);
+
+    // An explicit is_unreplied event owns the badge from here. The number is
+    // the socket list, not the HTTP unreplied_players_count.
+    send({
+      type: 're_arrange',
+      ...onlineRow(),
+      is_unreplied: true,
+      is_online: true,
+    });
+
+    expect(result.current.unrepliedListLive).toBe(true);
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('keeps the seed when the legacy recent list is also present', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow(), onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+      unreplied: [onlineRow({ is_unreplied: true })],
+      // Legacy list is partial and carries no is_unreplied flag.
+      chats: [onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+    expect(result.current.onlineChats.map((c) => c.user_id).sort()).toEqual([67, 68]);
+  });
+
+  it('upserts, re-orders and removes from Unreplied on re_arrange', async () => {
+    const { result } = await mount();
+
+    send({ type: 're_arrange', ...onlineRow({ last_message_timestamp: '2026-10-25T10:00:00Z' }), is_unreplied: true });
+    send({ type: 're_arrange', ...onlineRow({ chat_id: 58, user_id: 68, last_message_timestamp: '2026-10-25T10:05:00Z' }), is_unreplied: true });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68, 67]);
+
+    // A newer message from 67 moves it back to the top.
+    send({ type: 're_arrange', ...onlineRow({ last_message_timestamp: '2026-10-25T10:10:00Z', unread_messages_count: 2 }), is_unreplied: true, last_message: 'again' });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67, 68]);
+
+    // Staff reply clears the flag and the row leaves the tab.
+    send({ type: 're_arrange', ...onlineRow(), is_unreplied: false });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+  });
+
+  it('drops a staff reply from Unreplied once, even if the socket confirms later', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow(), onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    act(() => {
+      result.current.acknowledgeStaffReply(67);
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+    // Still online — a reply does not imply offline.
+    expect(result.current.onlineChats.map((c) => c.user_id).sort()).toEqual([67, 68]);
+
+    // The confirming re_arrange must not decrement again.
+    send({ type: 're_arrange', ...onlineRow(), is_unreplied: false, is_online: true });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+
+    // Another agent replying clears the remaining row the same way.
+    send({
+      type: 're_arrange',
+      ...onlineRow({ chat_id: 58, user_id: 68 }),
+      is_unreplied: false,
+      is_online: true,
+    });
+    expect(result.current.unrepliedChats).toHaveLength(0);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(0);
+    expect(result.current.onlineChats.map((c) => c.user_id).sort()).toEqual([67, 68]);
+  });
+
+  it('keeps Unreplied stable when the All Players directory is fetched', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          player: [
+            {
+              id: 99,
+              chatroom_id: 90,
+              username: 'directory-only',
+              is_unreplied: true,
+              is_online: false,
+            },
+          ],
+          counts: {
+            unreplied_players_count: 0,
+            online_players_count: 1,
+            all_players_count: 1,
+          },
+          pagination: { page: 1, total_pages: 1, has_next: false },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    const before = result.current.unrepliedChats.map((c) => c.user_id);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    await act(async () => {
+      await result.current.fetchAllPlayers({ force: true });
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual(before);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+    expect(result.current.allPlayers.map((p) => p.user_id)).toEqual([99]);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('remembers a socket offline so Online membership can drop them', async () => {
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow(), onlineRow({ chat_id: 58, user_id: 68, username: 'other' })],
+    });
+
+    send({ type: 're_arrange', ...onlineRow(), is_online: false });
+
+    expect(result.current.onlineChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.socketOfflineUserIds).toEqual([67]);
+  });
+
+  it('keeps Unreplied list and badge count atomic on reply', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'other', is_unreplied: true }),
+      ],
+    });
+
+    expect(result.current.unrepliedListLive).toBe(true);
+    expect(result.current.unrepliedChats).toHaveLength(2);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    send({ type: 're_arrange', ...onlineRow(), is_unreplied: false });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(1);
+  });
+
+  it('does not wipe a REST unreplied seed with an empty socket unreplied array', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 8,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
+      67, 68,
+    ]);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    // Empty unreplied before a real socket seed must not flash the badge to 0.
+    send({ type: 'add_new_chats', online: [], unreplied: [] });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id).sort()).toEqual([
+      67, 68,
+    ]);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('moves the REST unreplied total when a seeded row is replied to', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 8,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(8);
+    expect(result.current.unrepliedListLive).toBe(false);
+
+    act(() => {
+      result.current.acknowledgeStaffReply(67);
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68]);
+    // Two of eight were on screen. Replying to one of them is 7, not 1.
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(7);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('adds one when a new unreplied player arrives after the seeded set is complete', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'seeded',
+                is_unreplied: true,
+                is_online: false,
+              },
+              {
+                id: 68,
+                chatroom_id: 58,
+                username: 'seeded2',
+                is_unreplied: true,
+                is_online: false,
+              },
+            ],
+            counts: {
+              unreplied_players_count: 2,
+              online_players_count: 0,
+              all_players_count: 2,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+    await act(async () => {
+      await result.current.seedUnrepliedFromRest();
+    });
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(2);
+
+    send({
+      type: 're_arrange',
+      ...onlineRow({ chat_id: 59, user_id: 69, username: 'fresh' }),
+      is_unreplied: true,
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toContain(69);
+    expect(result.current.chatListUnrepliedPlayersCount).toBe(3);
+    expect(result.current.unrepliedListLive).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('applies re_arrange even when it carries a top-level balance', async () => {
+    const { result } = await mount();
+
+    send({ type: 're_arrange', ...onlineRow(), balance: 100, is_unreplied: true });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+    expect(result.current.unrepliedChats[0].balance).toBe('100');
+  });
+
+  it('accepts re_arrange nested under message', async () => {
+    const { result } = await mount();
+
+    send({ message: { type: 're_arrange', ...onlineRow(), is_unreplied: true } });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('does not clear Unreplied on a bare message event', async () => {
+    const { result } = await mount();
+    send({ type: 'add_new_chats', unreplied: [onlineRow({ is_unreplied: true })] });
+
+    send({ type: 'message', player_id: 67, message: 'system notice' });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('clears the unread badge on a read receipt without leaving Unreplied', async () => {
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow({ unread_messages_count: 3 })],
+      unreplied: [onlineRow({ unread_messages_count: 3, is_unreplied: true })],
+    });
+
+    send({ type: 'mark_message_as_read', chat_id: 57 });
+
+    expect(result.current.unrepliedChats.map((c) => c.unreadCount)).toEqual([0]);
+    expect(result.current.onlineChats.map((c) => c.unreadCount)).toEqual([0]);
+    // Membership survives: only a human reply clears Unreplied.
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67]);
+  });
+
+  it('keeps list order on a read receipt but still surfaces a new message', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ chat_id: 57, user_id: 67, username: 'newer', last_message_timestamp: '2026-10-25T10:32:00Z', is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'older', last_message_timestamp: '2026-10-25T10:21:00Z', is_unreplied: true }),
+      ],
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67, 68]);
+
+    // Opening the older chat marks it read; the server re-announces it with an
+    // unchanged last-message time. The row must not jump under the cursor.
+    send({
+      type: 're_arrange',
+      chat_id: 58,
+      user_id: 68,
+      username: 'older',
+      last_message_timestamp: '2026-10-25T10:21:00Z',
+      unread_messages_count: 0,
+      is_unreplied: true,
+      is_online: true,
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67, 68]);
+    expect(result.current.unrepliedChats[1].unreadCount).toBe(0);
+
+    // A genuinely newer message still sorts to the top.
+    send({
+      type: 're_arrange',
+      chat_id: 58,
+      user_id: 68,
+      username: 'older',
+      last_message: 'new one',
+      last_message_timestamp: '2026-10-25T10:40:00Z',
+      unread_messages_count: 1,
+      is_unreplied: true,
+      is_online: true,
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([68, 67]);
+  });
+
+  it('does not reorder when a read receipt re-sends the same message with a bumped time', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      unreplied: [
+        onlineRow({ chat_id: 57, user_id: 67, username: 'newer', last_message: 'hello', last_message_timestamp: '2026-10-25T10:32:00Z', is_unreplied: true }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'older', last_message: 'older text', last_message_timestamp: '2026-10-25T10:21:00Z', is_unreplied: true }),
+      ],
+    });
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67, 68]);
+
+    send({
+      type: 're_arrange',
+      chat_id: 58,
+      user_id: 68,
+      username: 'older',
+      last_message: 'older text',
+      last_message_timestamp: '2026-10-25T10:26:00Z',
+      unread_messages_count: 0,
+      is_unreplied: true,
+    });
+
+    expect(result.current.unrepliedChats.map((c) => c.user_id)).toEqual([67, 68]);
+  });
+
+  it('updates the preview without reordering when the open chat reports a message', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow({ chat_id: 57, user_id: 67, username: 'newer', last_message_timestamp: '2026-10-25T10:32:00Z' }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'older', last_message_timestamp: '2026-10-25T10:21:00Z' }),
+      ],
+    });
+    expect(result.current.users.map((c) => c.user_id)).toEqual([67, 68]);
+
+    act(() => {
+      result.current.updateChatLastMessage(68, '58', 'fresh reply', '2026-10-25T10:59:00Z');
+    });
+
+    expect(result.current.users.map((c) => c.user_id)).toEqual([67, 68]);
+    expect(result.current.users[1].lastMessage).toBe('fresh reply');
+  });
+
+  it('does not paint another player when the chat id belongs to them', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow({
+          chat_id: 57,
+          user_id: 67,
+          username: 'alpha',
+          last_message: 'alpha message',
+          last_message_timestamp: '2026-10-25T10:32:00Z',
+        }),
+        onlineRow({
+          chat_id: 58,
+          user_id: 68,
+          username: 'beta',
+          last_message: 'beta message',
+          last_message_timestamp: '2026-10-25T10:21:00Z',
+        }),
+      ],
+    });
+
+    act(() => {
+      result.current.updateChatLastMessage(
+        68,
+        '57',
+        'from the other thread',
+        '2026-10-25T11:00:00Z',
+      );
+    });
+
+    const alpha = result.current.users.find((chat) => chat.user_id === 67);
+    const beta = result.current.users.find((chat) => chat.user_id === 68);
+    expect(alpha?.lastMessage).toBe('alpha message');
+    expect(alpha?.lastMessageTime).toBe('2026-10-25T10:32:00Z');
+    expect(beta?.lastMessage).toBe('from the other thread');
+    expect(beta?.lastMessageTime).toBe('2026-10-25T11:00:00Z');
+  });
+
+  it('does not reorder when a read receipt arrives as update_chat', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow({ chat_id: 57, user_id: 67, username: 'newer', last_message: 'newer text', last_message_timestamp: '2026-10-25T10:32:00Z' }),
+        onlineRow({ chat_id: 58, user_id: 68, username: 'older', last_message: 'older text', last_message_timestamp: '2026-10-25T10:21:00Z' }),
+      ],
+    });
+    expect(result.current.users.map((c) => c.user_id)).toEqual([67, 68]);
+
+    // Read receipt: the last message is echoed back with no new timestamp.
+    send({
+      type: 'update_chat',
+      chat_id: 58,
+      user_id: 68,
+      last_message: 'older text',
+      unread_messages_count: 0,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
+
+    expect(result.current.users.map((c) => c.user_id)).toEqual([67, 68]);
+    expect(result.current.users[1].unreadCount).toBe(0);
+  });
+
+  it('moves a row to the top when update_chat carries a newer message', async () => {
+    const { result } = await mount();
+
+    send({
+      type: 'add_new_chats',
+      online: [
+        onlineRow({ chat_id: 58, user_id: 68, username: 'older', last_message_timestamp: '2026-10-25T10:20:00Z' }),
+        onlineRow({ chat_id: 57, user_id: 67, username: 'newer', last_message_timestamp: '2026-10-25T10:10:00Z' }),
+      ],
+    });
+    expect(result.current.users.map((c) => c.user_id)).toEqual([68, 67]);
+
+    send({
+      type: 'update_chat',
+      chat_id: 57,
+      user_id: 67,
+      last_message: 'brand new',
+      last_message_timestamp: '2026-10-25T10:40:00Z',
+      unread_messages_count: 1,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
+
+    expect(result.current.users.map((c) => c.user_id)).toEqual([67, 68]);
+    expect(result.current.users[0].lastMessage).toBe('brand new');
+  });
+
+  it('removes a chat from every list on remove_chat_from_list', async () => {
+    const { result } = await mount();
+    send({
+      type: 'add_new_chats',
+      online: [onlineRow()],
+      unreplied: [onlineRow({ is_unreplied: true })],
+    });
+
+    send({ type: 'remove_chat_from_list', chat_id: 57, user_id: 67 });
+
+    expect(result.current.onlineChats).toHaveLength(0);
+    expect(result.current.unrepliedChats).toHaveLength(0);
+    expect(result.current.users).toHaveLength(0);
+  });
+});
+
+describe('useChatUsers — directory refresh', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('serves the cache for a tab open and bypasses it for a manual refresh', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            player: [
+              {
+                id: 67,
+                chatroom_id: 57,
+                username: 'testme7',
+                is_online: true,
+                unread_messages_count: 0,
+              },
+            ],
+            pagination: { page: 1, total_pages: 1, has_next: false },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = await mount();
+
+    // Tab open: one directory request. Unreplied is no longer seeded on mount.
+    await act(async () => {
+      await result.current.fetchAllPlayers();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current.allPlayers.map((p) => p.user_id)).toEqual([67]);
+
+    // Opening another tab back within the TTL is served from the cache.
+    await act(async () => {
+      await result.current.fetchAllPlayers();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Manual refresh must hit the network.
+    await act(async () => {
+      await result.current.fetchAllPlayers({ force: true });
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});

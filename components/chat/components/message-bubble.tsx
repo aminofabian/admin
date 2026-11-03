@@ -141,11 +141,11 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      className={`flex w-full min-w-0 ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'} ${isDissipating ? 'chat-message-dissipate' : ''}`}
+      className={`flex w-full min-w-0 ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1.5' : 'mt-5'} ${isDissipating ? 'chat-message-dissipate' : ''}`}
       aria-hidden={isDissipating || undefined}
     >
       <div
-        className={`relative flex min-w-0 max-w-[85%] items-end gap-2 md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
+        className={`relative flex min-w-0 max-w-[88%] items-end gap-2 md:max-w-[72%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
       >
         {showAvatar ? (
           <PlayerAvatar
@@ -201,10 +201,10 @@ export const MessageBubble = memo(function MessageBubble({
           )}
 
           <div
-            className={`relative min-w-0 max-w-full overflow-hidden rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 transition-[box-shadow,ring] duration-200 ${isAdmin
-              ? 'bg-card/95 backdrop-blur-sm border border-border/50 text-foreground shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]'
-              : 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20'
-              } ${isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
+            className={`relative min-w-0 max-w-full overflow-hidden rounded-2xl px-3.5 py-2.5 transition-[box-shadow,ring] duration-200 md:px-4 md:py-3 ${isAdmin
+              ? 'border border-border/60 bg-card text-foreground shadow-sm shadow-slate-900/[0.04] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]'
+              : 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/20'
+              } ${isAdmin ? 'rounded-br-md' : 'rounded-bl-md'
               } ${message.isPinned ? 'ring-2 ring-amber-400/50' : ''
               } ${isEditing ? 'w-[min(420px,100%)] ring-2 ring-primary/25' : ''
               } ${moderation === 'confirmingDelete' ? 'ring-1 ring-red-400/35' : ''}`}
@@ -620,25 +620,25 @@ function MessageMeta({ message, isAdmin }: {
   const senderName = message.sentBy?.username || message.sentBy?.fullName;
 
   return (
-    <div className={`flex items-center gap-1.5 mt-1 px-1 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+    <div className={`mt-1 flex items-center gap-1.5 px-1 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
       {isAdmin && senderName && (
-        <span className="text-[10px] md:text-xs text-primary/70 font-medium capitalize">
+        <span className="text-[10px] font-medium capitalize text-primary/80 md:text-[11px]">
           {senderName}
         </span>
       )}
       {isAdmin && senderName && (
         <span className="text-muted-foreground/30">&bull;</span>
       )}
-      <span className="text-[9px] md:text-[10px] text-muted-foreground font-medium">
+      <span className="text-[10px] font-medium tabular-nums text-muted-foreground md:text-[11px]">
         {message.time || message.timestamp}
       </span>
       {message.renderAsText && (
-        <span className="text-[9px] md:text-[10px] italic text-muted-foreground/80">
+        <span className="text-[10px] italic text-muted-foreground/80 md:text-[11px]">
           Edited
         </span>
       )}
       {message.isPinned && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
           <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
             <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
           </svg>

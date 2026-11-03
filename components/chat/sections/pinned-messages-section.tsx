@@ -43,17 +43,17 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
   if (pinnedMessages.length === 0) return null;
 
   return (
-    <div className="relative z-20 shrink-0 border-b border-border/40 bg-amber-500/5 backdrop-blur-sm">
+    <div className="relative z-20 shrink-0 border-b border-amber-500/20 bg-amber-500/[0.06] backdrop-blur-sm">
       {/* Collapsible Header */}
       <button
         onClick={onToggleExpanded}
-        className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-amber-500/10 transition-colors duration-200"
+        className="flex w-full items-center justify-between gap-2 px-4 py-1.5 transition-colors duration-200 hover:bg-amber-500/10"
       >
         <div className="flex items-center gap-2">
           <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
             <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
           </svg>
-          <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
             PINNED MESSAGES ({pinnedMessages.length})
           </span>
         </div>
@@ -71,16 +71,16 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
       
       {/* Expandable Content */}
       {isExpanded && (
-        <div className="px-4 pb-2 space-y-2 max-h-32 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+        <div className="max-h-28 space-y-1 overflow-y-auto px-3 pb-2 animate-in slide-in-from-top-2 duration-200">
           {pinnedMessages.map((msg) => {
             const isPinning = pendingPinMessageId === msg.id;
             return (
               <div 
                 key={msg.id} 
-                className="flex min-w-0 w-full items-start gap-2 justify-start"
+                className="flex w-full min-w-0 items-center gap-1.5"
               >
                 <div 
-                  className="min-w-0 max-w-[85%] flex-1 rounded-xl border border-border/40 bg-card/95 p-2.5 text-xs text-foreground shadow-sm backdrop-blur-sm"
+                  className="min-w-0 flex-1 rounded-lg border border-amber-500/20 bg-card px-2.5 py-1.5 text-[11.5px] leading-snug text-foreground shadow-sm"
                 >
                   <div className="flex items-start gap-2">
                     {/* Visual indicator bar */}
@@ -88,7 +88,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                       className="w-1 rounded-full shrink-0 bg-amber-500/60"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="line-clamp-2 min-w-0 break-words text-foreground [overflow-wrap:anywhere]">
+                      <p className="line-clamp-1 min-w-0 break-words text-foreground [overflow-wrap:anywhere]">
                         {msg.renderAsText ? (
                           msg.text
                         ) : (() => {
@@ -108,7 +108,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                           );
                         })()}
                       </p>
-                      <p className="text-[9px] mt-1.5 text-muted-foreground">
+                      <p className="mt-0.5 text-[9.5px] tabular-nums text-muted-foreground">
                         {msg.time || msg.timestamp}
                       </p>
                     </div>

@@ -3,6 +3,7 @@ export * from './button';
 export * from './card';
 export * from './confirm-modal';
 export * from './date-select';
+export * from './date-range-picker';
 export * from './drawer';
 export * from './dropdown-menu';
 export * from './input';

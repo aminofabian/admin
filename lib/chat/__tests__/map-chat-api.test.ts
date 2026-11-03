@@ -34,6 +34,19 @@ describe('map-chat-api', () => {
       expect(u.unreadCount).toBe(0);
     });
 
+    it('shows Image from a file flag before the thread is opened', () => {
+      const u = transformChatToUser({
+        id: 81,
+        player_id: 93,
+        player_username: 'bitslotbeta',
+        last_message: '',
+        is_file: true,
+        file: 'https://pub-example.r2.dev/chat/abc',
+        last_message_timestamp: '2026-04-01T16:55:25.690042+00:00',
+      });
+      expect(u.lastMessage).toBe('Image');
+    });
+
     it('should map flat cashout_limit / locked_balance on chat row (no nested player)', () => {
       const row: Record<string, unknown> = {
         id: 81,
@@ -49,6 +62,38 @@ describe('map-chat-api', () => {
       expect(u.cashoutLimit).toBe('50.00');
       expect(u.lockedBalance).toBe('10.00');
       expect(u.balance).toBe('100.00');
+    });
+
+    it('should map the re_arrange is_unreplied / last_human_message_sender_id fields', () => {
+      const u = transformChatToUser({
+        type: 're_arrange',
+        chat_id: 57,
+        user_id: 67,
+        username: 'testme7',
+        last_message: 'hello',
+        last_message_sender_id: 67,
+        last_human_message_sender_id: 67,
+        last_message_timestamp: '2026-10-25T10:00:00Z',
+        unread_messages_count: 1,
+        is_unreplied: true,
+        is_online: true,
+      });
+
+      expect(u.id).toBe('57');
+      expect(u.user_id).toBe(67);
+      expect(u.isUnreplied).toBe(true);
+      expect(u.isOnline).toBe(true);
+      expect(u.lastHumanMessageSenderId).toBe(67);
+    });
+
+    it('should read is_unreplied from a nested player payload', () => {
+      const u = transformChatToUser({
+        chat_id: 57,
+        player: { id: 67, username: 'testme7', is_online: true, is_unreplied: false },
+      });
+
+      expect(u.isUnreplied).toBe(false);
+      expect(u.isOnline).toBe(true);
     });
   });
 
@@ -168,22 +213,54 @@ describe('map-chat-api', () => {
     it('should read counts from admin chat list response', () => {
       expect(
         extractChatListServerCounts({
-          counts: { all_players_count: 43, online_players_count: 4 },
+          counts: {
+            all_players_count: 43,
+            online_players_count: 4,
+            unreplied_players_count: 10,
+          },
           chats: [],
         }),
-      ).toEqual({ allPlayersCount: 43, onlinePlayersCount: 4 });
+      ).toEqual({
+        allPlayersCount: 43,
+        onlinePlayersCount: 4,
+        unrepliedPlayersCount: 10,
+      });
     });
 
     it('should accept numeric strings and return null when counts missing', () => {
       expect(
         extractChatListServerCounts({
-          counts: { all_players_count: '10', online_players_count: '2' },
+          counts: {
+            all_players_count: '10',
+            online_players_count: '2',
+            unreplied_players_count: '7',
+          },
         }),
-      ).toEqual({ allPlayersCount: 10, onlinePlayersCount: 2 });
+      ).toEqual({
+        allPlayersCount: 10,
+        onlinePlayersCount: 2,
+        unrepliedPlayersCount: 7,
+      });
 
       expect(extractChatListServerCounts({})).toEqual({
         allPlayersCount: null,
         onlinePlayersCount: null,
+        unrepliedPlayersCount: null,
+      });
+    });
+
+    it('reads the top-level counts the chat-list socket also sends', () => {
+      expect(
+        extractChatListServerCounts({
+          type: 're_arrange',
+          online_players_count: 0,
+          all_players_count: 74,
+          unreplied_players_count: 3,
+        }),
+      ).toEqual({
+        allPlayersCount: 74,
+        onlinePlayersCount: 0,
+        unrepliedPlayersCount: 3,
       });
     });
   });
