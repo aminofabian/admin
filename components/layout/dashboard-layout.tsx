@@ -72,11 +72,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           />
         )}
         
-        {/* Sidebar - Mobile/Tablet: hidden by default, Desktop: w-56 on xl+ */}
+        {/* Sidebar — same 16rem width on mobile overlay and desktop so long labels keep a right gap */}
         <div className={`
           fixed lg:static inset-y-0 left-0 z-50 h-screen transform transition-all duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isSidebarCollapsed ? 'lg:w-0' : 'w-64 lg:w-56'}
+          ${isSidebarCollapsed ? 'lg:w-0' : 'w-64'}
         `}>
           <Sidebar 
             onClose={() => setSidebarOpen(false)} 
