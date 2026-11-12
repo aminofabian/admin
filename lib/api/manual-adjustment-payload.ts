@@ -29,12 +29,38 @@ export const MANUAL_ADJUSTMENT_KINDS = [
 export type ManualAdjustmentKind = (typeof MANUAL_ADJUSTMENT_KINDS)[number];
 
 /** Parse API balance/limit strings for client-side checks (e.g. external cashout cap). */
-export function parseLedgerAmount(value: string | undefined | null): number | null {
+export function parseLedgerAmount(value: string | number | undefined | null): number | null {
   if (value === undefined || value === null || String(value).trim() === '') {
     return null;
   }
   const n = Number.parseFloat(String(value).replace(/,/g, ''));
   return Number.isFinite(n) ? n : null;
+}
+
+function sameLedgerAmount(left: number, right: number): boolean {
+  return Math.abs(left - right) < 0.001;
+}
+
+/**
+ * A directory or socket snapshot still showing the balance from before a manual
+ * adjustment. That snapshot must not overwrite the figures just returned by
+ * the manual-payment API.
+ */
+export function isStalePreAdjustmentBalance(
+  incoming: string | number | null | undefined,
+  previous: string | number | null | undefined,
+  applied: string | number | null | undefined,
+): boolean {
+  const incomingAmount = parseLedgerAmount(incoming);
+  const previousAmount = parseLedgerAmount(previous);
+  const appliedAmount = parseLedgerAmount(applied);
+  if (incomingAmount == null || previousAmount == null || appliedAmount == null) {
+    return false;
+  }
+  return (
+    sameLedgerAmount(incomingAmount, previousAmount) &&
+    !sameLedgerAmount(incomingAmount, appliedAmount)
+  );
 }
 
 export type ExternalCashoutValidation =

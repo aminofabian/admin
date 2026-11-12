@@ -1,10 +1,28 @@
 import {
   buildManualPaymentRequestBody,
+  isStalePreAdjustmentBalance,
   normalizeManualPaymentResponse,
   parseLedgerAmount,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
 } from '../manual-adjustment-payload';
+
+describe('isStalePreAdjustmentBalance', () => {
+  it('treats the pre-adjustment snapshot as stale when the response moved the balance', () => {
+    expect(isStalePreAdjustmentBalance('999.00', '999', 1011)).toBe(true);
+    expect(isStalePreAdjustmentBalance(999, '999.00', '1,011.00')).toBe(true);
+  });
+
+  it('accepts the applied balance and any later balance', () => {
+    expect(isStalePreAdjustmentBalance('1011.00', '999.00', 1011)).toBe(false);
+    expect(isStalePreAdjustmentBalance('980.00', '999.00', '1011.00')).toBe(false);
+  });
+
+  it('does not treat missing figures as stale', () => {
+    expect(isStalePreAdjustmentBalance(undefined, '999.00', '1011.00')).toBe(false);
+    expect(isStalePreAdjustmentBalance('999.00', undefined, '1011.00')).toBe(false);
+  });
+});
 
 describe('parseLedgerAmount', () => {
   it('should parse numeric strings', () => {

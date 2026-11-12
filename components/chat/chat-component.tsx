@@ -29,6 +29,7 @@ import {
 } from "./modals";
 import {
   buildManualPaymentRequestBody,
+  isStalePreAdjustmentBalance,
   normalizeManualPaymentResponse,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
@@ -448,6 +449,21 @@ export function ChatComponent() {
     adjustmentKind: ManualAdjustmentKind;
     timestamp: number;
   } | null>(null);
+  /**
+   * Balance just written from a manual-payment response, keyed by player.
+   * The chat directory can still hold the pre-adjustment snapshot and would
+   * otherwise copy it back over the wallet. Cleared once that snapshot moves.
+   */
+  const appliedManualLedgerRef = useRef<
+    Map<
+      number,
+      {
+        previousBalance: string | undefined;
+        appliedBalance: string;
+        appliedAt: number;
+      }
+    >
+  >(new Map());
   const { addToast } = useToast();
 
   // Common emojis for quick access
@@ -653,6 +669,22 @@ export function ChatComponent() {
             !prev ||
             !Number.isFinite(incomingPlayerId) ||
             Number(prev.user_id) !== incomingPlayerId
+          ) {
+            return prev;
+          }
+
+          const manualLedger = appliedManualLedgerRef.current.get(incomingPlayerId);
+          // Ignore a socket echo of the pre-adjustment balance. A later update
+          // that lands on that same number is a real change and should apply.
+          const manualLedgerEcho =
+            manualLedger != null && Date.now() - manualLedger.appliedAt < 8000;
+          if (
+            manualLedgerEcho &&
+            isStalePreAdjustmentBalance(
+              data.balance,
+              manualLedger.previousBalance,
+              manualLedger.appliedBalance,
+            )
           ) {
             return prev;
           }
@@ -1390,6 +1422,8 @@ export function ChatComponent() {
   // is open and updates `activeChatsUsers` + `allPlayers` on balanceUpdated events, even when
   // the change originates on the player side. Without this, merges in `displayedPlayers` can
   // prefer stale REST data and the manual-balance UI stays stale until reload.
+  // A manual-payment response is applied to `selectedPlayer` immediately. Until the directory
+  // row moves off the pre-adjustment balance, skip this copy so that snapshot cannot undo it.
   useEffect(() => {
     if (!selectedPlayer) return;
     const userId = selectedPlayer.user_id;
@@ -1405,6 +1439,27 @@ export function ChatComponent() {
       const trimmed = String(value).trim();
       return trimmed === "" ? undefined : trimmed;
     };
+
+    const manualLedger = appliedManualLedgerRef.current.get(userId);
+    if (
+      manualLedger &&
+      isStalePreAdjustmentBalance(
+        canonical.balance,
+        manualLedger.previousBalance,
+        manualLedger.appliedBalance,
+      )
+    ) {
+      // Directory row has not caught up to the manual-payment response yet.
+      return;
+    }
+    if (
+      manualLedger &&
+      canonical.balance != null &&
+      String(canonical.balance).trim() !== ""
+    ) {
+      // Directory balance has moved off the pre-adjustment snapshot.
+      appliedManualLedgerRef.current.delete(userId);
+    }
 
     const nextBalance = toTrimmed(canonical.balance);
     const nextCashout = toTrimmed(canonical.cashoutLimit);
@@ -2601,6 +2656,12 @@ export function ChatComponent() {
         (rawPayment as ManualPaymentResponse);
 
       const manualPaymentTs = Date.now();
+      const appliedBalance = String(response.player_bal);
+      appliedManualLedgerRef.current.set(selectedPlayer.user_id, {
+        previousBalance: selectedPlayer.balance,
+        appliedBalance,
+        appliedAt: manualPaymentTs,
+      });
       lastManualPayment.set({
         playerId: selectedPlayer.user_id,
         amount: balanceValue,
@@ -2657,12 +2718,12 @@ export function ChatComponent() {
         prev
           ? {
               ...prev,
-              balance: String(response.player_bal),
+              balance: appliedBalance,
               winningBalance:
                 response.player_winning_bal !== undefined &&
                 response.player_winning_bal !== null
                   ? String(response.player_winning_bal)
-                  : undefined,
+                  : prev.winningBalance,
               ...(response.cashout_limit !== undefined &&
               response.cashout_limit !== null
                 ? { cashoutLimit: String(response.cashout_limit) }
