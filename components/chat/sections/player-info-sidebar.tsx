@@ -271,13 +271,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </p>
             </div>
           ) : null}
-          {spinBalanceRefreshKey != null && spinBalanceRefreshKey > 0 ? (
-            <PlayerRouletteSpinBalanceDisplay
-              playerId={selectedPlayer.user_id}
-              variant="inline"
-              refreshKey={spinBalanceRefreshKey}
-            />
-          ) : null}
+          <PlayerRouletteSpinBalanceDisplay
+            playerId={selectedPlayer.user_id}
+            variant="inline"
+            refreshKey={spinBalanceRefreshKey}
+          />
         </section>
 
         <div className="flex w-full flex-col gap-2">
