@@ -1,26 +1,90 @@
 import {
   buildManualPaymentRequestBody,
-  isStalePreAdjustmentBalance,
+  createManualLedgerGuard,
+  evaluateManualLedgerSnapshot,
+  MANUAL_LEDGER_GUARD_MS,
   normalizeManualPaymentResponse,
   parseLedgerAmount,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
 } from '../manual-adjustment-payload';
 
-describe('isStalePreAdjustmentBalance', () => {
-  it('treats the pre-adjustment snapshot as stale when the response moved the balance', () => {
-    expect(isStalePreAdjustmentBalance('999.00', '999', 1011)).toBe(true);
-    expect(isStalePreAdjustmentBalance(999, '999.00', '1,011.00')).toBe(true);
+describe('evaluateManualLedgerSnapshot', () => {
+  const appliedAt = 1_000;
+
+  it('keeps the response when the list still shows the previous balance', () => {
+    const guard = createManualLedgerGuard('1011.00', appliedAt, ['999.00']);
+    expect(evaluateManualLedgerSnapshot('999.00', guard, appliedAt + 500)).toBe(
+      'keep-applied',
+    );
+    expect(evaluateManualLedgerSnapshot(999, guard, appliedAt + 500)).toBe(
+      'keep-applied',
+    );
   });
 
-  it('accepts the applied balance and any later balance', () => {
-    expect(isStalePreAdjustmentBalance('1011.00', '999.00', 1011)).toBe(false);
-    expect(isStalePreAdjustmentBalance('980.00', '999.00', '1011.00')).toBe(false);
+  it('keeps the response when a second adjustment lands before the list catches up', () => {
+    const first = createManualLedgerGuard('1042.00', appliedAt, ['1037.00']);
+    const second = createManualLedgerGuard('1049.00', appliedAt + 200, [
+      '1042.00',
+      '1037.00',
+      first.appliedBalance,
+      ...first.staleBalances,
+    ]);
+    expect(
+      evaluateManualLedgerSnapshot('1037.00', second, appliedAt + 300),
+    ).toBe('keep-applied');
+    expect(
+      evaluateManualLedgerSnapshot('1042.00', second, appliedAt + 300),
+    ).toBe('keep-applied');
   });
 
-  it('does not treat missing figures as stale', () => {
-    expect(isStalePreAdjustmentBalance(undefined, '999.00', '1011.00')).toBe(false);
-    expect(isStalePreAdjustmentBalance('999.00', undefined, '1011.00')).toBe(false);
+  it('keeps an older in-flight balance, including after the window', () => {
+    const guard = createManualLedgerGuard('1037.00', appliedAt, ['1030.00']);
+    expect(
+      evaluateManualLedgerSnapshot('1025.00', guard, appliedAt + 500),
+    ).toBe('keep-applied');
+    expect(
+      evaluateManualLedgerSnapshot(
+        '1025.00',
+        guard,
+        appliedAt + MANUAL_LEDGER_GUARD_MS + 1,
+      ),
+    ).toBe('keep-applied');
+  });
+
+  it('accepts the applied balance without dropping the guard, then a later balance', () => {
+    const guard = createManualLedgerGuard('1011.00', appliedAt, ['999.00']);
+    expect(evaluateManualLedgerSnapshot('1011.00', guard, appliedAt + 500)).toBe(
+      'caught-up',
+    );
+    expect(evaluateManualLedgerSnapshot('1,011.00', guard, appliedAt + 500)).toBe(
+      'caught-up',
+    );
+    expect(
+      evaluateManualLedgerSnapshot('999.00', guard, appliedAt + 800),
+    ).toBe('keep-applied');
+    expect(
+      evaluateManualLedgerSnapshot(
+        '999.00',
+        guard,
+        appliedAt + MANUAL_LEDGER_GUARD_MS + 1,
+      ),
+    ).toBe('keep-applied');
+    expect(
+      evaluateManualLedgerSnapshot(
+        '1200.00',
+        guard,
+        appliedAt + MANUAL_LEDGER_GUARD_MS + 1,
+      ),
+    ).toBe('use-incoming');
+  });
+
+  it('does not block a snapshot that has no balance', () => {
+    const guard = createManualLedgerGuard('1011.00', appliedAt, ['999.00']);
+    expect(evaluateManualLedgerSnapshot(undefined, guard, appliedAt + 500)).toBe(
+      'use-incoming',
+    );
+    expect(evaluateManualLedgerSnapshot(undefined, undefined)).toBe('use-incoming');
   });
 });
 

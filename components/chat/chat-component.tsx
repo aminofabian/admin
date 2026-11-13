@@ -29,10 +29,13 @@ import {
 } from "./modals";
 import {
   buildManualPaymentRequestBody,
-  isStalePreAdjustmentBalance,
+  createManualLedgerGuard,
+  evaluateManualLedgerSnapshot,
   normalizeManualPaymentResponse,
+  parseLedgerAmount,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
+  type ManualLedgerGuard,
   type ManualPaymentResponse,
 } from "@/lib/api/manual-adjustment-payload";
 import {
@@ -451,19 +454,12 @@ export function ChatComponent() {
   } | null>(null);
   /**
    * Balance just written from a manual-payment response, keyed by player.
-   * The chat directory can still hold the pre-adjustment snapshot and would
-   * otherwise copy it back over the wallet. Cleared once that snapshot moves.
+   * The chat directory and room socket can still deliver an older snapshot
+   * and would otherwise copy it back over the wallet.
    */
-  const appliedManualLedgerRef = useRef<
-    Map<
-      number,
-      {
-        previousBalance: string | undefined;
-        appliedBalance: string;
-        appliedAt: number;
-      }
-    >
-  >(new Map());
+  const appliedManualLedgerRef = useRef<Map<number, ManualLedgerGuard>>(
+    new Map(),
+  );
   const { addToast } = useToast();
 
   // Common emojis for quick access
@@ -674,19 +670,22 @@ export function ChatComponent() {
           }
 
           const manualLedger = appliedManualLedgerRef.current.get(incomingPlayerId);
-          // Ignore a socket echo of the pre-adjustment balance. A later update
-          // that lands on that same number is a real change and should apply.
-          const manualLedgerEcho =
-            manualLedger != null && Date.now() - manualLedger.appliedAt < 8000;
-          if (
-            manualLedgerEcho &&
-            isStalePreAdjustmentBalance(
-              data.balance,
-              manualLedger.previousBalance,
-              manualLedger.appliedBalance,
-            )
-          ) {
+          // Ignore a socket echo of a balance from before this adjustment,
+          // including one older than the immediately previous figure. A later
+          // change that arrives after the guard window still applies.
+          const ledgerDecision = evaluateManualLedgerSnapshot(
+            data.balance,
+            manualLedger,
+          );
+          if (ledgerDecision === "keep-applied") {
             return prev;
+          }
+          if (
+            ledgerDecision === "use-incoming" &&
+            manualLedger &&
+            parseLedgerAmount(data.balance) != null
+          ) {
+            appliedManualLedgerRef.current.delete(incomingPlayerId);
           }
 
           const rawBalance =
@@ -1422,8 +1421,9 @@ export function ChatComponent() {
   // is open and updates `activeChatsUsers` + `allPlayers` on balanceUpdated events, even when
   // the change originates on the player side. Without this, merges in `displayedPlayers` can
   // prefer stale REST data and the manual-balance UI stays stale until reload.
-  // A manual-payment response is applied to `selectedPlayer` immediately. Until the directory
-  // row moves off the pre-adjustment balance, skip this copy so that snapshot cannot undo it.
+  // A manual-payment response is applied to `selectedPlayer` immediately. A directory
+  // row that still shows an older balance — not only the immediately previous one —
+  // must not copy back over that response.
   useEffect(() => {
     if (!selectedPlayer) return;
     const userId = selectedPlayer.user_id;
@@ -1441,23 +1441,18 @@ export function ChatComponent() {
     };
 
     const manualLedger = appliedManualLedgerRef.current.get(userId);
-    if (
-      manualLedger &&
-      isStalePreAdjustmentBalance(
-        canonical.balance,
-        manualLedger.previousBalance,
-        manualLedger.appliedBalance,
-      )
-    ) {
-      // Directory row has not caught up to the manual-payment response yet.
+    const ledgerDecision = evaluateManualLedgerSnapshot(
+      canonical.balance,
+      manualLedger,
+    );
+    if (ledgerDecision === "keep-applied") {
       return;
     }
     if (
+      ledgerDecision === "use-incoming" &&
       manualLedger &&
-      canonical.balance != null &&
-      String(canonical.balance).trim() !== ""
+      parseLedgerAmount(canonical.balance) != null
     ) {
-      // Directory balance has moved off the pre-adjustment snapshot.
       appliedManualLedgerRef.current.delete(userId);
     }
 
@@ -2657,11 +2652,19 @@ export function ChatComponent() {
 
       const manualPaymentTs = Date.now();
       const appliedBalance = String(response.player_bal);
-      appliedManualLedgerRef.current.set(selectedPlayer.user_id, {
-        previousBalance: selectedPlayer.balance,
-        appliedBalance,
-        appliedAt: manualPaymentTs,
-      });
+      const directoryRow =
+        activeChatsUsers.find((player) => player.user_id === selectedPlayer.user_id) ??
+        allPlayers.find((player) => player.user_id === selectedPlayer.user_id);
+      const previousGuard = appliedManualLedgerRef.current.get(selectedPlayer.user_id);
+      appliedManualLedgerRef.current.set(
+        selectedPlayer.user_id,
+        createManualLedgerGuard(appliedBalance, manualPaymentTs, [
+          selectedPlayer.balance,
+          directoryRow?.balance,
+          previousGuard?.appliedBalance,
+          ...(previousGuard?.staleBalances ?? []),
+        ]),
+      );
       lastManualPayment.set({
         playerId: selectedPlayer.user_id,
         amount: balanceValue,
@@ -2768,6 +2771,8 @@ export function ChatComponent() {
     addToast,
     invalidatePlayersCache,
     lastManualPayment,
+    activeChatsUsers,
+    allPlayers,
   ]);
 
   // Log online players connection status
