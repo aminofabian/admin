@@ -42,25 +42,101 @@ function sameLedgerAmount(left: number, right: number): boolean {
 }
 
 /**
- * A directory or socket snapshot still showing the balance from before a manual
- * adjustment. That snapshot must not overwrite the figures just returned by
- * the manual-payment API.
+ * How long a manual-payment response wins over snapshots that are not the
+ * balance it just wrote. Directory and socket reads from before that write
+ * routinely arrive late, including ones older than the immediately previous
+ * balance.
  */
-export function isStalePreAdjustmentBalance(
-  incoming: string | number | null | undefined,
-  previous: string | number | null | undefined,
-  applied: string | number | null | undefined,
-): boolean {
-  const incomingAmount = parseLedgerAmount(incoming);
-  const previousAmount = parseLedgerAmount(previous);
-  const appliedAmount = parseLedgerAmount(applied);
-  if (incomingAmount == null || previousAmount == null || appliedAmount == null) {
-    return false;
+export const MANUAL_LEDGER_GUARD_MS = 10_000;
+
+/**
+ * After this long the guard lets the directory win again, so a balance that
+ * genuinely returns to an earlier number is not ignored for the whole session.
+ */
+export const MANUAL_LEDGER_GUARD_MAX_MS = 60_000;
+
+/**
+ * Balance just written by manual-payment, plus every earlier figure already
+ * on screen or seen since. Those figures must not overwrite the response.
+ */
+export interface ManualLedgerGuard {
+  appliedBalance: string;
+  appliedAt: number;
+  staleBalances: string[];
+}
+
+function isKnownStaleBalance(guard: ManualLedgerGuard, amount: number): boolean {
+  return guard.staleBalances.some((entry) => {
+    const parsed = parseLedgerAmount(entry);
+    return parsed != null && sameLedgerAmount(parsed, amount);
+  });
+}
+
+/** Record a balance that lost to the manual-payment response. */
+export function noteStaleLedgerBalance(
+  guard: ManualLedgerGuard,
+  balance: string | number | null | undefined,
+): void {
+  const amount = parseLedgerAmount(balance);
+  const applied = parseLedgerAmount(guard.appliedBalance);
+  if (amount == null || applied == null || sameLedgerAmount(amount, applied)) return;
+  if (isKnownStaleBalance(guard, amount)) return;
+  guard.staleBalances.push(amount.toFixed(2));
+}
+
+export function createManualLedgerGuard(
+  appliedBalance: string,
+  appliedAt: number,
+  knownBalances: Array<string | number | null | undefined>,
+): ManualLedgerGuard {
+  const guard: ManualLedgerGuard = {
+    appliedBalance,
+    appliedAt,
+    staleBalances: [],
+  };
+  for (const balance of knownBalances) {
+    noteStaleLedgerBalance(guard, balance);
   }
-  return (
-    sameLedgerAmount(incomingAmount, previousAmount) &&
-    !sameLedgerAmount(incomingAmount, appliedAmount)
-  );
+  return guard;
+}
+
+export type LedgerSnapshotDecision = 'use-incoming' | 'keep-applied' | 'caught-up';
+
+/**
+ * Whether a directory or socket balance may replace the manual-payment response.
+ *
+ * `caught-up` means this snapshot is the balance the response just wrote. The
+ * guard stays up so a slower, older snapshot can still be ignored.
+ * `keep-applied` means the snapshot is earlier (the balance before this click,
+ * the balance before a previous click, or any other read that arrives before
+ * the lists have caught up). `use-incoming` means there is no guard, or this
+ * is a later real change and the guard should be cleared.
+ */
+export function evaluateManualLedgerSnapshot(
+  incoming: string | number | null | undefined,
+  guard: ManualLedgerGuard | undefined,
+  now: number = Date.now(),
+): LedgerSnapshotDecision {
+  if (!guard) return 'use-incoming';
+  const incomingAmount = parseLedgerAmount(incoming);
+  const appliedAmount = parseLedgerAmount(guard.appliedBalance);
+  if (incomingAmount == null || appliedAmount == null) return 'use-incoming';
+
+  const age = now - guard.appliedAt;
+  if (age >= MANUAL_LEDGER_GUARD_MAX_MS) return 'use-incoming';
+
+  if (sameLedgerAmount(incomingAmount, appliedAmount)) {
+    return age >= MANUAL_LEDGER_GUARD_MS ? 'use-incoming' : 'caught-up';
+  }
+
+  // Still inside the window, or this figure was already on screen / already
+  // arrived late. A balance never seen before, after the window, is a later change.
+  if (age < MANUAL_LEDGER_GUARD_MS || isKnownStaleBalance(guard, incomingAmount)) {
+    noteStaleLedgerBalance(guard, incomingAmount);
+    return 'keep-applied';
+  }
+
+  return 'use-incoming';
 }
 
 export type ExternalCashoutValidation =
