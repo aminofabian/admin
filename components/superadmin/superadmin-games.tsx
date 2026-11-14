@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronUp, Gamepad2 } from 'lucide-react';
 import {
     Card,
-    CardHeader,
-    CardContent,
     Table,
     TableHeader,
     TableBody,
@@ -20,6 +19,7 @@ import { useToast } from '@/components/ui/toast';
 import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { gamesApi } from '@/lib/api';
 import { Category2GameApiToggle } from '@/components/superadmin/category2-game-api-toggle';
+import { CompanyPicker } from '@/components/superadmin/company-picker';
 import type { Company, Game } from '@/types';
 
 interface OffmarketGame extends Game {
@@ -31,10 +31,57 @@ interface OffmarketGame extends Game {
 type SortField = 'title' | 'code' | 'status';
 type SortDirection = 'asc' | 'desc';
 
+const SORT_COLUMNS: { field: SortField; label: string }[] = [
+    { field: 'title', label: 'Game' },
+    { field: 'code', label: 'Code' },
+    { field: 'status', label: 'Status' },
+];
+
+function compareGames(a: OffmarketGame, b: OffmarketGame, field: SortField): number {
+    if (field === 'title') return a.title.localeCompare(b.title);
+    if (field === 'code') return a.code.localeCompare(b.code);
+    return Number(Boolean(a.enabled_by_superadmin)) - Number(Boolean(b.enabled_by_superadmin));
+}
+
+function SortableHead({ label, isActive, direction, onSort }: {
+    label: string;
+    isActive: boolean;
+    direction: SortDirection;
+    onSort: () => void;
+}) {
+    const activeIcon = direction === 'asc' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />;
+    return (
+        <TableHead>
+            <button
+                type="button"
+                onClick={onSort}
+                className={`flex items-center gap-1 hover:text-primary ${isActive ? 'text-primary' : ''}`}
+            >
+                {label}
+                {isActive ? activeIcon : <ChevronDown className="h-3.5 w-3.5 opacity-30" />}
+            </button>
+        </TableHead>
+    );
+}
+
+function StatusBadge({ enabled }: { enabled?: boolean }) {
+    return <Badge variant={enabled ? 'success' : 'default'}>{enabled ? 'Enabled' : 'Disabled'}</Badge>;
+}
+
+function ToggleGameButton({ enabled, disabled, onClick }: {
+    enabled?: boolean;
+    disabled: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <Button size="sm" variant={enabled ? 'ghost' : 'secondary'} onClick={onClick} disabled={disabled}>
+            {enabled ? 'Disable' : 'Enable'}
+        </Button>
+    );
+}
+
 export function SuperAdminGames() {
     const [searchTerm, setSearchTerm] = useState('');
-    const [companySearchTerm, setCompanySearchTerm] = useState('');
-    const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [games, setGames] = useState<OffmarketGame[]>([]);
@@ -69,22 +116,6 @@ export function SuperAdminGames() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCompanyId]);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (isCompanyDropdownOpen && !target.closest('[data-company-dropdown]')) {
-                setIsCompanyDropdownOpen(false);
-                setCompanySearchTerm('');
-            }
-        };
-
-        if (isCompanyDropdownOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }
-    }, [isCompanyDropdownOpen]);
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
@@ -183,17 +214,6 @@ export function SuperAdminGames() {
         setConfirmModal({ isOpen: false, action: 'toggle', isLoading: false });
     };
 
-    const filteredCompanies = useMemo(() => {
-        if (!companySearchTerm.trim()) return companies;
-
-        const search = companySearchTerm.toLowerCase();
-        return companies.filter(
-            (company) =>
-                company.project_name.toLowerCase().includes(search) ||
-                company.username.toLowerCase().includes(search)
-        );
-    }, [companies, companySearchTerm]);
-
     const handleSort = (field: SortField) => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -204,43 +224,17 @@ export function SuperAdminGames() {
     };
 
     const filteredGames = useMemo(() => {
-        let filtered = games;
-
-        // Apply search filter
-        if (searchTerm.trim()) {
-            const search = searchTerm.toLowerCase();
-            filtered = filtered.filter(
-                (game) =>
-                    game.title.toLowerCase().includes(search) ||
-                    game.code.toLowerCase().includes(search)
-            );
-        }
-
-        // Apply sorting
-        const sorted = [...filtered].sort((a, b) => {
-            let comparison = 0;
-
-            switch (sortField) {
-                case 'title':
-                    comparison = a.title.localeCompare(b.title);
-                    break;
-                case 'code':
-                    comparison = a.code.localeCompare(b.code);
-                    break;
-                case 'status':
-                    const aStatus = a.enabled_by_superadmin ? 1 : 0;
-                    const bStatus = b.enabled_by_superadmin ? 1 : 0;
-                    comparison = aStatus - bStatus;
-                    break;
-            }
-
-            return sortDirection === 'asc' ? comparison : -comparison;
-        });
-
-        return sorted;
+        const search = searchTerm.trim().toLowerCase();
+        const filtered = search
+            ? games.filter((game) =>
+                game.title.toLowerCase().includes(search) || game.code.toLowerCase().includes(search))
+            : games;
+        const sign = sortDirection === 'asc' ? 1 : -1;
+        return [...filtered].sort((a, b) => sign * compareGames(a, b, sortField));
     }, [games, searchTerm, sortField, sortDirection]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+    const enabledCount = games.filter((game) => game.enabled_by_superadmin).length;
 
     if (isLoadingCompanies && companies.length === 0) {
         return <LoadingState />;
@@ -250,421 +244,124 @@ export function SuperAdminGames() {
         return <ErrorState message={error} onRetry={fetchCompanies} />;
     }
 
-    return (
-        <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-            {/* Sticky Mobile Header */}
-            <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">Games Management</h1>
-            </div>
+    const renderGames = () => {
+        if (!selectedCompanyId) {
+            return (
+                <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+                    <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">Pick a company to manage its games</p>
+                    <p className="text-xs text-muted-foreground">
+                        {companies.length} {companies.length === 1 ? 'company' : 'companies'} available
+                    </p>
+                </div>
+            );
+        }
+        if (isLoadingGames) {
+            return <div className="p-6"><LoadingState /></div>;
+        }
+        if (filteredGames.length === 0) {
+            return (
+                <EmptyState
+                    title="No games found"
+                    description={searchTerm ? `No games match "${searchTerm}"` : `No games available for ${selectedCompany?.project_name ?? 'this company'}`}
+                />
+            );
+        }
+        return (
+            <>
+                <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {SORT_COLUMNS.map(({ field, label }) => (
+                                    <SortableHead
+                                        key={field}
+                                        label={label}
+                                        isActive={sortField === field}
+                                        direction={sortDirection}
+                                        onSort={() => handleSort(field)}
+                                    />
+                                ))}
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredGames.map((game) => (
+                                <TableRow key={game.id}>
+                                    <TableCell className="py-2 font-medium">{game.title}</TableCell>
+                                    <TableCell className="py-2"><Badge variant="info">{game.code}</Badge></TableCell>
+                                    <TableCell className="py-2"><StatusBadge enabled={game.enabled_by_superadmin} /></TableCell>
+                                    <TableCell className="py-2 text-right">
+                                        <ToggleGameButton
+                                            enabled={game.enabled_by_superadmin}
+                                            disabled={confirmModal.isLoading}
+                                            onClick={() => handleToggleGame(game.id)}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
 
-            <div className="mb-4 md:mb-6">
-                <Category2GameApiToggle />
-            </div>
-
-            {/* Company Selector - Searchable Dropdown */}
-            <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
-                <CardHeader className="pb-3 md:pb-4 px-4 md:px-6 pt-4 md:pt-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-base md:text-lg font-semibold">Select Company</h2>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-                                {companies.length} {companies.length === 1 ? 'company' : 'companies'} available
-                            </p>
-                        </div>
-                        {selectedCompany && (
-                            <Badge variant="info" className="hidden md:inline-flex">
-                                {games.length} games
-                            </Badge>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
-                    {companies.length === 0 ? (
-                        <EmptyState
-                            title="No companies found"
-                            description="No companies available to manage games"
-                        />
-                    ) : (
-                        <div className="relative" data-company-dropdown>
-                            {/* Selected Company Display / Dropdown Trigger */}
-                            <button
-                                onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                                className="w-full p-4 md:p-5 rounded-xl border-2 border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-[0.99]"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                        {/* Company Icon */}
-                                        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-xl flex items-center justify-center shadow-sm border border-primary/10">
-                                            <svg className="w-6 h-6 md:w-7 md:h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                            </svg>
-                                        </div>
-
-                                        {/* Company Info */}
-                                        <div className="flex-1 min-w-0">
-                                            {selectedCompany ? (
-                                                <>
-                                                    <div className="font-semibold text-base md:text-lg text-foreground truncate">
-                                                        {selectedCompany.project_name}
-                                                    </div>
-                                                    <div className="text-sm md:text-base text-muted-foreground mt-0.5 truncate">
-                                                        @{selectedCompany.username}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="text-base md:text-lg text-muted-foreground">
-                                                    Choose a company to manage...
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Dropdown Arrow */}
-                                    <div className="flex-shrink-0 ml-3">
-                                        <svg
-                                            className={`w-5 h-5 md:w-6 md:h-6 text-muted-foreground transition-transform duration-200 ${isCompanyDropdownOpen ? 'rotate-180' : ''
-                                                }`}
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
+                <ul className="md:hidden divide-y divide-border">
+                    {filteredGames.map((game) => (
+                        <li key={game.id} className="flex items-center gap-3 px-3 py-2.5">
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{game.title}</p>
+                                <div className="mt-1 flex items-center gap-1.5">
+                                    <Badge variant="info" className="text-xs px-2 py-0.5">{game.code}</Badge>
+                                    <StatusBadge enabled={game.enabled_by_superadmin} />
                                 </div>
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {isCompanyDropdownOpen && (
-                                <div className="absolute z-50 w-full mt-2 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                    {/* Search Input */}
-                                    <div className="p-3 border-b border-border bg-muted/30">
-                                        <div className="relative">
-                                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                            </svg>
-                                            <input
-                                                type="text"
-                                                value={companySearchTerm}
-                                                onChange={(e) => setCompanySearchTerm(e.target.value)}
-                                                placeholder="Search companies..."
-                                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Company List */}
-                                    <div className="max-h-[300px] md:max-h-[400px] overflow-y-auto">
-                                        {filteredCompanies.length === 0 ? (
-                                            <div className="p-6 text-center text-muted-foreground">
-                                                <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <p className="text-sm">No companies match your search</p>
-                                            </div>
-                                        ) : (
-                                            filteredCompanies.map((company) => (
-                                                <button
-                                                    key={company.id}
-                                                    onClick={() => {
-                                                        setSelectedCompanyId(company.id);
-                                                        setIsCompanyDropdownOpen(false);
-                                                        setCompanySearchTerm('');
-                                                    }}
-                                                    className={`w-full p-3 md:p-4 text-left transition-all hover:bg-accent border-b border-border/50 last:border-b-0 group ${selectedCompanyId === company.id ? 'bg-primary/5' : ''
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        {/* Company Avatar */}
-                                                        <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-bold text-sm md:text-base transition-all ${selectedCompanyId === company.id
-                                                            ? 'bg-primary text-primary-foreground shadow-md'
-                                                            : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 group-hover:text-primary'
-                                                            }`}>
-                                                            {company.project_name.charAt(0).toUpperCase()}
-                                                        </div>
-
-                                                        {/* Company Details */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="font-semibold text-sm md:text-base text-foreground truncate">
-                                                                {company.project_name}
-                                                            </div>
-                                                            <div className="text-xs md:text-sm text-muted-foreground truncate">
-                                                                @{company.username}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Selected Indicator */}
-                                                        {selectedCompanyId === company.id && (
-                                                            <div className="flex-shrink-0">
-                                                                <svg className="w-5 h-5 md:w-6 md:h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                </svg>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Games Table */}
-            {selectedCompanyId ? (
-                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-4 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b">
-                        <div className="space-y-4">
-                            {/* Title Section */}
-                            <div>
-                                <h2 className="text-base md:text-lg font-semibold">
-                                    {selectedCompany ? `${selectedCompany.project_name} Games` : 'Games'}
-                                </h2>
-                                {selectedCompany && (
-                                    <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">
-                                        Managing games for {selectedCompany.username}
-                                    </p>
-                                )}
                             </div>
+                            <ToggleGameButton
+                                enabled={game.enabled_by_superadmin}
+                                disabled={confirmModal.isLoading}
+                                onClick={() => handleToggleGame(game.id)}
+                            />
+                        </li>
+                    ))}
+                </ul>
+            </>
+        );
+    };
 
-                            {/* Full-Width Search */}
-                            <div className="w-full">
+    return (
+        <div className="space-y-3 md:space-y-4 pb-6 md:pb-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Games Management</h1>
+
+            <Category2GameApiToggle />
+
+            <Card className="overflow-visible">
+                <div className="flex flex-col gap-2 border-b border-border p-3 md:flex-row md:items-center md:px-4">
+                    {companies.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No companies available to manage games</p>
+                    ) : (
+                        <CompanyPicker
+                            companies={companies}
+                            selectedCompanyId={selectedCompanyId}
+                            onSelect={setSelectedCompanyId}
+                        />
+                    )}
+                    {selectedCompany && (
+                        <>
+                            <div className="w-full md:flex-1">
                                 <SearchInput
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Search games by title or code..."
-                                    className="w-full"
+                                    className="h-10 text-sm"
                                 />
                             </div>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                                {enabledCount} of {games.length} enabled
+                            </span>
+                        </>
+                    )}
+                </div>
+                {renderGames()}
+            </Card>
 
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {isLoadingGames ? (
-                            <div className="p-8 flex items-center justify-center">
-                                <LoadingState />
-                            </div>
-                        ) : filteredGames.length === 0 ? (
-                            <EmptyState
-                                title="No games found"
-                                description={searchTerm ? `No games match "${searchTerm}"` : selectedCompany ? `No games available for ${selectedCompany.project_name}` : "Select a company to view games"}
-                            />
-                        ) : (
-                            <>
-                                {/* Desktop Table */}
-                                <div className="hidden md:block overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>
-                                                    <button
-                                                        onClick={() => handleSort('title')}
-                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
-                                                    >
-                                                        Game Name
-                                                        <div className="flex flex-col">
-                                                            <svg
-                                                                className={`w-3 h-3 ${sortField === 'title' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                            <svg
-                                                                className={`w-3 h-3 -mt-1 ${sortField === 'title' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                        </div>
-                                                    </button>
-                                                </TableHead>
-                                                <TableHead>
-                                                    <button
-                                                        onClick={() => handleSort('code')}
-                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
-                                                    >
-                                                        Code
-                                                        <div className="flex flex-col">
-                                                            <svg
-                                                                className={`w-3 h-3 ${sortField === 'code' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                            <svg
-                                                                className={`w-3 h-3 -mt-1 ${sortField === 'code' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                        </div>
-                                                    </button>
-                                                </TableHead>
-                                                <TableHead>
-                                                    <button
-                                                        onClick={() => handleSort('status')}
-                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
-                                                    >
-                                                        Status
-                                                        <div className="flex flex-col">
-                                                            <svg
-                                                                className={`w-3 h-3 ${sortField === 'status' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                            <svg
-                                                                className={`w-3 h-3 -mt-1 ${sortField === 'status' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                            </svg>
-                                                        </div>
-                                                    </button>
-                                                </TableHead>
-                                                <TableHead className="text-right">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredGames.map((game) => (
-                                                <TableRow key={game.id}>
-                                                    <TableCell className="font-medium">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center">
-                                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                            </div>
-                                                            <span>{game.title}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="info">{game.code}</Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={game.enabled_by_superadmin ? 'success' : 'default'}>
-                                                            {game.enabled_by_superadmin ? 'Enabled' : 'Disabled'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            size="sm"
-                                                            variant={game.enabled_by_superadmin ? 'danger' : 'secondary'}
-                                                            onClick={() => handleToggleGame(game.id)}
-                                                            disabled={confirmModal.isLoading}
-                                                        >
-                                                            {game.enabled_by_superadmin ? (
-                                                                <>
-                                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                    </svg>
-                                                                    Disable
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    Enable
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-
-                                {/* Mobile Cards */}
-                                <div className="md:hidden space-y-2 px-2 pb-3">
-                                    {filteredGames.map((game) => (
-                                        <Card
-                                            key={game.id}
-                                            className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
-                                        >
-                                            <CardContent className="p-3 space-y-2">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-sm">
-                                                        <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-base leading-tight mb-2">{game.title}</h3>
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Badge variant="info" className="text-xs px-2 py-0.5">{game.code}</Badge>
-                                                            <Badge
-                                                                variant={game.enabled_by_superadmin ? 'success' : 'default'}
-                                                                className="text-xs px-2 py-0.5"
-                                                            >
-                                                                {game.enabled_by_superadmin ? 'Enabled' : 'Disabled'}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="pt-2 border-t">
-                                                    <Button
-                                                        size="sm"
-                                                        variant={game.enabled_by_superadmin ? 'ghost' : 'secondary'}
-                                                        onClick={() => handleToggleGame(game.id)}
-                                                        disabled={confirmModal.isLoading}
-                                                        className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${game.enabled_by_superadmin
-                                                            ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                                            : ''
-                                                            }`}
-                                                    >
-                                                        {game.enabled_by_superadmin ? (
-                                                            <>
-                                                                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                </svg>
-                                                                Disable
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                                Enable
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-            ) : (
-                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-8">
-                        <EmptyState
-                            title="No Company Selected"
-                            description="Please select a company from above to view and manage its games"
-                        />
-                    </CardContent>
-                </Card>
-            )
-            }
-
-            {/* Confirmation Modal */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={handleCancelAction}
@@ -676,6 +373,6 @@ export function SuperAdminGames() {
                 variant="info"
                 isLoading={confirmModal.isLoading}
             />
-        </div >
+        </div>
     );
 }
