@@ -281,6 +281,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/games',
   },
   {
+    name: 'Category 2 API',
+    icon: <GameSettingsIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/game-api',
+  },
+  {
     name: 'Payment Methods',
     icon: <PaymentSettingsIcon />,
     roles: [USER_ROLES.SUPERADMIN],

@@ -325,3 +325,12 @@ export interface UpdateVerificationSettingsRequest {
   is_phone_verification_enabled: boolean;
   is_identity_verification_enabled: boolean;
 }
+
+/** Platform-wide game API version flags. `category2_v2_api` false means category 2 uses v1. */
+export interface GameApiSettings {
+  category2_v2_api: boolean;
+}
+
+export interface UpdateGameApiSettingsRequest {
+  category2_v2_api: boolean;
+}

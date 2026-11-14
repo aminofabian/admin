@@ -9,6 +9,7 @@ interface SwitchProps {
   label?: string;
   className?: string;
   tone?: SwitchTone;
+  'aria-label'?: string;
 }
 
 const TONE_ON: Record<SwitchTone, string> = {
@@ -28,7 +29,7 @@ const TONE_OFF: Record<SwitchTone, string> = {
 
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
   (
-    { checked, onChange, disabled = false, label, className = '', tone = 'default' },
+    { checked, onChange, disabled = false, label, className = '', tone = 'default', 'aria-label': ariaLabel },
     ref,
   ) => {
     return (
@@ -43,6 +44,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
           type="button"
           role="switch"
           aria-checked={checked}
+          aria-label={ariaLabel ?? label}
           disabled={disabled}
           onClick={() => !disabled && onChange(!checked)}
           className={`
