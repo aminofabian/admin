@@ -252,6 +252,8 @@ const GameActivityAnalyticsIcon = () => (
   </svg>
 );
 
+const SETTINGS_PATH = '/dashboard/settings';
+
 const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Dashboard',
@@ -273,12 +275,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     icon: <CompanyIcon />,
     roles: [USER_ROLES.SUPERADMIN],
     href: '/dashboard/companies',
-  },
-  {
-    name: 'Settings',
-    icon: <SettingsIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings',
   },
   {
     name: 'Games Management',
@@ -557,12 +553,7 @@ function MenuItem({
   });
   
   const hasSubmenu = filteredSubmenu && filteredSubmenu.length > 0;
-  const isSettingsHub = category.href === '/dashboard/settings';
-  const isActive = Boolean(
-    category.href &&
-      (pathname === category.href ||
-        (isSettingsHub && pathname.startsWith('/dashboard/settings/')))
-  );
+  const isActive = category.href && pathname === category.href;
   
   // Check if any submenu item is active
   const hasActiveSubmenu = filteredSubmenu?.some((item) => {
@@ -693,6 +684,8 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
   const filteredCategories = user
     ? MENU_CATEGORIES.filter((cat) => cat.roles.includes(user.role))
     : MENU_CATEGORIES;
+
+  const isSettingsActive = pathname === SETTINGS_PATH || pathname.startsWith(`${SETTINGS_PATH}/`);
 
   const handleLogout = () => {
     logout();
@@ -850,6 +843,20 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
                   {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                 </span>
               )}
+            </Link>
+          )}
+
+          {user?.role === USER_ROLES.SUPERADMIN && (
+            <Link
+              href={SETTINGS_PATH}
+              onClick={onClose}
+              className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${isSettingsActive
+                  ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}
+            >
+              <SettingsIcon />
+              <span>Settings</span>
             </Link>
           )}
 
