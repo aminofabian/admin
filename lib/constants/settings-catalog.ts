@@ -47,7 +47,7 @@ export const SETTING_ITEMS: SettingItem[] = [
   { id: 'company', title: 'Company settings', description: 'Domains, logos, admins, and services', href: '/dashboard/settings/company', group: 'platform', roles: [SUPERADMIN], icon: Building2 },
   { id: 'games', title: 'Game settings', description: 'Minimum redeem multiplier', href: '/dashboard/settings/games', group: 'games', roles: [COMPANY, SUPERADMIN], icon: Gamepad2 },
   { id: 'payment', title: 'Payment methods', description: 'Purchase and cashout methods per company', href: '/dashboard/settings/payment', group: 'payments', roles: [COMPANY, SUPERADMIN], icon: CreditCard },
-  { id: 'cashout-24h', title: '24-hour cashout limit', description: 'Rolling 24-hour cashout cap', href: '/dashboard/settings/cashout-24h', group: 'payments', roles: [COMPANY, SUPERADMIN, MANAGER], icon: Clock },
+  { id: 'cashout-24h', title: '24-hour cashout limit', description: 'Rolling 24-hour cashout cap', href: '/dashboard/settings/cashout-24h', group: 'payments', roles: [COMPANY, MANAGER], icon: Clock },
   { id: 'bonuses', title: 'Bonuses', description: 'Purchase, recharge, transfer, and signup bonuses', href: '/dashboard/settings/bonuses', group: 'players', roles: [COMPANY, SUPERADMIN], icon: CircleDollarSign },
   { id: 'verification', title: 'Verification', description: 'Phone OTP and identity checks', href: '/dashboard/settings/verification', group: 'players', roles: [COMPANY, SUPERADMIN], icon: Phone },
   { id: 'roulette', title: 'Prize wheel', description: 'Daily free spins and wheel rewards', href: '/dashboard/settings/roulette', group: 'players', roles: [COMPANY, SUPERADMIN], icon: Disc3 },

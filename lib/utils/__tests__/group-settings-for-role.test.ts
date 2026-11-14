@@ -15,6 +15,7 @@ describe('groupSettingsForRole', () => {
     const ids = itemIds(USER_ROLES.SUPERADMIN);
     expect(ids).toContain('company');
     expect(ids).not.toContain('email-templates');
+    expect(ids).not.toContain('cashout-24h');
   });
 
   it('hides company settings from company admins', () => {
