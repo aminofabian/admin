@@ -348,7 +348,7 @@ export function SuperAdminCompanies() {
                                         <TableRow key={company.id}>
                                             <TableCell className="py-2.5">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-bold text-primary">
                                                         {company.project_name.charAt(0).toUpperCase()}
                                                     </span>
                                                     <div className="min-w-0">
@@ -383,7 +383,7 @@ export function SuperAdminCompanies() {
                         <ul className="md:hidden divide-y divide-border">
                             {data?.results.map((company) => (
                                 <li key={company.id} className="flex items-center gap-3 px-3 py-3">
-                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-sm font-bold text-primary">
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-bold text-primary">
                                         {company.project_name.charAt(0).toUpperCase()}
                                     </span>
                                     <div className="min-w-0 flex-1">

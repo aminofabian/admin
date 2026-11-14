@@ -39,7 +39,7 @@ function CompanyOption({ company, isSelected, onSelect }: {
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent ${isSelected ? 'bg-primary/5' : ''}`}
+      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent ${isSelected ? 'bg-muted' : ''}`}
     >
       <span
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
@@ -77,7 +77,7 @@ export function CompanyPicker({ companies, selectedCompanyId, onSelect }: Compan
       <button
         type="button"
         onClick={() => (isOpen ? close() : setIsOpen(true))}
-        className="flex h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-3 text-left hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary"
+        className="flex h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-3 text-left hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <Building2 className="h-4 w-4 shrink-0 text-primary" />
         <span className={`min-w-0 flex-1 truncate text-sm ${selectedCompany ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>

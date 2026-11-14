@@ -16,7 +16,7 @@ function SettingRow({ item }: { item: SettingItem }) {
       href={item.href}
       className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:text-primary">
         <ItemIcon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">

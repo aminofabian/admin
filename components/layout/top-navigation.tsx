@@ -114,7 +114,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           <span className="text-base sm:text-lg md:text-xl xl:text-2xl font-bold text-foreground tracking-tight tabular-nums">
             {formatTime(currentTime)}
           </span>
-          <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground hidden sm:block">
+          <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground hidden sm:block lg:hidden xl:block">
             {formatDate(currentTime)}
           </span>
         </div>

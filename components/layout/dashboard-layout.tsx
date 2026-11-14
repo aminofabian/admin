@@ -86,7 +86,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Main content - Mobile App Style */}
-        <div className="flex-1 flex flex-col w-full">
+        <div className="flex-1 flex flex-col w-full min-w-0">
           <TopNavigation 
             onMenuClick={() => setSidebarOpen(true)} 
           />
