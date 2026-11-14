@@ -487,7 +487,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 {user?.username?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
-            <div className="hidden sm:flex flex-col">
+            <div className="hidden sm:flex lg:hidden xl:flex flex-col">
               <span className="text-xs md:text-sm font-semibold text-foreground leading-tight">
                 {user?.username || 'User'}
               </span>

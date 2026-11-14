@@ -339,7 +339,7 @@ export function SuperAdminCompanies() {
                                         <TableHead>Company</TableHead>
                                         <TableHead>Domain</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead>Created</TableHead>
+                                        <TableHead className="hidden xl:table-cell">Created</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -365,7 +365,7 @@ export function SuperAdminCompanies() {
                                                     {company.is_active ? 'Active' : 'Inactive'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="whitespace-nowrap py-2.5 text-xs tabular-nums text-muted-foreground">{formatDate(company.created)}</TableCell>
+                                            <TableCell className="hidden whitespace-nowrap py-2.5 text-xs tabular-nums text-muted-foreground xl:table-cell">{formatDate(company.created)}</TableCell>
                                             <TableCell className="py-2.5">
                                                 <CompanyRowActions
                                                     isActive={company.is_active}
