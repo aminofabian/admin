@@ -327,8 +327,11 @@ export function SuperAdminGames() {
     };
 
     return (
-        <div className="space-y-3 md:space-y-4 pb-6 md:pb-0">
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Games Management</h1>
+        <div className="space-y-4 pb-6 md:pb-0">
+            <div>
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Games management</h1>
+                <p className="text-sm text-muted-foreground">Choose which games each company offers and which API category 2 uses.</p>
+            </div>
 
             <Category2GameApiToggle />
 

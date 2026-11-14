@@ -30,7 +30,7 @@ function SettingRow({ item }: { item: SettingItem }) {
 
 function SettingSectionCard({ section }: { section: SettingSection }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
+    <section className="mb-4 break-inside-avoid overflow-hidden rounded-xl border border-border bg-card">
       <h2 className="border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {section.title}
       </h2>
@@ -57,12 +57,12 @@ export default function SettingsPage() {
   const sections = groupSettingsForRole(user?.role);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-foreground md:text-2xl">Settings</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">Settings</h1>
         <p className="text-sm text-muted-foreground">Configure the platform, payments, and player rewards.</p>
       </div>
-      <div className="grid items-start gap-4 md:grid-cols-2">
+      <div className="gap-4 md:columns-2">
         {sections.map((section) => (
           <SettingSectionCard key={section.id} section={section} />
         ))}

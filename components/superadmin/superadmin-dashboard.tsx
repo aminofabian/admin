@@ -1,126 +1,151 @@
 'use client';
 
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Building2,
+  ChevronRight,
+  CircleDollarSign,
+  CreditCard,
+  Gamepad2,
+  Phone,
+  ShoppingBag,
+  Wallet,
+} from 'lucide-react';
+import { useAuth } from '@/providers/auth-provider';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { timeOfDayGreeting } from '@/lib/utils/time-of-day-greeting';
 
-interface SectionItem {
+interface Destination {
+  title: string;
+  description: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+interface Queue {
   label: string;
   href: string;
-  icon: ReactNode;
+  icon: LucideIcon;
+  count: number;
+}
+
+const MANAGE_DESTINATIONS: Destination[] = [
+  { title: 'Companies', description: 'Whitelabels, domains, and admin accounts', href: '/dashboard/companies', icon: Building2 },
+  { title: 'Games management', description: 'Enable games per company and switch the category 2 API', href: '/dashboard/games', icon: Gamepad2 },
+  { title: 'Payment methods', description: 'Purchase and cashout methods per company', href: '/dashboard/settings/payment', icon: CreditCard },
+];
+
+const SETTING_SHORTCUTS: Destination[] = [
+  { title: 'Company settings', description: 'Domains, logos, and services', href: '/dashboard/settings/company', icon: Building2 },
+  { title: 'Verification', description: 'Phone OTP and identity checks', href: '/dashboard/settings/verification', icon: Phone },
+  { title: 'Bonuses', description: 'Purchase, recharge, and signup bonuses', href: '/dashboard/settings/bonuses', icon: CircleDollarSign },
+];
+
+function DestinationRow({ destination }: { destination: Destination }) {
+  const Icon = destination.icon;
+  return (
+    <Link href={destination.href} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-foreground">{destination.title}</span>
+        <span className="block truncate text-xs text-muted-foreground">{destination.description}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+    </Link>
+  );
+}
+
+function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {action}
+      </header>
+      <div className="flex-1 divide-y divide-border">{children}</div>
+    </section>
+  );
+}
+
+function QueueCell({ queue }: { queue: Queue }) {
+  const Icon = queue.icon;
+  const isWaiting = queue.count > 0;
+  return (
+    <Link href={queue.href} className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/40">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:text-primary">
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-medium text-muted-foreground">{queue.label}</span>
+        <span className="flex items-baseline gap-2">
+          <span className="text-2xl font-semibold tabular-nums text-foreground">{queue.count}</span>
+          <span className={`flex items-center gap-1 text-xs ${isWaiting ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isWaiting ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            {isWaiting ? 'waiting' : 'clear'}
+          </span>
+        </span>
+      </span>
+      <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+    </Link>
+  );
+}
+
+function useGreeting(): string {
+  const [greeting, setGreeting] = useState('Welcome back');
+  useEffect(() => setGreeting(timeOfDayGreeting(new Date())), []);
+  return greeting;
 }
 
 export function SuperAdminDashboard() {
-  // Superadmin sections as mobile app-like buttons
-  const sections: SectionItem[] = [
-    {
-      label: 'Companies',
-      href: '/dashboard/companies',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Players',
-      href: '/dashboard/players',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Games',
-      href: '/dashboard/games',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Category 2 API',
-      href: '/dashboard/settings/game-api',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Payment Settings',
-      href: '/dashboard/settings/payment',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Phone Verification',
-      href: '/dashboard/settings/verification',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Transactions',
-      href: '/dashboard/history/transactions',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Game Activities',
-      href: '/dashboard/history/game-activities',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Settings',
-      href: '/dashboard/settings',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-    },
+  const { user } = useAuth();
+  const { counts } = useProcessingWebSocketContext();
+  const greeting = useGreeting();
+
+  const queues: Queue[] = [
+    { label: 'Purchases', href: '/dashboard/processing/purchase', icon: ShoppingBag, count: counts.purchase_count ?? 0 },
+    { label: 'Cashouts', href: '/dashboard/processing/cashout', icon: Wallet, count: counts.cashout_count ?? 0 },
+    { label: 'Game activities', href: '/dashboard/processing/game-activities', icon: Gamepad2, count: counts.game_activities_count ?? 0 },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center pb-24">
-      {/* Mobile App-style Button Grid - Centered in the middle of the page */}
-      <div className="w-full max-w-5xl px-4">
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
-          {sections.map((section, index) => (
-            <Link
-              key={index}
-              href={section.href}
-              className="group flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
-            >
-              {/* Icon Container - Mobile App Style */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
-                <div className="text-primary">
-                  {section.icon}
-                </div>
-              </div>
-              
-              {/* Label - Mobile App Style */}
-              <span className="text-xs sm:text-xs font-medium text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors px-1">
-                {section.label}
-              </span>
-            </Link>
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
+          {greeting}, {user?.username ?? 'superadmin'}
+        </h1>
+        <p className="text-sm text-muted-foreground">Live queues and controls across every company.</p>
+      </div>
+
+      <section aria-label="Processing queues" className="grid overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3 sm:divide-x divide-y sm:divide-y-0 divide-border">
+        {queues.map((queue) => (
+          <QueueCell key={queue.href} queue={queue} />
+        ))}
+      </section>
+
+      <div className="grid items-stretch gap-5 lg:grid-cols-2">
+        <Panel title="Manage">
+          {MANAGE_DESTINATIONS.map((destination) => (
+            <DestinationRow key={destination.href} destination={destination} />
           ))}
-        </div>
+        </Panel>
+        <Panel
+          title="Settings"
+          action={
+            <Link href="/dashboard/settings" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              All settings <ArrowRight className="h-3 w-3" />
+            </Link>
+          }
+        >
+          {SETTING_SHORTCUTS.map((destination) => (
+            <DestinationRow key={destination.href} destination={destination} />
+          ))}
+        </Panel>
       </div>
     </div>
   );

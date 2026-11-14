@@ -110,8 +110,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
 
 
         {/* Time and Date - Responsive sizing */}
-        <div className="flex flex-col">
-          <span className="text-base sm:text-lg md:text-xl xl:text-2xl font-bold text-foreground tracking-tight">
+        <div className="flex flex-col whitespace-nowrap">
+          <span className="text-base sm:text-lg md:text-xl xl:text-2xl font-bold text-foreground tracking-tight tabular-nums">
             {formatTime(currentTime)}
           </span>
           <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground hidden sm:block">

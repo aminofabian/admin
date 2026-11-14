@@ -685,7 +685,9 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
     ? MENU_CATEGORIES.filter((cat) => cat.roles.includes(user.role))
     : MENU_CATEGORIES;
 
-  const isSettingsActive = pathname === SETTINGS_PATH || pathname.startsWith(`${SETTINGS_PATH}/`);
+  const isUnderSettings = pathname === SETTINGS_PATH || pathname.startsWith(`${SETTINGS_PATH}/`);
+  const isOwnedByMenuItem = filteredCategories.some((category) => category.href === pathname);
+  const isSettingsActive = isUnderSettings && !isOwnedByMenuItem;
 
   const handleLogout = () => {
     logout();
@@ -815,7 +817,7 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
 
       {/* Footer */}
       {!isCollapsed && (
-        <div className="border-t border-border/50 p-6 space-y-3">
+        <div className="border-t border-border/50 px-4 py-4 space-y-2">
           {/* Chat Link - Hidden for superadmin and agent */}
           {user?.role !== USER_ROLES.SUPERADMIN &&
            user?.role !== USER_ROLES.AGENT && (
