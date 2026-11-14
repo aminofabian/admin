@@ -275,16 +275,16 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/companies',
   },
   {
+    name: 'Settings',
+    icon: <SettingsIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings',
+  },
+  {
     name: 'Games Management',
     icon: <GameIcon />,
     roles: [USER_ROLES.SUPERADMIN],
     href: '/dashboard/games',
-  },
-  {
-    name: 'Category 2 API',
-    icon: <GameSettingsIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/game-api',
   },
   {
     name: 'Payment Methods',
@@ -572,7 +572,12 @@ function MenuItem({
   });
   
   const hasSubmenu = filteredSubmenu && filteredSubmenu.length > 0;
-  const isActive = category.href && pathname === category.href;
+  const isSettingsHub = category.href === '/dashboard/settings';
+  const isActive = Boolean(
+    category.href &&
+      (pathname === category.href ||
+        (isSettingsHub && pathname.startsWith('/dashboard/settings/')))
+  );
   
   // Check if any submenu item is active
   const hasActiveSubmenu = filteredSubmenu?.some((item) => {
