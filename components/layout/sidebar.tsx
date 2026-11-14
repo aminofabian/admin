@@ -292,21 +292,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     roles: [USER_ROLES.SUPERADMIN],
     href: '/dashboard/settings/payment',
   },
-  {
-    name: 'Players',
-    icon: <PlayerIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/players',
-  },
-  {
-    name: 'History',
-    icon: <HistoryIcon />,
-    roles: [USER_ROLES.SUPERADMIN],
-    submenu: [
-      { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
-      { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
-    ],
-  },
   // Admin/Other roles menu items
   {
     name: 'User Management',
