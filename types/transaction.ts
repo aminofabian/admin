@@ -117,8 +117,9 @@ export interface GameActionRequest {
   type: GameActionType;
   new_password?: string;
   new_balance?: string;
-  /** Game dashboard balance (Riversweep / Golden Dragon manual complete). */
+  /** Game dashboard balance sent on manual complete. */
   new_game_balance?: string;
+  /** Golden Dragon manual complete. Riversweeps no longer sends entries. */
   new_entries?: string;
   new_username?: string;
   game_username?: string; // For add_user_game and create_game types

@@ -343,7 +343,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             data.new_game_balance = sanitizedBalance;
           }
         }
-        if (entries?.trim()) {
+        if (requiresEntries && entries?.trim()) {
           const sanitizedEntries = sanitizeGameActionEntriesInput(entries);
           if (sanitizedEntries) data.new_entries = sanitizedEntries;
         }

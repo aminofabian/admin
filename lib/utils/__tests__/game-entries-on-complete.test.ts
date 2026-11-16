@@ -17,28 +17,31 @@ describe('normalizeGameIdentifier', () => {
 });
 
 describe('requiresEntriesOnComplete', () => {
-  it('matches River Sweeps title and code variants', () => {
-    expect(requiresEntriesOnComplete({ gameTitle: 'River Sweeps' })).toBe(true);
-    expect(requiresEntriesOnComplete({ gameTitle: 'Riversweep' })).toBe(true);
-    expect(requiresEntriesOnComplete({ gameTitle: 'Riversweeps' })).toBe(true);
-    expect(requiresEntriesOnComplete({ gameCode: 'RIVERSWEEPS' })).toBe(true);
-    expect(requiresEntriesOnComplete({ gameCode: 'river_pay' })).toBe(true);
+  it('does not match Riversweeps or RiverPay title and code variants', () => {
+    expect(requiresEntriesOnComplete({ gameTitle: 'River Sweeps' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameTitle: 'Riversweep' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameTitle: 'Riversweeps' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameCode: 'RIVERSWEEPS' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameCode: 'RS' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameCode: 'river_pay' })).toBe(false);
+    expect(requiresEntriesOnComplete({ gameTitle: 'RiverPay' })).toBe(false);
   });
 
   it('matches Golden Dragon title and code variants', () => {
     expect(requiresEntriesOnComplete({ gameTitle: 'Golden Dragon' })).toBe(true);
     expect(requiresEntriesOnComplete({ gameCode: 'GOLDEN_DRAGON' })).toBe(true);
     expect(requiresEntriesOnComplete({ gameCode: 'goldendragon' })).toBe(true);
+    expect(requiresEntriesOnComplete({ gameCode: 'GD' })).toBe(true);
   });
 
   it('matches via game_category when queue fields are abbreviated', () => {
     expect(requiresEntriesOnComplete({ gameCode: 'GD', gameCategory: 'Golden Dragon' })).toBe(
       true,
     );
-    expect(requiresEntriesOnComplete({ gameCode: 'RS', gameCategory: 'Riversweep' })).toBe(true);
+    expect(requiresEntriesOnComplete({ gameCode: 'RS', gameCategory: 'Riversweep' })).toBe(false);
   });
 
-  it('matches hints nested in queue data and remarks', () => {
+  it('ignores Riversweeps hints nested in queue data and remarks', () => {
     expect(
       requiresEntriesOnComplete({
         dataStrings: collectQueueGameHintStrings({
@@ -46,8 +49,11 @@ describe('requiresEntriesOnComplete', () => {
           game_code: 'RS',
         }),
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(requiresEntriesOnComplete({ remarks: 'Manual Riversweeps recharge queued' })).toBe(
+      false,
+    );
+    expect(requiresEntriesOnComplete({ remarks: 'Manual Golden Dragon recharge queued' })).toBe(
       true,
     );
   });
@@ -84,7 +90,7 @@ describe('isSweepstakesStyleGameFromQueue', () => {
     ).toBe(true);
   });
 
-  it('matches Riversweeps as a sweepstakes-style game', () => {
+  it('does not match Riversweeps as a sweepstakes-style game', () => {
     expect(
       isSweepstakesStyleGameFromQueue({
         game: 'Riversweeps',
@@ -92,7 +98,7 @@ describe('isSweepstakesStyleGameFromQueue', () => {
         remarks: '',
         data: null,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

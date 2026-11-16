@@ -3,14 +3,12 @@ import type { Game } from '@/types';
 
 /**
  * Games that use balance + entries (not balance alone) when manually completing recharge/redeem.
- * Examples: River Sweeps / Riversweep, Golden Dragon.
+ * Golden Dragon is the remaining dual-field game. Riversweeps now uses balance only.
  */
-const ENTRIES_GAME_SIGNATURES = [
-  'riversweep',
-  'riversweeps',
-  'goldendragon',
-  'riverpay',
-] as const;
+const ENTRIES_GAME_SIGNATURES = ['goldendragon'] as const;
+
+/** Exact normalized codes that still require entries. Substring matching would be too broad. */
+const EXACT_ENTRIES_CODES = new Set(['gd']);
 
 const QUEUE_DATA_GAME_HINT_KEYS = [
   'game',
@@ -30,8 +28,12 @@ export function normalizeGameIdentifier(value?: string | null): string {
 }
 
 function identifiersMatchEntriesGame(...values: Array<string | null | undefined>): boolean {
-  const combined = values.map(normalizeGameIdentifier).join('|');
-  return ENTRIES_GAME_SIGNATURES.some((signature) => combined.includes(signature));
+  const normalized = values.map(normalizeGameIdentifier).filter(Boolean);
+  const combined = normalized.join('|');
+  if (ENTRIES_GAME_SIGNATURES.some((signature) => combined.includes(signature))) {
+    return true;
+  }
+  return normalized.some((value) => EXACT_ENTRIES_CODES.has(value));
 }
 
 export interface EntriesOnCompleteGameHints {
@@ -118,7 +120,7 @@ export function requiresEntriesOnCompleteFromQueue(
 }
 
 /**
- * Riversweep / Golden Dragon / RiverPay share sweepstakes-style manual flows
+ * Golden Dragon still uses a sweepstakes-style manual flow
  * (balance + entries on recharge/redeem complete).
  */
 export function isSweepstakesStyleGameFromQueue(

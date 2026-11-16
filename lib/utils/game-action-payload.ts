@@ -39,7 +39,7 @@ export function appendSanitizedGameBalanceFields(
   return true;
 }
 
-/** Django riversweep-style handlers may read `entries` or `new_entries`. */
+/** Golden Dragon handlers may read `entries` or `new_entries`. */
 export function appendSanitizedGameEntriesFields(
   target: FormData | URLSearchParams,
   rawEntries: string,
