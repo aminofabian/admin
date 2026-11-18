@@ -77,7 +77,9 @@ export interface AffiliateDefaultSettings {
 export interface ReferralSettings {
   id: number;
   is_enabled: boolean;
+  referrer_bonus_type: BonusType;
   referrer_bonus_percentage: string;
+  referrer_bonus_fixed_amount: string;
   referrer_bonus_cap: string;
   referred_player_bonus_amount: string;
   created: string;
@@ -86,7 +88,9 @@ export interface ReferralSettings {
 
 export interface UpdateReferralSettingsRequest {
   is_enabled?: boolean;
+  referrer_bonus_type?: BonusType;
   referrer_bonus_percentage?: number;
+  referrer_bonus_fixed_amount?: number;
   referrer_bonus_cap?: number;
   referred_player_bonus_amount?: number;
 }

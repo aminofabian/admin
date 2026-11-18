@@ -1,25 +1,34 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES, canManageReferralPromoCodes } from '@/lib/constants/roles';
+import {
+  EMPTY_REFERRAL_REWARDS_FORM,
+  buildReferralRewardsPatch,
+  referralRewardsFormFromSettings,
+  type ReferralRewardsFormState,
+} from '@/lib/referral-rewards-patch';
 import { useReferralSettingsStore } from '@/stores';
 import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
 import { ReferralPromoCodesSection } from '@/components/dashboard/settings/referral-promo-codes-section';
+import type { BonusType } from '@/types/bonus';
 
-type FormFieldKey =
+type AmountFieldKey =
   | 'referrer_bonus_percentage'
+  | 'referrer_bonus_fixed_amount'
   | 'referrer_bonus_cap'
   | 'referred_player_bonus_amount';
 
-const parseNumericField = (value: string) => {
-  if (value === '' || value === '.') return 0;
-  const parsed = Number.parseFloat(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
+const DECIMAL_INPUT = /^\d*\.?\d*$/;
+
+const BONUS_TYPE_OPTIONS: { value: BonusType; label: string }[] = [
+  { value: 'percentage', label: 'Percentage' },
+  { value: 'fixed', label: 'Fixed amount' },
+];
 
 function FieldRow({
   id,
@@ -31,7 +40,7 @@ function FieldRow({
   onChange,
   onBlur,
 }: {
-  id: FormFieldKey;
+  id: AmountFieldKey;
   label: string;
   hint?: string;
   suffix: '%' | '$';
@@ -70,17 +79,59 @@ function FieldRow({
   );
 }
 
+function BonusTypeControl({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: BonusType;
+  disabled?: boolean;
+  onChange: (next: BonusType) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-center gap-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Bonus type</p>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          Share of the first deposit, or a flat amount
+        </p>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Referrer bonus type"
+        className="inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-600"
+      >
+        {BONUS_TYPE_OPTIONS.map((option) => {
+          const selected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                selected
+                  ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ReferralSettingsPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
 
-  const [formData, setFormData] = useState({
-    is_enabled: false,
-    referrer_bonus_percentage: '0',
-    referrer_bonus_cap: '0',
-    referred_player_bonus_amount: '0',
-  });
+  const [formData, setFormData] = useState<ReferralRewardsFormState>(EMPTY_REFERRAL_REWARDS_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { referralSettings, isLoading, error, fetchReferralSettings, patchReferralSettings } =
@@ -105,31 +156,16 @@ export default function ReferralSettingsPage() {
 
   useEffect(() => {
     if (!referralSettings) return;
-    setFormData({
-      is_enabled: Boolean(referralSettings.is_enabled),
-      referrer_bonus_percentage: referralSettings.referrer_bonus_percentage,
-      referrer_bonus_cap: referralSettings.referrer_bonus_cap,
-      referred_player_bonus_amount: referralSettings.referred_player_bonus_amount,
-    });
+    setFormData(referralRewardsFormFromSettings(referralSettings));
   }, [referralSettings]);
 
-  const numericFormData = useMemo(
-    () => ({
-      is_enabled: formData.is_enabled,
-      referrer_bonus_percentage: parseNumericField(formData.referrer_bonus_percentage),
-      referrer_bonus_cap: parseNumericField(formData.referrer_bonus_cap),
-      referred_player_bonus_amount: parseNumericField(formData.referred_player_bonus_amount),
-    }),
-    [formData],
-  );
-
-  const handleFieldChange = (key: FormFieldKey, raw: string) => {
-    if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+  const handleFieldChange = (key: AmountFieldKey, raw: string) => {
+    if (raw === '' || DECIMAL_INPUT.test(raw)) {
       setFormData((prev) => ({ ...prev, [key]: raw }));
     }
   };
 
-  const handleFieldBlur = (key: FormFieldKey) => {
+  const handleFieldBlur = (key: AmountFieldKey) => {
     const value = formData[key];
     if (value === '' || value === '.') {
       setFormData((prev) => ({ ...prev, [key]: '0' }));
@@ -141,23 +177,21 @@ export default function ReferralSettingsPage() {
     }
   };
 
+  const handleBonusTypeChange = (referrerBonusType: BonusType) => {
+    setFormData((prev) => ({ ...prev, referrer_bonus_type: referrerBonusType }));
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount } =
-      numericFormData;
-
-    if (referrer_bonus_percentage < 0 || referrer_bonus_percentage > 100) {
-      addToast({ type: 'error', title: 'Referrer bonus must be between 0 and 100%' });
-      return;
-    }
-    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0) {
-      addToast({ type: 'error', title: 'Amounts must be 0 or greater' });
+    const result = buildReferralRewardsPatch(formData);
+    if (!result.ok) {
+      addToast({ type: 'error', title: result.title });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await patchReferralSettings(numericFormData);
+      await patchReferralSettings(result.body);
       addToast({ type: 'success', title: 'Saved' });
     } catch (err) {
       addToast({
@@ -221,26 +255,46 @@ export default function ReferralSettingsPage() {
               <p className="pt-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
                 Referrer
               </p>
-              <FieldRow
-                id="referrer_bonus_percentage"
-                label="Bonus"
-                hint="Share of first deposit"
-                suffix="%"
-                value={formData.referrer_bonus_percentage}
+              <BonusTypeControl
+                value={formData.referrer_bonus_type}
                 disabled={fieldsDisabled}
-                onChange={(raw) => handleFieldChange('referrer_bonus_percentage', raw)}
-                onBlur={() => handleFieldBlur('referrer_bonus_percentage')}
+                onChange={handleBonusTypeChange}
               />
-              <FieldRow
-                id="referrer_bonus_cap"
-                label="Cap"
-                hint="Maximum per referral"
-                suffix="$"
-                value={formData.referrer_bonus_cap}
-                disabled={fieldsDisabled}
-                onChange={(raw) => handleFieldChange('referrer_bonus_cap', raw)}
-                onBlur={() => handleFieldBlur('referrer_bonus_cap')}
-              />
+              {formData.referrer_bonus_type === 'fixed' ? (
+                <FieldRow
+                  id="referrer_bonus_fixed_amount"
+                  label="Bonus"
+                  hint="Flat amount per referral"
+                  suffix="$"
+                  value={formData.referrer_bonus_fixed_amount}
+                  disabled={fieldsDisabled}
+                  onChange={(raw) => handleFieldChange('referrer_bonus_fixed_amount', raw)}
+                  onBlur={() => handleFieldBlur('referrer_bonus_fixed_amount')}
+                />
+              ) : (
+                <>
+                  <FieldRow
+                    id="referrer_bonus_percentage"
+                    label="Bonus"
+                    hint="Share of first deposit"
+                    suffix="%"
+                    value={formData.referrer_bonus_percentage}
+                    disabled={fieldsDisabled}
+                    onChange={(raw) => handleFieldChange('referrer_bonus_percentage', raw)}
+                    onBlur={() => handleFieldBlur('referrer_bonus_percentage')}
+                  />
+                  <FieldRow
+                    id="referrer_bonus_cap"
+                    label="Cap"
+                    hint="Maximum per referral"
+                    suffix="$"
+                    value={formData.referrer_bonus_cap}
+                    disabled={fieldsDisabled}
+                    onChange={(raw) => handleFieldChange('referrer_bonus_cap', raw)}
+                    onBlur={() => handleFieldBlur('referrer_bonus_cap')}
+                  />
+                </>
+              )}
             </div>
 
             <div className="pb-1 pt-2">
