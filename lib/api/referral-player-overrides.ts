@@ -47,7 +47,12 @@ function normalizeOverride(
         : playerRaw && typeof playerRaw === 'object' && 'username' in playerRaw
           ? String((playerRaw as { username: unknown }).username)
           : undefined,
+    referrer_bonus_type:
+      String(raw.referrer_bonus_type ?? '').trim().toLowerCase() === 'fixed'
+        ? 'fixed'
+        : 'percentage',
     referrer_bonus_percentage: String(raw.referrer_bonus_percentage ?? '0'),
+    referrer_bonus_fixed_amount: String(raw.referrer_bonus_fixed_amount ?? '0'),
     referred_player_bonus_amount: String(raw.referred_player_bonus_amount ?? '0'),
     created: typeof raw.created === 'string' ? raw.created : undefined,
     modified: typeof raw.modified === 'string' ? raw.modified : undefined,
@@ -63,7 +68,12 @@ function extractOverride(
   const asRecord = response as Record<string, unknown>;
 
   // Direct override object
-  if ('referrer_bonus_percentage' in asRecord || 'referred_player_bonus_amount' in asRecord) {
+  if (
+    'referrer_bonus_type' in asRecord ||
+    'referrer_bonus_percentage' in asRecord ||
+    'referrer_bonus_fixed_amount' in asRecord ||
+    'referred_player_bonus_amount' in asRecord
+  ) {
     if ('player' in asRecord || 'id' in asRecord) {
       return normalizeOverride(asRecord, playerId);
     }
@@ -76,7 +86,12 @@ function extractOverride(
 
   const data = wrapped.data;
   if (data && typeof data === 'object') {
-    if ('referrer_bonus_percentage' in data || 'player' in data) {
+    if (
+      'referrer_bonus_type' in data ||
+      'referrer_bonus_percentage' in data ||
+      'referrer_bonus_fixed_amount' in data ||
+      'player' in data
+    ) {
       return normalizeOverride(data as unknown as Record<string, unknown>, playerId);
     }
     if ('results' in data && Array.isArray(data.results) && data.results.length > 0) {

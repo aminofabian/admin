@@ -99,7 +99,9 @@ export interface ReferralPlayerOverride {
   id: number;
   player: number;
   player_username?: string;
+  referrer_bonus_type: BonusType;
   referrer_bonus_percentage: string;
+  referrer_bonus_fixed_amount: string;
   referred_player_bonus_amount: string;
   created?: string;
   modified?: string;
@@ -107,7 +109,9 @@ export interface ReferralPlayerOverride {
 
 export interface SaveReferralPlayerOverrideRequest {
   player: number;
-  referrer_bonus_percentage: number;
+  referrer_bonus_type: BonusType;
+  referrer_bonus_percentage?: number;
+  referrer_bonus_fixed_amount?: number;
   referred_player_bonus_amount: number;
 }
 

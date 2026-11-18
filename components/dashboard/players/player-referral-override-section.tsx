@@ -4,11 +4,71 @@ import { useEffect, useState } from 'react';
 import { useReferralPlayerOverrideStore } from '@/stores';
 import { Button, Input, useToast } from '@/components/ui';
 import { PlayerDetailPanel } from '@/components/dashboard/players/player-detail-panel';
+import {
+  EMPTY_REFERRAL_OVERRIDE_FORM,
+  buildReferralPlayerOverridePatch,
+  referralOverrideFormFromRecord,
+  type ReferralOverrideFormState,
+} from '@/lib/referral-player-override-patch';
+import type { BonusType } from '@/types/bonus';
 
 export interface PlayerReferralOverrideSectionProps {
   playerId: number;
   playerUsername?: string;
   canEdit: boolean;
+}
+
+const DECIMAL_INPUT = /^\d*\.?\d*$/;
+
+const BONUS_TYPE_OPTIONS: { value: BonusType; label: string }[] = [
+  { value: 'percentage', label: 'Percentage' },
+  { value: 'fixed', label: 'Fixed amount' },
+];
+
+function acceptDecimal(value: string): boolean {
+  return value === '' || DECIMAL_INPUT.test(value);
+}
+
+function BonusTypeControl({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: BonusType;
+  disabled?: boolean;
+  onChange: (next: BonusType) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Bonus type</p>
+      <div
+        role="radiogroup"
+        aria-label="Referrer bonus type"
+        className="inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-600"
+      >
+        {BONUS_TYPE_OPTIONS.map((option) => {
+          const selected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                selected
+                  ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function PlayerReferralOverrideSection({
@@ -25,8 +85,7 @@ export function PlayerReferralOverrideSection({
   const isSaving = entry?.isSaving ?? false;
   const error = entry?.error ?? null;
 
-  const [referrerBonusPercentage, setReferrerBonusPercentage] = useState('0');
-  const [referredPlayerBonusAmount, setReferredPlayerBonusAmount] = useState('0');
+  const [formData, setFormData] = useState<ReferralOverrideFormState>(EMPTY_REFERRAL_OVERRIDE_FORM);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,38 +94,28 @@ export function PlayerReferralOverrideSection({
 
   useEffect(() => {
     if (override) {
-      setReferrerBonusPercentage(String(override.referrer_bonus_percentage ?? '0'));
-      setReferredPlayerBonusAmount(String(override.referred_player_bonus_amount ?? '0'));
-    } else if (entry && !isLoading) {
-      setReferrerBonusPercentage('0');
-      setReferredPlayerBonusAmount('0');
+      setFormData(referralOverrideFormFromRecord(override));
+      return;
     }
-  }, [override, entry, isLoading]);
+    if (!isLoading) {
+      setFormData(EMPTY_REFERRAL_OVERRIDE_FORM);
+    }
+  }, [override, isLoading]);
 
-  const validate = (): boolean => {
-    const percentage = Number.parseFloat(referrerBonusPercentage);
-    const bonus = Number.parseFloat(referredPlayerBonusAmount);
-
-    if (Number.isNaN(percentage) || percentage < 0 || percentage > 100) {
-      setFormError('Referrer bonus percentage must be between 0 and 100');
-      return false;
-    }
-    if (Number.isNaN(bonus) || bonus < 0) {
-      setFormError('Referred player bonus must be 0 or greater');
-      return false;
-    }
+  const updateForm = (patch: Partial<ReferralOverrideFormState>) => {
     setFormError(null);
-    return true;
+    setFormData((prev) => ({ ...prev, ...patch }));
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    const result = buildReferralPlayerOverridePatch(playerId, formData);
+    if (!result.ok) {
+      setFormError(result.title);
+      return;
+    }
+    setFormError(null);
     try {
-      await saveForPlayer({
-        player: playerId,
-        referrer_bonus_percentage: Number.parseFloat(referrerBonusPercentage),
-        referred_player_bonus_amount: Number.parseFloat(referredPlayerBonusAmount),
-      });
+      await saveForPlayer(result.body);
       addToast({
         type: 'success',
         title: 'Saved',
@@ -77,6 +126,10 @@ export function PlayerReferralOverrideSection({
       addToast({ type: 'error', title: 'Save failed', description: message });
     }
   };
+
+  const referrerFieldId = `referrer-bonus-${playerId}`;
+  const referredFieldId = `referred-player-bonus-${playerId}`;
+  const isFixed = formData.referrer_bonus_type === 'fixed';
 
   return (
     <PlayerDetailPanel
@@ -112,33 +165,76 @@ export function PlayerReferralOverrideSection({
             Overrides company referral rewards for this player only.
           </p>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Referrer bonus percentage (%)
-            </label>
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={referrerBonusPercentage}
-              onChange={(e) => setReferrerBonusPercentage(e.target.value)}
-              placeholder="e.g. 10"
-              disabled={isSaving}
-            />
-          </div>
+          <BonusTypeControl
+            value={formData.referrer_bonus_type}
+            disabled={isSaving}
+            onChange={(referrerBonusType) => updateForm({ referrer_bonus_type: referrerBonusType })}
+          />
+
+          {isFixed ? (
+            <div>
+              <label
+                htmlFor={referrerFieldId}
+                className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300"
+              >
+                Referrer bonus ($)
+              </label>
+              <Input
+                id={referrerFieldId}
+                type="text"
+                inputMode="decimal"
+                value={formData.referrer_bonus_fixed_amount}
+                onChange={(e) => {
+                  if (acceptDecimal(e.target.value)) {
+                    updateForm({ referrer_bonus_fixed_amount: e.target.value });
+                  }
+                }}
+                placeholder="e.g. 10"
+                disabled={isSaving}
+              />
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor={referrerFieldId}
+                className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300"
+              >
+                Referrer bonus percentage (%)
+              </label>
+              <Input
+                id={referrerFieldId}
+                type="text"
+                inputMode="decimal"
+                value={formData.referrer_bonus_percentage}
+                onChange={(e) => {
+                  if (acceptDecimal(e.target.value)) {
+                    updateForm({ referrer_bonus_percentage: e.target.value });
+                  }
+                }}
+                placeholder="e.g. 5"
+                disabled={isSaving}
+              />
+            </div>
+          )}
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor={referredFieldId}
+              className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300"
+            >
               Referred player bonus ($)
             </label>
             <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={referredPlayerBonusAmount}
-              onChange={(e) => setReferredPlayerBonusAmount(e.target.value)}
-              placeholder="e.g. 5"
+              id={referredFieldId}
+              type="text"
+              inputMode="decimal"
+              value={formData.referred_player_bonus_amount}
+              onChange={(e) => {
+                if (acceptDecimal(e.target.value)) {
+                  updateForm({ referred_player_bonus_amount: e.target.value });
+                }
+              }}
+              placeholder="e.g. 2"
               disabled={isSaving}
             />
           </div>
@@ -153,7 +249,12 @@ export function PlayerReferralOverrideSection({
         <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
           {override ? (
             <>
-              <p>Referrer bonus: {override.referrer_bonus_percentage}%</p>
+              <p>
+                Referrer bonus:{' '}
+                {override.referrer_bonus_type === 'fixed'
+                  ? `$${override.referrer_bonus_fixed_amount}`
+                  : `${override.referrer_bonus_percentage}%`}
+              </p>
               <p>Referred player bonus: ${override.referred_player_bonus_amount}</p>
             </>
           ) : (
