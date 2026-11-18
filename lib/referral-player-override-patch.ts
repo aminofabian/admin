@@ -69,7 +69,7 @@ function percentageOverride(
   ) {
     return { ok: false, title: PERCENTAGE_RANGE_ERROR };
   }
-  if (referredPlayerBonusAmount == null || referredPlayerBonusAmount < MIN_REFERRAL_AMOUNT) {
+  if (referredPlayerBonusAmount < MIN_REFERRAL_AMOUNT) {
     return { ok: false, title: AMOUNT_ERROR };
   }
 
@@ -90,12 +90,7 @@ function fixedOverride(
   referredPlayerBonusAmount: number,
 ): ReferralOverridePatchResult {
   const fixedAmount = parseAmount(form.referrer_bonus_fixed_amount);
-  if (
-    fixedAmount == null ||
-    referredPlayerBonusAmount == null ||
-    fixedAmount < MIN_REFERRAL_AMOUNT ||
-    referredPlayerBonusAmount < MIN_REFERRAL_AMOUNT
-  ) {
+  if (fixedAmount == null || fixedAmount < MIN_REFERRAL_AMOUNT || referredPlayerBonusAmount < MIN_REFERRAL_AMOUNT) {
     return { ok: false, title: AMOUNT_ERROR };
   }
 
@@ -115,6 +110,9 @@ export function buildReferralPlayerOverridePatch(
   form: ReferralOverrideFormState,
 ): ReferralOverridePatchResult {
   const referredPlayerBonusAmount = parseAmount(form.referred_player_bonus_amount);
+  if (referredPlayerBonusAmount == null) {
+    return { ok: false, title: AMOUNT_ERROR };
+  }
   if (form.referrer_bonus_type === 'fixed') {
     return fixedOverride(playerId, form, referredPlayerBonusAmount);
   }
