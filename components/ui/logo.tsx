@@ -1,3 +1,7 @@
+'use client';
+
+import { useBrandHostname } from '@/components/brand/brand-hostname-provider';
+import { isSlotHouseHostname, SLOTHOUSE_LOGO_SRC } from '@/lib/brand/slothouse';
 import { getBrandName } from '@/lib/utils/domain';
 
 interface LogoProps {
@@ -6,7 +10,37 @@ interface LogoProps {
   className?: string;
 }
 
+const SLOTHOUSE_LOCKUP_CLASS = {
+  sm: 'h-8 w-auto max-w-[9.5rem]',
+  md: 'h-10 w-auto max-w-[12rem]',
+  lg: 'h-14 w-auto max-w-[16rem]',
+} as const;
+
+const LOGO_INTRINSIC_WIDTH = 1353;
+const LOGO_INTRINSIC_HEIGHT = 453;
+
 export function Logo({ size = 'md', showText = false, className = '' }: LogoProps) {
+  const hostname = useBrandHostname();
+
+  if (isSlotHouseHostname(hostname)) {
+    return (
+      <div className={`flex flex-col gap-1 ${className}`}>
+        <img
+          src={SLOTHOUSE_LOGO_SRC}
+          alt="Slot House"
+          width={LOGO_INTRINSIC_WIDTH}
+          height={LOGO_INTRINSIC_HEIGHT}
+          className={`${SLOTHOUSE_LOCKUP_CLASS[size]} object-contain`}
+        />
+        {showText ? (
+          <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium leading-none">
+            Admin Panel
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
   const brandName = getBrandName();
   const sizeClasses = {
     sm: 'w-10 h-10',

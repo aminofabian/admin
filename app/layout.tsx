@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { BrandHostnameProvider } from "@/components/brand/brand-hostname-provider";
 import { generateBrandMetadata } from "@/lib/utils/metadata";
 import { headers } from "next/headers";
 
@@ -20,11 +21,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return generateBrandMetadata(hostname);
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const hostname = headersList.get('host') || 'localhost';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -44,13 +48,15 @@ export default function RootLayout({
         />
       </head>
       <body className={outfit.className}>
-        <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <BrandHostnameProvider hostname={hostname}>
+          <ThemeProvider>
+            <AuthProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BrandHostnameProvider>
       </body>
     </html>
   );
