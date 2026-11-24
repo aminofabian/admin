@@ -59,6 +59,38 @@ const REWARD_TYPE_OPTIONS: RewardTypeOption[] = [
       </svg>
     ),
   },
+  {
+    value: 'weekly_ticket',
+    label: 'Weekly Ticket (Silver)',
+    shortLabel: 'Silver',
+    prizeTypeLabel: 'Weekly Ticket',
+    balanceType: null,
+    defaultPrize: (s) => {
+      const n = Math.max(1, s.quantity ?? 1);
+      return `${n} Silver Ticket${n === 1 ? '' : 's'}`;
+    },
+    icon: (
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'monthly_ticket',
+    label: 'Monthly Ticket (Gold)',
+    shortLabel: 'Gold',
+    prizeTypeLabel: 'Monthly Ticket',
+    balanceType: null,
+    defaultPrize: (s) => {
+      const n = Math.max(1, s.quantity ?? 1);
+      return `${n} Gold Ticket${n === 1 ? '' : 's'}`;
+    },
+    icon: (
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M5 12h14" />
+      </svg>
+    ),
+  },
 ];
 
 function formatAmountForPrize(amount: string): string {
@@ -69,7 +101,15 @@ function formatAmountForPrize(amount: string): string {
 
 function normalizeRewardType(value: string): RouletteRewardType {
   if (value === 'cashoutable_balance') return 'main_balance';
-  if (value === 'main_balance' || value === 'respin' || value === 'try_again') {
+  if (value === 'silver_ticket') return 'weekly_ticket';
+  if (value === 'gold_ticket') return 'monthly_ticket';
+  if (
+    value === 'main_balance' ||
+    value === 'respin' ||
+    value === 'try_again' ||
+    value === 'weekly_ticket' ||
+    value === 'monthly_ticket'
+  ) {
     return value;
   }
   return 'main_balance';
@@ -88,12 +128,16 @@ function mainBalanceQuantity(slot: RouletteRewardSlot): number {
   return 0;
 }
 
+function isTicketReward(reward: RouletteRewardType): boolean {
+  return reward === 'weekly_ticket' || reward === 'monthly_ticket';
+}
+
 function slotQuantityDisplay(slot: RouletteRewardSlot, reward: RouletteRewardType): string {
   if (reward === 'main_balance') {
     const n = mainBalanceQuantity(slot);
     return Number.isInteger(n) ? String(n) : n.toString();
   }
-  if (reward === 'respin') return String(slot.quantity ?? 1);
+  if (reward === 'respin' || isTicketReward(reward)) return String(slot.quantity ?? 1);
   return '';
 }
 
@@ -104,7 +148,7 @@ function quantityForSavePayload(
   if (reward === 'main_balance') {
     return mainBalanceQuantity(slot);
   }
-  if (reward === 'respin') {
+  if (reward === 'respin' || isTicketReward(reward)) {
     return Math.max(1, slot.quantity ?? 1);
   }
   return 0;
@@ -120,7 +164,7 @@ function applyQuantityChange(
     const quantity = Number.isNaN(n) ? 0 : Math.max(0, Number(n.toFixed(2)));
     return { quantity };
   }
-  if (reward === 'respin') {
+  if (reward === 'respin' || isTicketReward(reward)) {
     return { quantity: Math.max(1, parseInt(raw, 10) || 1) };
   }
   return {};
@@ -400,7 +444,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
           };
           if (reward === 'main_balance') {
             normalized.quantity = mainBalanceQuantity(slot);
-          } else if (reward === 'respin') {
+          } else if (reward === 'respin' || isTicketReward(reward)) {
             normalized.quantity = Math.max(1, slot.quantity ?? 1);
           } else {
             normalized.quantity = 0;
@@ -463,7 +507,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
           balance_type: balanceType,
           quantity: isMainBalance
             ? mainBalanceQuantity(slot)
-            : reward === 'respin'
+            : reward === 'respin' || isTicketReward(reward)
               ? Math.max(1, slot.quantity ?? 1)
               : 0,
         };
@@ -521,6 +565,12 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       }
       if (slot.reward_type === 'respin' && (slot.quantity ?? 0) < 1) {
         return `Slot ${slot.position}: Respin quantity must be at least 1.`;
+      }
+      if (
+        isTicketReward(normalizeRewardType(String(slot.reward_type))) &&
+        (slot.quantity ?? 0) < 1
+      ) {
+        return `Slot ${slot.position}: Ticket quantity must be at least 1.`;
       }
     }
     if (!chanceIs100) {
@@ -750,7 +800,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
                 const reward = normalizeRewardType(String(slot.reward_type));
                 const isMainBalance = reward === 'main_balance';
                 const isRespin = reward === 'respin';
-                const qtyEnabled = isMainBalance || isRespin;
+                const qtyEnabled = isMainBalance || isRespin || isTicketReward(reward);
                 const canRemove = canEdit && !isSaving && rewards.length > minRewards;
 
                 return (
@@ -1075,7 +1125,7 @@ function SlotCard({
   const opt = optionFor(reward);
   const isMainBalance = reward === 'main_balance';
   const isRespin = reward === 'respin';
-  const qtyEnabled = isMainBalance || isRespin;
+  const qtyEnabled = isMainBalance || isRespin || isTicketReward(reward);
   const canRemove = canEdit && !isSaving && total > minRewards;
   const [expanded, setExpanded] = useState(false);
 
@@ -1104,6 +1154,9 @@ function SlotCard({
               : ''}
             {isRespin && slot.quantity
               ? ` · ${slot.quantity} respin${slot.quantity > 1 ? 's' : ''}`
+              : ''}
+            {isTicketReward(reward) && slot.quantity
+              ? ` · ${slot.quantity} ticket${slot.quantity > 1 ? 's' : ''}`
               : ''}
           </div>
         </div>

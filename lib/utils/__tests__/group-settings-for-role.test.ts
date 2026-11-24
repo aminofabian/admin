@@ -14,12 +14,21 @@ describe('groupSettingsForRole', () => {
   it('shows superadmin platform settings but not email', () => {
     const ids = itemIds(USER_ROLES.SUPERADMIN);
     expect(ids).toContain('company');
+    expect(ids).toContain('lucky-draw');
+    expect(ids).toContain('lucky-draw-thresholds');
     expect(ids).not.toContain('email-templates');
     expect(ids).not.toContain('cashout-24h');
   });
 
   it('hides company settings from company admins', () => {
     expect(itemIds(USER_ROLES.COMPANY)).not.toContain('company');
+  });
+
+  it('shows Lucky Draw to company and manager, and thresholds only to superadmin', () => {
+    expect(itemIds(USER_ROLES.COMPANY)).toContain('lucky-draw');
+    expect(itemIds(USER_ROLES.COMPANY)).not.toContain('lucky-draw-thresholds');
+    expect(itemIds(USER_ROLES.MANAGER)).toContain('lucky-draw');
+    expect(itemIds(USER_ROLES.MANAGER)).not.toContain('lucky-draw-thresholds');
   });
 
   it('drops groups with no visible items', () => {

@@ -6,14 +6,21 @@ import type { ApiResponse } from '@/types';
  *  - main_balance → awards money on the player's main balance (value in `quantity`)
  *  - respin       → grants extra spins (`quantity` ≥ 1)
  *  - try_again    → ends the turn with no reward
+ *  - weekly_ticket / silver_ticket → silver tickets for the weekly lucky draw
+ *  - monthly_ticket / gold_ticket → gold tickets for the monthly lucky draw
  *
  * Legacy configs may still return `cashoutable_balance`; the admin UI maps those to main_balance.
+ * silver_ticket / gold_ticket aliases normalize to weekly_ticket / monthly_ticket in the editor.
  */
 export type RouletteRewardType =
   | 'main_balance'
   | 'cashoutable_balance'
   | 'respin'
-  | 'try_again';
+  | 'try_again'
+  | 'weekly_ticket'
+  | 'silver_ticket'
+  | 'monthly_ticket'
+  | 'gold_ticket';
 
 export type RouletteBalanceType = 'main' | 'cashoutable' | null;
 

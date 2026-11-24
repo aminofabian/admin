@@ -88,6 +88,23 @@ export function canEditRouletteRewards(role: UserRole | undefined): boolean {
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
+/** Company, manager, and superadmin may edit lucky draw settings. */
+export function canEditLuckyDrawConfig(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
+/** Company, superadmin, and manager may view cycles, history, and run an eligible manual draw. */
+export function canOperateLuckyDraw(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
+/** Superadmin-only global manual-draw thresholds. */
+export function canEditLuckyDrawManualThresholds(role: UserRole | undefined): boolean {
+  return role === USER_ROLES.SUPERADMIN;
+}
+
 /**
  * Who may manage event email templates.
  * Company-scoped only (not superadmin) — templates are per project.

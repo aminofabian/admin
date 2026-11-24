@@ -9,7 +9,9 @@ import {
   Mail,
   Megaphone,
   Phone,
+  Shield,
   Tag,
+  Ticket,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -51,6 +53,8 @@ export const SETTING_ITEMS: SettingItem[] = [
   { id: 'bonuses', title: 'Bonuses', description: 'Purchase, recharge, transfer, and signup bonuses', href: '/dashboard/settings/bonuses', group: 'players', roles: [COMPANY, SUPERADMIN], icon: CircleDollarSign },
   { id: 'verification', title: 'Verification', description: 'Phone OTP and identity checks', href: '/dashboard/settings/verification', group: 'players', roles: [COMPANY, SUPERADMIN], icon: Phone },
   { id: 'roulette', title: 'Prize wheel', description: 'Daily free spins and wheel rewards', href: '/dashboard/settings/roulette', group: 'players', roles: [COMPANY, SUPERADMIN], icon: Disc3 },
+  { id: 'lucky-draw', title: 'Lucky Draw', description: 'Weekly Silver and monthly Gold draws', href: '/dashboard/settings/lucky-draw', group: 'players', roles: [COMPANY, SUPERADMIN, MANAGER], icon: Ticket },
+  { id: 'lucky-draw-thresholds', title: 'Lucky Draw thresholds', description: 'Global gates for early and manual draws', href: '/dashboard/settings/lucky-draw-thresholds', group: 'players', roles: [SUPERADMIN], icon: Shield },
   { id: 'referral', title: 'Referral program', description: 'Turn referrals on or off and set rewards', href: '/dashboard/settings/referral', group: 'growth', roles: [COMPANY, SUPERADMIN], icon: UserPlus },
   { id: 'referral-promo-codes', title: 'Promo codes', description: 'Custom signup codes', href: '/dashboard/settings/referral-promo-codes', group: 'growth', roles: [COMPANY, SUPERADMIN, MANAGER], icon: Tag },
   { id: 'affiliate', title: 'Affiliate defaults', description: 'Default commission and fees', href: '/dashboard/settings/affiliate', group: 'growth', roles: [COMPANY, SUPERADMIN], icon: Users },
