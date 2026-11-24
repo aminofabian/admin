@@ -71,7 +71,7 @@ function prizeLine(settings: LuckyDrawCompanySettings, drawType: DrawType) {
   if (mode === 'equal') {
     const total =
       drawType === 'weekly' ? settings.weekly_prize_total : settings.monthly_prize_total;
-    return `${winners} winners split $${total || '0.00'}`;
+    return `$${total || '0'} · ${winners}`;
   }
   const amounts =
     drawType === 'weekly' ? settings.weekly_prize_amounts : settings.monthly_prize_amounts;
@@ -105,19 +105,19 @@ function CycleCard({
 
   if (!enabled) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-gray-50">{title}</h3>
-        <p className="mt-1 text-sm text-gray-500">Disabled — enable in configuration below.</p>
-      </div>
+      <section className="rounded-xl border border-dashed border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <p className="mt-0.5 text-xs text-gray-500">Off</p>
+      </section>
     );
   }
 
   if (!cycle) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-gray-50">{title}</h3>
-        <p className="mt-1 text-sm text-gray-500">No active cycle</p>
-      </div>
+      <section className="rounded-xl border border-dashed border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <p className="mt-0.5 text-xs text-gray-500">No active draw</p>
+      </section>
     );
   }
 
@@ -129,32 +129,38 @@ function CycleCard({
     : 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-      <div className="flex items-start justify-between gap-3">
+    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
         <div>
-          <h3 className="font-medium text-gray-900 dark:text-gray-50">{title}</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Scheduled {formatWhen(cycle.scheduled_draw_at)}
-          </p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          <p className="mt-0.5 text-xs text-gray-500">{formatWhen(cycle.scheduled_draw_at)}</p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium capitalize text-emerald-700 dark:text-emerald-300">
           {cycle.status}
         </span>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-gray-500">Tickets</dt>
-          <dd className="font-semibold text-gray-900 dark:text-gray-50">{cycle.ticket_count}</dd>
+      <dl className="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-700/80">
+        <div className="px-5 py-4">
+          <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Tickets</dt>
+          <dd className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-50">
+            {cycle.ticket_count}
+          </dd>
         </div>
-        <div>
-          <dt className="text-gray-500">Players</dt>
-          <dd className="font-semibold text-gray-900 dark:text-gray-50">{cycle.player_count}</dd>
+        <div className="px-5 py-4">
+          <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Players</dt>
+          <dd className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-50">
+            {cycle.player_count}
+          </dd>
         </div>
       </dl>
-      {prize ? <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{prize}</p> : null}
+      {prize ? (
+        <p className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500 dark:border-gray-700/80">
+          {prize}
+        </p>
+      ) : null}
 
       {manual && showRunButton && (
-        <div className="mt-4 space-y-2">
+        <div className="space-y-3 border-t border-gray-100 px-5 py-4 dark:border-gray-700/80">
           <div className="space-y-1 text-xs text-gray-500">
             <div className="flex justify-between">
               <span>
@@ -183,39 +189,28 @@ function CycleCard({
           </div>
           <Button
             type="button"
+            size="sm"
             variant={manual.eligible ? 'primary' : 'secondary'}
             disabled={!canRun || !manual.eligible || running}
             onClick={onRun}
-            className="w-full"
             title={
               !manual.eligible
                 ? manual.block_reasons.map((reason) => reasonLine(reason, manual)).join(' ')
-                : 'Run draw now and start a new cycle'
+                : undefined
             }
           >
-            {running ? 'Running…' : 'Run Draw Now'}
+            {running ? 'Running…' : 'Run now'}
           </Button>
           {!manual.eligible && (
             <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
               {manual.block_reasons.map((reason) => (
-                <li key={reason}>• {reasonLine(reason, manual)}</li>
+                <li key={reason}>{reasonLine(reason, manual)}</li>
               ))}
             </ul>
           )}
-          {manual.eligible && (
-            <p className="text-xs text-gray-500">
-              Thresholds met. Manual draw resets the schedule from now.
-            </p>
-          )}
         </div>
       )}
-
-      {!showRunButton && (
-        <p className="mt-4 text-xs text-gray-500">
-          Early/manual draws are disabled globally. Scheduled countdown still applies.
-        </p>
-      )}
-    </div>
+    </section>
   );
 }
 
@@ -250,20 +245,26 @@ function SettingsEditor({
     const amounts = draft[amountsKey] as string[];
 
     return (
-      <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-medium capitalize text-gray-900 dark:text-gray-50">
-            {drawType} ({drawType === 'weekly' ? 'Silver' : 'Gold'})
-          </h3>
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700/80">
+          <div>
+            <h3 className="text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
+              {drawType}
+            </h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {drawType === 'weekly' ? 'Silver' : 'Gold'}
+            </p>
+          </div>
           <Switch
             checked={draft[enabledKey] as boolean}
             disabled={disabled}
             onChange={(v) => update({ [enabledKey]: v })}
+            tone="emerald"
           />
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="text-gray-500">Winner count</span>
+            <span className="text-xs text-gray-500">Winners</span>
             <Input
               type="number"
               min={1}
@@ -280,21 +281,32 @@ function SettingsEditor({
               }}
             />
           </label>
-          <label className="block text-sm">
-            <span className="text-gray-500">Prize mode</span>
-            <select
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
-              disabled={disabled}
-              value={mode}
-              onChange={(e) => update({ [modeKey]: e.target.value as PrizeMode })}
-            >
-              <option value="equal">Equal (split total)</option>
-              <option value="individual">Individual amounts</option>
-            </select>
-          </label>
+          <div className="block text-sm">
+            <span className="text-xs text-gray-500">Prize split</span>
+            <div className="mt-1 inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-600">
+              {(['equal', 'individual'] as const).map((option) => {
+                const selected = mode === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => update({ [modeKey]: option })}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                      selected
+                        ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                        : 'text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    {option === 'equal' ? 'Equal' : 'Custom'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {mode === 'equal' ? (
             <label className="block text-sm sm:col-span-2">
-              <span className="text-gray-500">Prize total (split across winners)</span>
+              <span className="text-xs text-gray-500">Prize</span>
               <Input
                 disabled={disabled}
                 value={draft[totalKey] as string}
@@ -303,12 +315,9 @@ function SettingsEditor({
             </label>
           ) : (
             <div className="space-y-2 sm:col-span-2">
-              <p className="text-xs text-gray-500">
-                Amount per winner position ({winnerCount} required)
-              </p>
               {Array.from({ length: winnerCount }, (_, i) => (
                 <label key={`${drawType}-amt-${i}`} className="block text-sm">
-                  <span className="text-gray-500">{placeLabel(i)} place</span>
+                  <span className="text-xs text-gray-500">{placeLabel(i)}</span>
                   <Input
                     disabled={disabled}
                     value={amounts[i] ?? ''}
@@ -324,16 +333,15 @@ function SettingsEditor({
             </div>
           )}
           <label className="block text-sm">
-            <span className="text-gray-500">Purchase threshold ($)</span>
+            <span className="text-xs text-gray-500">Spend</span>
             <Input
               disabled={disabled}
               value={draft[thresholdKey] as string}
               onChange={(e) => update({ [thresholdKey]: e.target.value })}
-              placeholder="0 = disabled"
             />
           </label>
           <label className="block text-sm">
-            <span className="text-gray-500">Tickets per threshold</span>
+            <span className="text-xs text-gray-500">Tickets</span>
             <Input
               type="number"
               min={0}
@@ -345,7 +353,7 @@ function SettingsEditor({
             />
           </label>
         </div>
-      </div>
+      </section>
     );
   };
 
@@ -355,8 +363,8 @@ function SettingsEditor({
         {renderPrizeSection('weekly')}
         {renderPrizeSection('monthly')}
       </div>
-      <div className="flex flex-wrap gap-6 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+      <div className="flex flex-wrap gap-x-6 gap-y-3 rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-800">
+        <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
           <input
             type="checkbox"
             disabled={disabled}
@@ -365,22 +373,18 @@ function SettingsEditor({
               update({ allow_multiple_wins_same_player: e.target.checked })
             }
           />
-          Allow same player to win multiple times in one draw
+          Repeat wins
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
           <input
             type="checkbox"
             disabled={disabled}
             checked={draft.prize_auto_credit}
             onChange={(e) => update({ prize_auto_credit: e.target.checked })}
           />
-          Auto-credit prizes (off = require admin approval)
+          Auto-credit
         </label>
       </div>
-      <p className="text-xs text-gray-500">
-        Spin tickets are configured on Roulette reward configs (
-        <code>weekly_ticket</code> / <code>monthly_ticket</code>).
-      </p>
     </div>
   );
 }
@@ -496,23 +500,22 @@ export default function LuckyDrawSettingsPage() {
   const earlyEnabled = status?.global.early_draw_enabled !== false;
 
   return (
-    <div className="space-y-10 pb-12">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            Lucky Draw
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-            Weekly (Silver) and Monthly (Gold) draws. Manual draws are gated by Superadmin
-            thresholds and reset the cycle from the draw time.
-          </p>
+    <div className="space-y-8 pb-12">
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Lucky Draw</h1>
+        <div className="flex items-center gap-4 text-sm font-medium">
+          {isSuperadmin && (
+            <Link
+              href="/dashboard/settings/lucky-draw-thresholds"
+              className="text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              Thresholds
+            </Link>
+          )}
+          <Link href="/dashboard/settings/lucky-draw/history" className="text-primary">
+            History
+          </Link>
         </div>
-        <Link
-          href="/dashboard/settings/lucky-draw/history"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          View draw history →
-        </Link>
       </header>
 
       {isSuperadmin && (
@@ -520,7 +523,7 @@ export default function LuckyDrawSettingsPage() {
       )}
 
       {needsCompany && (
-        <p className="text-sm text-gray-500">Select a company to load its lucky draw.</p>
+        <p className="text-sm text-gray-500">Select a company.</p>
       )}
 
       {!needsCompany && isLoading && !status && <LoadingState />}
@@ -532,10 +535,10 @@ export default function LuckyDrawSettingsPage() {
       {!needsCompany && status && (
       <>
       <section className="space-y-4">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">Live status</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Live</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <CycleCard
-            title="Weekly Draw"
+            title="Weekly"
             enabled={status?.settings.weekly_enabled ?? true}
             status={status?.weekly}
             prize={status?.settings ? prizeLine(status.settings, 'weekly') : undefined}
@@ -545,7 +548,7 @@ export default function LuckyDrawSettingsPage() {
             onRun={() => void handleRun('weekly')}
           />
           <CycleCard
-            title="Monthly Draw"
+            title="Monthly"
             enabled={status?.settings.monthly_enabled ?? true}
             status={status?.monthly}
             prize={status?.settings ? prizeLine(status.settings, 'monthly') : undefined}
@@ -560,33 +563,15 @@ export default function LuckyDrawSettingsPage() {
       {canEdit && draft && (
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">
-              Draw configuration
-            </h2>
-            <Button type="button" disabled={savingConfig} onClick={() => void handleSaveConfig()}>
-              {savingConfig ? 'Saving…' : 'Save settings'}
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Settings</h2>
+            <Button type="button" size="sm" disabled={savingConfig} onClick={() => void handleSaveConfig()}>
+              {savingConfig ? 'Saving…' : 'Save'}
             </Button>
           </div>
           <SettingsEditor draft={draft} disabled={savingConfig} onChange={setDraft} />
         </section>
       )}
 
-      {!canEdit && (
-        <p className="text-sm text-gray-500">
-          You can view live draws and history. Prize and threshold settings are limited to
-          company admins and managers.
-        </p>
-      )}
-
-      {user?.role === USER_ROLES.SUPERADMIN && (
-        <p className="text-sm text-gray-500">
-          Superadmin global early-draw gates live under{' '}
-          <Link href="/dashboard/settings/lucky-draw-thresholds" className="text-primary underline">
-            Lucky Draw Thresholds
-          </Link>
-          .
-        </p>
-      )}
       </>
       )}
     </div>

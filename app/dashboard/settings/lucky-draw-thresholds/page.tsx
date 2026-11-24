@@ -61,24 +61,13 @@ export default function LuckyDrawThresholdsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-12">
       <header>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-          Lucky Draw — Global gates
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Superadmin early/manual draw gates. Scheduled automatic draws do not use these
-          thresholds.
-        </p>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Thresholds</h1>
       </header>
 
       <section className="rounded-xl border border-gray-200 p-5 dark:border-gray-800">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="font-medium text-gray-900 dark:text-gray-50">
-              Allow early / manual draws globally
-            </h2>
-            <p className="text-sm text-gray-500">
-              When off, company “Run Draw Now” is hidden everywhere.
-            </p>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Manual draws</h2>
           </div>
           <Switch
             checked={draft.early_draw_enabled}

@@ -73,12 +73,7 @@ export default function LuckyDrawHistoryPage() {
     <div className="space-y-6 pb-12">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            Draw history
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Completed cycles with winners, prizes, and draw method.
-          </p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">History</h1>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -94,7 +89,7 @@ export default function LuckyDrawHistoryPage() {
             href="/dashboard/settings/lucky-draw"
             className="text-sm font-medium text-primary hover:underline"
           >
-            ← Back to Lucky Draw
+            Lucky Draw
           </Link>
         </div>
       </header>
